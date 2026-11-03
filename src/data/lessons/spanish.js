@@ -1,0 +1,260 @@
+/**
+ * @file spanish.js
+ * @description Comprehensive Spanish curriculum aligned to CEFR Levels (A1 Breakthrough & A2 Waystage).
+ */
+
+export const spanishLessons = [
+  // ── CEFR A1 — Basics: Lesson 1 ────────────────────────────────────────────
+  {
+    id: 'es-basics-1',
+    categoryId: 'basics',
+    languageId: 'es',
+    level: 'A1',
+    title: 'Hello & Essential Greetings',
+    description: 'Learn foundational welcomes and polite conversational greetings.',
+    order: 1,
+    xpReward: 50,
+    vocabulary: [
+      { id: 'es-w-001', word: 'Hola', translation: 'Hello / Hi', pronunciation: 'OH-lah', example: '¡Hola! ¿Cómo estás hoy?', exampleTranslation: 'Hello! How are you today?' },
+      { id: 'es-w-002', word: 'Buenos días', translation: 'Good morning', pronunciation: 'BWEH-nos DEE-ahs', example: 'Buenos días, señor López.', exampleTranslation: 'Good morning, Mr. Lopez.' },
+      { id: 'es-w-003', word: 'Buenas tardes', translation: 'Good afternoon', pronunciation: 'BWEH-nahs TAHR-des', example: 'Buenas tardes a todos.', exampleTranslation: 'Good afternoon to everyone.' },
+      { id: 'es-w-004', word: 'Buenas noches', translation: 'Good evening / Good night', pronunciation: 'BWEH-nahs NOH-ches', example: 'Buenas noches, que descanses.', exampleTranslation: 'Good night, rest well.' },
+      { id: 'es-w-005', word: 'Adiós', translation: 'Goodbye', pronunciation: 'ah-DYOHS', example: 'Adiós, nos vemos mañana.', exampleTranslation: 'Goodbye, see you tomorrow.' },
+      { id: 'es-w-006', word: 'Hasta luego', translation: 'See you later', pronunciation: 'AHS-tah LWEH-goh', example: 'Hasta luego, amigo.', exampleTranslation: 'See you later, friend.' },
+    ],
+    exercises: [
+      { id: 'es-ex-101', type: 'flashcard', wordId: 'es-w-001', word: 'Hola', translation: 'Hello / Hi', pronunciation: 'OH-lah', example: '¡Hola! ¿Cómo estás hoy?', exampleTranslation: 'Hello! How are you today?' },
+      { id: 'es-ex-102', type: 'multipleChoice', question: 'What does "Buenos días" mean?', options: ['Good evening', 'Good morning', 'See you later', 'Thank you'], correctIndex: 1, explanation: '"Buenos días" literally translates to "Good days" and is used as "Good morning".' },
+      { id: 'es-ex-103', type: 'fillBlank', sentence: '¡___! ¿Cómo estás hoy?', answer: 'Hola', hint: 'Most common Spanish greeting', translation: 'Hello! How are you today?' },
+      { id: 'es-ex-104', type: 'matchPairs', prompt: 'Match Spanish greetings to their meanings', pairs: [{ left: 'Hola', right: 'Hello' }, { left: 'Adiós', right: 'Goodbye' }, { left: 'Buenas noches', right: 'Good night' }, { left: 'Hasta luego', right: 'See you later' }] },
+      { id: 'es-ex-105', type: 'typing', prompt: 'Type the Spanish word for "Goodbye"', answer: 'Adiós', hint: 'Starts with A, ends with s (accent on o)', placeholder: 'Escribe aquí...' },
+      { id: 'es-ex-106', type: 'multipleChoice', question: 'How do you say "Good afternoon" in Spanish?', options: ['Buenos días', 'Buenas noches', 'Buenas tardes', 'Hasta luego'], correctIndex: 2, explanation: '"Buenas tardes" is used from lunchtime until sunset.' },
+    ],
+  },
+
+  // ── CEFR A1 — Basics: Lesson 2 ────────────────────────────────────────────
+  {
+    id: 'es-basics-2',
+    categoryId: 'basics',
+    languageId: 'es',
+    level: 'A1',
+    title: 'Please, Thank You & Courtesy',
+    description: 'Learn polite everyday manners and essential courtesies.',
+    order: 2,
+    xpReward: 50,
+    vocabulary: [
+      { id: 'es-w-007', word: 'Por favor', translation: 'Please', pronunciation: 'por fah-VOR', example: 'Un café, por favor.', exampleTranslation: 'A coffee, please.' },
+      { id: 'es-w-008', word: 'Gracias', translation: 'Thank you', pronunciation: 'GRAH-syahs', example: 'Muchas gracias por tu ayuda.', exampleTranslation: 'Thank you very much for your help.' },
+      { id: 'es-w-009', word: 'De nada', translation: "You're welcome", pronunciation: 'deh NAH-dah', example: '— Gracias. — De nada.', exampleTranslation: "— Thank you. — You're welcome." },
+      { id: 'es-w-010', word: 'Disculpe', translation: 'Excuse me (formal)', pronunciation: 'dees-KOOL-peh', example: 'Disculpe, ¿dónde está el baño?', exampleTranslation: 'Excuse me, where is the bathroom?' },
+      { id: 'es-w-011', word: 'Lo siento', translation: "I'm sorry", pronunciation: 'loh SYEHN-toh', example: 'Lo siento mucho, llegué tarde.', exampleTranslation: "I'm so sorry, I arrived late." },
+      { id: 'es-w-012', word: 'Sí / No', translation: 'Yes / No', pronunciation: 'see / noh', example: 'Sí, hablo un poco de español.', exampleTranslation: 'Yes, I speak a little Spanish.' },
+    ],
+    exercises: [
+      { id: 'es-ex-201', type: 'flashcard', wordId: 'es-w-008', word: 'Gracias', translation: 'Thank you', pronunciation: 'GRAH-syahs', example: 'Muchas gracias por tu ayuda.', exampleTranslation: 'Thank you very much for your help.' },
+      { id: 'es-ex-202', type: 'multipleChoice', question: 'What is the Spanish response for "You are welcome"?', options: ['Por favor', 'De nada', 'Lo siento', 'Disculpe'], correctIndex: 1, explanation: '"De nada" literally means "of nothing" and is used as "You are welcome".' },
+      { id: 'es-ex-203', type: 'fillBlank', sentence: 'Un café, ___ ___.', answer: 'por favor', hint: 'Polite request expression', translation: 'A coffee, please.' },
+      { id: 'es-ex-204', type: 'matchPairs', prompt: 'Match courtesy expressions to their meanings', pairs: [{ left: 'Por favor', right: 'Please' }, { left: 'Gracias', right: 'Thank you' }, { left: 'De nada', right: "You're welcome" }, { left: 'Lo siento', right: "I'm sorry" }] },
+      { id: 'es-ex-205', type: 'typing', prompt: 'Type "Thank you" in Spanish', answer: 'Gracias', hint: 'Starts with Gra...', placeholder: 'Escribe aquí...' },
+    ],
+  },
+
+  // ── CEFR A1 — Greetings: Lesson 1 ─────────────────────────────────────────
+  {
+    id: 'es-greetings-1',
+    categoryId: 'greetings',
+    languageId: 'es',
+    level: 'A1',
+    title: 'Personal Introductions',
+    description: 'Introduce yourself, ask names, and express pleasure to meet someone.',
+    order: 1,
+    xpReward: 55,
+    vocabulary: [
+      { id: 'es-w-013', word: 'Me llamo', translation: 'My name is', pronunciation: 'meh YAH-moh', example: 'Hola, me llamo Sofia.', exampleTranslation: 'Hello, my name is Sofia.' },
+      { id: 'es-w-014', word: '¿Cómo te llamas?', translation: 'What is your name? (informal)', pronunciation: 'KOH-moh teh YAH-mahs', example: '¿Y tú? ¿Cómo te llamas?', exampleTranslation: 'And you? What is your name?' },
+      { id: 'es-w-015', word: 'Mucho gusto', translation: 'Nice to meet you', pronunciation: 'MOO-choh GOOS-toh', example: 'Mucho gusto en conocerte.', exampleTranslation: 'Nice to meet you.' },
+      { id: 'es-w-016', word: '¿Cómo estás?', translation: 'How are you?', pronunciation: 'KOH-moh ehs-TAHS', example: 'Hola Carlos, ¿cómo estás?', exampleTranslation: 'Hello Carlos, how are you?' },
+      { id: 'es-w-017', word: 'Muy bien', translation: 'Very well / Great', pronunciation: 'mooy byehn', example: 'Estoy muy bien, gracias.', exampleTranslation: "I'm very well, thank you." },
+    ],
+    exercises: [
+      { id: 'es-ex-301', type: 'multipleChoice', question: 'Which phrase means "Nice to meet you"?', options: ['Mucho gusto', 'Hasta luego', 'Por favor', 'Buenos días'], correctIndex: 0, explanation: '"Mucho gusto" means "Much pleasure" or "Nice to meet you".' },
+      { id: 'es-ex-302', type: 'fillBlank', sentence: 'Hola, ___ llamo Juan.', answer: 'me', hint: 'Reflexive pronoun for "myself"', translation: 'Hello, my name is Juan.' },
+      { id: 'es-ex-303', type: 'matchPairs', prompt: 'Match the phrases', pairs: [{ left: '¿Cómo estás?', right: 'How are you?' }, { left: 'Muy bien', right: 'Very well' }, { left: 'Mucho gusto', right: 'Nice to meet you' }, { left: 'Me llamo', right: 'My name is' }] },
+      { id: 'es-ex-304', type: 'typing', prompt: 'Type "Very well" in Spanish', answer: 'Muy bien', hint: 'Two words: M__ b____', placeholder: 'Escribe aquí...' },
+    ],
+  },
+
+  // ── CEFR A1 — Numbers: Lesson 1 ───────────────────────────────────────────
+  {
+    id: 'es-numbers-1',
+    categoryId: 'numbers',
+    languageId: 'es',
+    level: 'A1',
+    title: 'Numbers 1 to 10',
+    description: 'Learn to count from uno to diez with accurate pronunciation.',
+    order: 1,
+    xpReward: 50,
+    vocabulary: [
+      { id: 'es-w-018', word: 'Uno', translation: 'One (1)', pronunciation: 'OO-noh', example: 'Una mesa, por favor.', exampleTranslation: 'One table, please.' },
+      { id: 'es-w-019', word: 'Dos', translation: 'Two (2)', pronunciation: 'dohs', example: 'Dos cafés, por favor.', exampleTranslation: 'Two coffees, please.' },
+      { id: 'es-w-020', word: 'Tres', translation: 'Three (3)', pronunciation: 'trehs', example: 'Tres amigos.', exampleTranslation: 'Three friends.' },
+      { id: 'es-w-021', word: 'Cuatro', translation: 'Four (4)', pronunciation: 'KWAH-troh', example: 'Cuatro horas.', exampleTranslation: 'Four hours.' },
+      { id: 'es-w-022', word: 'Cinco', translation: 'Five (5)', pronunciation: 'SEEN-koh', example: 'Cinco minutos.', exampleTranslation: 'Five minutes.' },
+      { id: 'es-w-023', word: 'Diez', translation: 'Ten (10)', pronunciation: 'dyehth / dyehs', example: 'Diez euros.', exampleTranslation: 'Ten euros.' },
+    ],
+    exercises: [
+      { id: 'es-ex-401', type: 'multipleChoice', question: 'What is "Cuatro" in English?', options: ['Two', 'Three', 'Four', 'Five'], correctIndex: 2, explanation: '"Cuatro" is the number 4.' },
+      { id: 'es-ex-402', type: 'matchPairs', prompt: 'Match the numbers to words', pairs: [{ left: 'Uno', right: '1' }, { left: 'Dos', right: '2' }, { left: 'Tres', right: '3' }, { left: 'Cinco', right: '5' }] },
+      { id: 'es-ex-403', type: 'typing', prompt: 'Type the Spanish word for the number 2', answer: 'Dos', hint: 'Three letters starting with D', placeholder: 'Número...' },
+    ],
+  },
+
+  // ── CEFR A1 — Food & Drink: Lesson 1 ──────────────────────────────────────
+  {
+    id: 'es-food-1',
+    categoryId: 'food-drink',
+    languageId: 'es',
+    level: 'A1',
+    title: 'At the Café & Restaurant',
+    description: 'Order food, coffee, water, and ask for the bill.',
+    order: 1,
+    xpReward: 60,
+    vocabulary: [
+      { id: 'es-w-024', word: 'El agua', translation: 'Water', pronunciation: 'ehl AH-gwah', example: 'Un vaso de agua, por favor.', exampleTranslation: 'A glass of water, please.' },
+      { id: 'es-w-025', word: 'El café', translation: 'Coffee', pronunciation: 'ehl kah-FEH', example: 'Me gusta el café con leche.', exampleTranslation: 'I like coffee with milk.' },
+      { id: 'es-w-026', word: 'La cuenta', translation: 'The bill / check', pronunciation: 'lah KWEHN-tah', example: 'La cuenta, por favor.', exampleTranslation: 'The bill, please.' },
+      { id: 'es-w-027', word: 'Delicioso', translation: 'Delicious', pronunciation: 'deh-lee-SYOH-soh', example: 'La comida está deliciosa.', exampleTranslation: 'The food is delicious.' },
+      { id: 'es-w-028', word: 'El pan', translation: 'Bread', pronunciation: 'ehl pahn', example: 'Pan caliente con aceite.', exampleTranslation: 'Warm bread with olive oil.' },
+    ],
+    exercises: [
+      { id: 'es-ex-501', type: 'multipleChoice', question: 'How do you ask for "The bill, please"?', options: ['El café, por favor', 'La cuenta, por favor', 'El agua, por favor', 'Buenos días, por favor'], correctIndex: 1, explanation: '"La cuenta, por favor" is used to request the bill.' },
+      { id: 'es-ex-502', type: 'fillBlank', sentence: 'Un vaso de ___, por favor.', answer: 'agua', hint: 'The word for water', translation: 'A glass of water, please.' },
+      { id: 'es-ex-503', type: 'matchPairs', prompt: 'Match restaurant terms', pairs: [{ left: 'El agua', right: 'Water' }, { left: 'El café', right: 'Coffee' }, { left: 'La cuenta', right: 'The bill' }, { left: 'El pan', right: 'Bread' }] },
+    ],
+  },
+
+  // ── CEFR A2 — Travel: Lesson 1 ────────────────────────────────────────────
+  {
+    id: 'es-travel-1',
+    categoryId: 'travel',
+    languageId: 'es',
+    level: 'A2',
+    title: 'Airport, Hotel & Transport',
+    description: 'Master essential travel Spanish for arrivals, hotels, and tickets.',
+    order: 1,
+    xpReward: 65,
+    vocabulary: [
+      { id: 'es-w-029', word: 'El aeropuerto', translation: 'Airport', pronunciation: 'ehl ah-eh-roh-PWEHR-toh', example: '¿Dónde está el aeropuerto?', exampleTranslation: 'Where is the airport?' },
+      { id: 'es-w-030', word: 'El billete', translation: 'Ticket', pronunciation: 'ehl bee-YEH-teh', example: 'Un billete para Madrid, por favor.', exampleTranslation: 'One ticket to Madrid, please.' },
+      { id: 'es-w-031', word: 'El hotel', translation: 'Hotel', pronunciation: 'ehl oh-TEHL', example: 'Tengo una reserva en el hotel.', exampleTranslation: 'I have a reservation at the hotel.' },
+      { id: 'es-w-032', word: 'La estación', translation: 'Station', pronunciation: 'lah ehs-tah-SYOHN', example: 'La estación de tren está cerca.', exampleTranslation: 'The train station is nearby.' },
+      { id: 'es-w-033', word: 'El pasaporte', translation: 'Passport', pronunciation: 'ehl pah-sah-POR-teh', example: 'Aquí está mi pasaporte.', exampleTranslation: 'Here is my passport.' },
+    ],
+    exercises: [
+      { id: 'es-ex-601', type: 'multipleChoice', question: 'How do you say "Train station" in Spanish?', options: ['El hotel', 'La estación de tren', 'El aeropuerto', 'La cuenta'], correctIndex: 1, explanation: '"La estación de tren" means the train station.' },
+      { id: 'es-ex-602', type: 'fillBlank', sentence: 'Tengo una reserva en el ___.', answer: 'hotel', hint: 'Lodging establishment', translation: 'I have a reservation at the hotel.' },
+      { id: 'es-ex-603', type: 'matchPairs', prompt: 'Match travel vocabulary', pairs: [{ left: 'El billete', right: 'Ticket' }, { left: 'El hotel', right: 'Hotel' }, { left: 'El pasaporte', right: 'Passport' }, { left: 'El aeropuerto', right: 'Airport' }] },
+      { id: 'es-ex-604', type: 'typing', prompt: 'Type "Ticket" in Spanish', answer: 'El billete', hint: 'Starts with El b...', placeholder: 'Boleto / billete...' },
+    ],
+  },
+
+  // ── CEFR A2 — Travel: Lesson 2 ────────────────────────────────────────────
+  {
+    id: 'es-travel-2',
+    categoryId: 'travel',
+    languageId: 'es',
+    level: 'A2',
+    title: 'Asking for Directions in the City',
+    description: 'Find your way around town with left, right, straight ahead, and distance.',
+    order: 2,
+    xpReward: 65,
+    vocabulary: [
+      { id: 'es-w-034', word: '¿Dónde está...?', translation: 'Where is...?', pronunciation: 'DOHN-deh ehs-TAH', example: '¿Dónde está la farmacia?', exampleTranslation: 'Where is the pharmacy?' },
+      { id: 'es-w-035', word: 'A la izquierda', translation: 'To the left', pronunciation: 'ah lah ees-KYEHR-dah', example: 'Gire a la izquierda en la esquina.', exampleTranslation: 'Turn left at the corner.' },
+      { id: 'es-w-036', word: 'A la derecha', translation: 'To the right', pronunciation: 'ah lah deh-REH-chah', example: 'El museo está a la derecha.', exampleTranslation: 'The museum is on the right.' },
+      { id: 'es-w-037', word: 'Todo recto', translation: 'Straight ahead', pronunciation: 'TOH-doh REHK-toh', example: 'Siga todo recto dos calles.', exampleTranslation: 'Go straight ahead two streets.' },
+      { id: 'es-w-038', word: 'Cerca / Lejos', translation: 'Near / Far', pronunciation: 'SEHR-kah / LEH-hohs', example: 'La playa está muy cerca.', exampleTranslation: 'The beach is very close.' },
+    ],
+    exercises: [
+      { id: 'es-ex-701', type: 'multipleChoice', question: 'What does "A la derecha" mean?', options: ['Straight ahead', 'To the right', 'To the left', 'Behind'], correctIndex: 1, explanation: '"A la derecha" means to the right.' },
+      { id: 'es-ex-702', type: 'fillBlank', sentence: 'Siga todo ___.', answer: 'recto', hint: 'Straight ahead', translation: 'Go straight ahead.' },
+      { id: 'es-ex-703', type: 'matchPairs', prompt: 'Match direction phrases', pairs: [{ left: 'A la izquierda', right: 'To the left' }, { left: 'A la derecha', right: 'To the right' }, { left: 'Todo recto', right: 'Straight ahead' }, { left: 'Cerca', right: 'Near' }] },
+    ],
+  },
+
+  // ── CEFR A2 — Family: Lesson 1 ────────────────────────────────────────────
+  {
+    id: 'es-family-1',
+    categoryId: 'family',
+    languageId: 'es',
+    level: 'A2',
+    title: 'Family Members (La Familia)',
+    description: 'Learn vocabulary for parents, siblings, children, and grandparents.',
+    order: 1,
+    xpReward: 65,
+    vocabulary: [
+      { id: 'es-w-039', word: 'La familia', translation: 'Family', pronunciation: 'lah fah-MEE-lyah', example: 'Mi familia es grande.', exampleTranslation: 'My family is big.' },
+      { id: 'es-w-040', word: 'El padre / La madre', translation: 'Father / Mother', pronunciation: 'PAH-dreh / MAH-dreh', example: 'Mi madre es profesora.', exampleTranslation: 'My mother is a teacher.' },
+      { id: 'es-w-041', word: 'El hermano / La hermana', translation: 'Brother / Sister', pronunciation: 'ehr-MAH-noh / ehr-MAH-nah', example: 'Tengo dos hermanos.', exampleTranslation: 'I have two brothers.' },
+      { id: 'es-w-042', word: 'El hijo / La hija', translation: 'Son / Daughter', pronunciation: 'EE-hoh / EE-hah', example: 'Su hijo tiene diez años.', exampleTranslation: 'Their son is ten years old.' },
+      { id: 'es-w-043', word: 'El abuelo / La abuela', translation: 'Grandfather / Grandmother', pronunciation: 'ah-BWEH-loh / ah-BWEH-lah', example: 'Mis abuelos viven en Sevilla.', exampleTranslation: 'My grandparents live in Seville.' },
+    ],
+    exercises: [
+      { id: 'es-ex-801', type: 'multipleChoice', question: 'What does "El hermano" mean?', options: ['Father', 'Brother', 'Son', 'Grandfather'], correctIndex: 1, explanation: '"El hermano" is brother.' },
+      { id: 'es-ex-802', type: 'fillBlank', sentence: 'Tengo dos ___.', answer: 'hermanos', hint: 'Brothers/siblings', translation: 'I have two brothers.' },
+      { id: 'es-ex-803', type: 'matchPairs', prompt: 'Match family members', pairs: [{ left: 'La madre', right: 'Mother' }, { left: 'El padre', right: 'Father' }, { left: 'El abuelo', right: 'Grandfather' }, { left: 'La hermana', right: 'Sister' }] },
+    ],
+  },
+
+  // ── CEFR B1 — Work & Career: Lesson 1 ─────────────────────────────────────
+  {
+    id: 'es-work-1',
+    categoryId: 'work-career',
+    languageId: 'es',
+    level: 'B1',
+    title: 'At the Office & Careers (En la Oficina)',
+    description: 'Master professional workplace vocabulary, meetings, colleagues, and deadlines.',
+    order: 1,
+    xpReward: 70,
+    vocabulary: [
+      { id: 'es-w-044', word: 'La reunión', translation: 'Meeting', pronunciation: 'lah reh-oo-NYOHN', example: 'Tenemos una reunión a las diez.', exampleTranslation: 'We have a meeting at ten.' },
+      { id: 'es-w-045', word: 'El colega', translation: 'Colleague / Coworker', pronunciation: 'ehl koh-LEH-gah', example: 'Mis colegas son muy amables.', exampleTranslation: 'My colleagues are very kind.' },
+      { id: 'es-w-046', word: 'El proyecto', translation: 'Project', pronunciation: 'ehl proh-YEHK-toh', example: 'Estamos trabajando en un nuevo proyecto.', exampleTranslation: 'We are working on a new project.' },
+      { id: 'es-w-047', word: 'La fecha límite', translation: 'Deadline', pronunciation: 'lah FEH-chah LEE-mee-teh', example: 'La fecha límite es este viernes.', exampleTranslation: 'The deadline is this Friday.' },
+      { id: 'es-w-048', word: 'La entrevista', translation: 'Interview', pronunciation: 'lah ehn-treh-VEES-tah', example: 'Mañana tengo una entrevista de trabajo.', exampleTranslation: 'Tomorrow I have a job interview.' },
+    ],
+    exercises: [
+      { id: 'es-ex-901', type: 'multipleChoice', question: 'How do you say "Deadline" in Spanish?', options: ['El proyecto', 'La fecha límite', 'La reunión', 'El colega'], correctIndex: 1, explanation: '"La fecha límite" literally means "the limit date" (deadline).' },
+      { id: 'es-ex-902', type: 'fillBlank', sentence: 'Tenemos una ___ importante a las diez.', answer: 'reunión', hint: 'Word for meeting', translation: 'We have an important meeting at ten.' },
+      { id: 'es-ex-903', type: 'matchPairs', prompt: 'Match workplace vocabulary', pairs: [{ left: 'La reunión', right: 'Meeting' }, { left: 'El colega', right: 'Colleague' }, { left: 'El proyecto', right: 'Project' }, { left: 'La fecha límite', right: 'Deadline' }] },
+      { id: 'es-ex-904', type: 'typing', prompt: 'Type "Project" in Spanish', answer: 'El proyecto', hint: 'Starts with El pro...', placeholder: 'Escribe aquí...' },
+    ],
+  },
+
+  // ── CEFR B1 — Opinions & Culture: Lesson 1 ────────────────────────────────
+  {
+    id: 'es-opinions-1',
+    categoryId: 'opinions-culture',
+    languageId: 'es',
+    level: 'B1',
+    title: 'Expressing Opinions (Expresar Opiniones)',
+    description: 'Articulate viewpoints, agreement, disagreement, and balanced arguments.',
+    order: 1,
+    xpReward: 70,
+    vocabulary: [
+      { id: 'es-w-049', word: 'En mi opinión', translation: 'In my opinion', pronunciation: 'ehn mee oh-pee-NYOHN', example: 'En mi opinión, esta es la mejor solución.', exampleTranslation: 'In my opinion, this is the best solution.' },
+      { id: 'es-w-050', word: 'Estoy de acuerdo', translation: 'I agree', pronunciation: 'ehs-TOY deh ah-KWEHR-doh', example: 'Totalmente, estoy de acuerdo contigo.', exampleTranslation: 'Totally, I agree with you.' },
+      { id: 'es-w-051', word: 'Me parece que', translation: 'It seems to me that', pronunciation: 'meh pah-REH-seh keh', example: 'Me parece que es una gran idea.', exampleTranslation: 'It seems to me that it is a great idea.' },
+      { id: 'es-w-052', word: 'Sin embargo', translation: 'However / Nevertheless', pronunciation: 'seen ehm-BAHR-goh', example: 'Es caro, sin embargo vale la pena.', exampleTranslation: 'It is expensive, however it is worth it.' },
+      { id: 'es-w-053', word: 'Por supuesto', translation: 'Of course', pronunciation: 'por soo-PWEHS-toh', example: '— ¿Me puedes ayudar? — ¡Por supuesto!', exampleTranslation: '— Can you help me? — Of course!' },
+    ],
+    exercises: [
+      { id: 'es-ex-1001', type: 'multipleChoice', question: 'What does "Estoy de acuerdo" mean?', options: ['I disagree', 'I agree', 'In my opinion', 'Maybe'], correctIndex: 1, explanation: '"Estoy de acuerdo" means "I agree".' },
+      { id: 'es-ex-1002', type: 'fillBlank', sentence: 'En mi ___, es una excelente propuesta.', answer: 'opinión', hint: 'Word for opinion (accent on o)', translation: 'In my opinion, it is an excellent proposal.' },
+      { id: 'es-ex-1003', type: 'matchPairs', prompt: 'Match discourse markers', pairs: [{ left: 'En mi opinión', right: 'In my opinion' }, { left: 'Estoy de acuerdo', right: 'I agree' }, { left: 'Sin embargo', right: 'However' }, { left: 'Por supuesto', right: 'Of course' }] },
+      { id: 'es-ex-1004', type: 'typing', prompt: 'Type "Of course" in Spanish', answer: 'Por supuesto', hint: 'Two words: P__ s_______', placeholder: 'Escribe aquí...' },
+    ],
+  },
+];
+
+export default spanishLessons;
