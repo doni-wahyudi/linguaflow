@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { spring, transitionEase } from '../utils/motion';
 import {
-  Globe,
   ArrowRight,
   ArrowLeft,
   Plane,
@@ -17,16 +17,22 @@ import {
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { languages } from '../data/languages';
+import { Logo, Flag, SemanticIcon } from '../components/brand';
+import { Button, Input } from '../components/ui';
 
 /**
  * Onboarding — Multi-step setup flow
  *
  * Steps:
- * 1. Choose language (with flag cards)
+ * 1. Choose language (with SVG flag cards)
  * 2. Select motivation (why learning?)
  * 3. Proficiency level (beginner/elementary/intermediate/advanced)
  * 4. Daily goal (5/10/15/20 min)
  * 5. Welcome screen (personalized)
+ *
+ * Selection cards carry `aria-pressed` so the chosen option is announced, and
+ * every colour comes from the token scale: `ink-600` was used here before and is
+ * not a token, so those labels rendered with no colour at all.
  */
 
 const slideVariants = {
@@ -37,12 +43,12 @@ const slideVariants = {
   center: {
     x: 0,
     opacity: 1,
-    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.4, ease: transitionEase },
   },
   exit: (direction) => ({
     x: direction < 0 ? 300 : -300,
     opacity: 0,
-    transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.3, ease: transitionEase },
   }),
 };
 
@@ -54,23 +60,45 @@ const motivations = [
   { id: 'personal', icon: Sparkles, label: 'Personal Growth', description: 'Challenge yourself and grow' },
 ];
 
-/* Proficiency levels */
+/* Proficiency levels — `icon` is resolved by components/brand/icons.jsx */
 const levels = [
-  { id: 'beginner', label: 'Beginner', description: "I'm just starting out", emoji: '🌱' },
-  { id: 'elementary', label: 'Elementary', description: 'I know some basics', emoji: '🌿' },
-  { id: 'intermediate', label: 'Intermediate', description: 'I can hold simple conversations', emoji: '🌳' },
-  { id: 'advanced', label: 'Advanced', description: 'I want to refine my skills', emoji: '🏔️' },
+  { id: 'beginner', label: 'Beginner', description: "I'm just starting out", icon: 'beginner' },
+  { id: 'elementary', label: 'Elementary', description: 'I know some basics', icon: 'elementary' },
+  { id: 'intermediate', label: 'Intermediate', description: 'I can hold simple conversations', icon: 'intermediate' },
+  { id: 'advanced', label: 'Advanced', description: 'I want to refine my skills', icon: 'advanced' },
 ];
 
 /* Daily goal options */
 const dailyGoals = [
-  { minutes: 5, label: 'Casual', description: '5 min/day', emoji: '🐢', lessons: 1 },
-  { minutes: 10, label: 'Regular', description: '10 min/day', emoji: '🐇', lessons: 2 },
-  { minutes: 15, label: 'Serious', description: '15 min/day', emoji: '🦊', lessons: 3 },
-  { minutes: 20, label: 'Intense', description: '20 min/day', emoji: '🦅', lessons: 4 },
+  { minutes: 5, label: 'Casual', description: '5 min/day', icon: 'casual', lessons: 1 },
+  { minutes: 10, label: 'Regular', description: '10 min/day', icon: 'regular', lessons: 2 },
+  { minutes: 15, label: 'Serious', description: '15 min/day', icon: 'serious', lessons: 3 },
+  { minutes: 20, label: 'Intense', description: '20 min/day', icon: 'intense', lessons: 4 },
 ];
 
 const TOTAL_STEPS = 5;
+
+/* Shared option-card styling so every step selects the same way.
+   Alignment is left to the call site: `text-left` must not live here, because a
+   centred card adding `text-center` would collide with it and Tailwind would
+   resolve that by stylesheet position, not by which class was written last. */
+const optionCard = (selected) =>
+  [
+    'w-full rounded-card border-2 transition-colors duration-200 group',
+    selected ? 'border-brand-700 bg-brand-50' : 'border-ink-200 bg-surface-card hover:border-ink-300',
+  ].join(' ');
+
+/* Radio-style selection tick, aria-hidden because aria-pressed carries the state. */
+const OptionTick = ({ selected }) => (
+  <span
+    aria-hidden="true"
+    className={`w-6 h-6 rounded-pill border-2 grid place-items-center shrink-0 transition-colors ${
+      selected ? 'border-brand-700 bg-brand-700' : 'border-ink-300 bg-surface-card'
+    }`}
+  >
+    {selected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+  </span>
+);
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -126,24 +154,20 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-surface-bg flex flex-col">
       {/* ── Header ── */}
-      <header className="px-4 sm:px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center">
-            <Globe className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-bold text-lg text-ink-900">LinguaFlow</span>
-        </div>
+      <header className="px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+        <Logo variant="full" size="md" />
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-2">
+        {/* Step indicator — decorative: the "Step n of 5" overline inside each
+            step already states the position in text, so the dots duplicate it. */}
+        <div className="flex items-center gap-2" aria-hidden="true">
           {Array.from({ length: TOTAL_STEPS }, (_, i) => (
             <div
               key={i}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-2 rounded-pill transition-all duration-300 ${
                 i + 1 === step
-                  ? 'w-8 bg-brand-600'
+                  ? 'w-8 bg-brand-700'
                   : i + 1 < step
-                  ? 'w-2 bg-brand-400'
+                  ? 'w-2 bg-brand-200'
                   : 'w-2 bg-ink-200'
               }`}
             />
@@ -166,7 +190,7 @@ export default function Onboarding() {
               {/* Step 1: Choose Language */}
               {step === 1 && (
                 <div>
-                  <p className="text-label uppercase text-brand-600 mb-2 tracking-widest">Step 1 of {TOTAL_STEPS}</p>
+                  <p className="text-overline uppercase text-brand-700 mb-2">Step 1 of {TOTAL_STEPS}</p>
                   <h1 className="font-display text-display-md text-ink-900 mb-3">
                     Which language do you want to learn?
                   </h1>
@@ -175,32 +199,25 @@ export default function Onboarding() {
                   </p>
 
                   <div className="grid grid-cols-1 gap-3">
-                    {languages.map((lang) => (
-                      <button
-                        key={lang.id}
-                        onClick={() => setSelectedLanguage(lang.id)}
-                        className={`flex items-center gap-4 p-4 rounded-card border-2 transition-all duration-200 text-left group ${
-                          selectedLanguage === lang.id
-                            ? 'border-brand-600 bg-brand-50 shadow-glow-brand'
-                            : 'border-ink-200 bg-surface-card hover:border-ink-300 hover:shadow-soft-sm'
-                        }`}
-                      >
-                        <span className="text-4xl group-hover:scale-110 transition-transform duration-200">
-                          {lang.flag}
-                        </span>
-                        <div className="flex-1">
-                          <p className="font-display font-semibold text-lg text-ink-900">{lang.name}</p>
-                          <p className="text-sm text-ink-500">{lang.nativeName} · {lang.speakers}</p>
-                        </div>
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          selectedLanguage === lang.id
-                            ? 'border-brand-600 bg-brand-600'
-                            : 'border-ink-300'
-                        }`}>
-                          {selectedLanguage === lang.id && <Check className="w-4 h-4 text-white" />}
-                        </div>
-                      </button>
-                    ))}
+                    {languages.map((lang) => {
+                      const selected = selectedLanguage === lang.id;
+                      return (
+                        <button
+                          key={lang.id}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => setSelectedLanguage(lang.id)}
+                          className={`${optionCard(selected)} flex items-center gap-4 p-4 text-left`}
+                        >
+                          <Flag code={lang.flagCode} size={32} decorative className="group-hover:scale-110 transition-transform duration-200" />
+                          <span className="flex-1 min-w-0">
+                            <span className="block font-display font-semibold text-body-lg text-ink-900">{lang.name}</span>
+                            <span className="block text-body-sm text-ink-500">{lang.nativeName} · {lang.speakers}</span>
+                          </span>
+                          <OptionTick selected={selected} />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -208,7 +225,7 @@ export default function Onboarding() {
               {/* Step 2: Motivation */}
               {step === 2 && (
                 <div>
-                  <p className="text-label uppercase text-brand-600 mb-2 tracking-widest">Step 2 of {TOTAL_STEPS}</p>
+                  <p className="text-overline uppercase text-brand-700 mb-2">Step 2 of {TOTAL_STEPS}</p>
                   <h1 className="font-display text-display-md text-ink-900 mb-3">
                     Why are you learning {langData?.name}?
                   </h1>
@@ -217,29 +234,33 @@ export default function Onboarding() {
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {motivations.map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => setSelectedMotivation(m.id)}
-                        className={`flex flex-col items-center gap-3 p-6 rounded-card border-2 transition-all duration-200 text-center group ${
-                          selectedMotivation === m.id
-                            ? 'border-brand-600 bg-brand-50 shadow-glow-brand'
-                            : 'border-ink-200 bg-surface-card hover:border-ink-300 hover:shadow-soft-sm'
-                        }`}
-                      >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                          selectedMotivation === m.id ? 'bg-brand-600' : 'bg-ink-100 group-hover:bg-ink-200'
-                        }`}>
-                          <m.icon className={`w-6 h-6 ${
-                            selectedMotivation === m.id ? 'text-white' : 'text-ink-600'
-                          }`} />
-                        </div>
-                        <div>
-                          <p className="font-display font-semibold text-ink-900">{m.label}</p>
-                          <p className="text-sm text-ink-500 mt-0.5">{m.description}</p>
-                        </div>
-                      </button>
-                    ))}
+                    {motivations.map((m) => {
+                      const selected = selectedMotivation === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => setSelectedMotivation(m.id)}
+                          className={`${optionCard(selected)} flex flex-col items-center gap-3 p-6 text-center`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`w-12 h-12 rounded-card grid place-items-center transition-colors duration-200 ${
+                              selected
+                                ? 'bg-brand-700 text-white'
+                                : 'bg-ink-100 text-ink-700 group-hover:bg-ink-200'
+                            }`}
+                          >
+                            <m.icon className="w-6 h-6" />
+                          </span>
+                          <span>
+                            <span className="block font-display font-semibold text-body-md text-ink-900">{m.label}</span>
+                            <span className="block text-body-sm text-ink-500 mt-0.5">{m.description}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -247,7 +268,7 @@ export default function Onboarding() {
               {/* Step 3: Proficiency Level */}
               {step === 3 && (
                 <div>
-                  <p className="text-label uppercase text-brand-600 mb-2 tracking-widest">Step 3 of {TOTAL_STEPS}</p>
+                  <p className="text-overline uppercase text-brand-700 mb-2">Step 3 of {TOTAL_STEPS}</p>
                   <h1 className="font-display text-display-md text-ink-900 mb-3">
                     What's your current level?
                   </h1>
@@ -256,30 +277,32 @@ export default function Onboarding() {
                   </p>
 
                   <div className="grid grid-cols-1 gap-3">
-                    {levels.map((lvl) => (
-                      <button
-                        key={lvl.id}
-                        onClick={() => setSelectedLevel(lvl.id)}
-                        className={`flex items-center gap-4 p-4 rounded-card border-2 transition-all duration-200 text-left group ${
-                          selectedLevel === lvl.id
-                            ? 'border-brand-600 bg-brand-50 shadow-glow-brand'
-                            : 'border-ink-200 bg-surface-card hover:border-ink-300 hover:shadow-soft-sm'
-                        }`}
-                      >
-                        <span className="text-3xl">{lvl.emoji}</span>
-                        <div className="flex-1">
-                          <p className="font-display font-semibold text-ink-900">{lvl.label}</p>
-                          <p className="text-sm text-ink-500">{lvl.description}</p>
-                        </div>
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          selectedLevel === lvl.id
-                            ? 'border-brand-600 bg-brand-600'
-                            : 'border-ink-300'
-                        }`}>
-                          {selectedLevel === lvl.id && <Check className="w-4 h-4 text-white" />}
-                        </div>
-                      </button>
-                    ))}
+                    {levels.map((lvl) => {
+                      const selected = selectedLevel === lvl.id;
+                      return (
+                        <button
+                          key={lvl.id}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => setSelectedLevel(lvl.id)}
+                          className={`${optionCard(selected)} flex items-center gap-4 p-4 text-left`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`w-11 h-11 rounded-card grid place-items-center shrink-0 ${
+                              selected ? 'bg-brand-100 text-brand-700' : 'bg-ink-100 text-ink-700'
+                            }`}
+                          >
+                            <SemanticIcon name={lvl.icon} size={22} />
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block font-display font-semibold text-body-md text-ink-900">{lvl.label}</span>
+                            <span className="block text-body-sm text-ink-500">{lvl.description}</span>
+                          </span>
+                          <OptionTick selected={selected} />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -287,7 +310,7 @@ export default function Onboarding() {
               {/* Step 4: Daily Goal */}
               {step === 4 && (
                 <div>
-                  <p className="text-label uppercase text-brand-600 mb-2 tracking-widest">Step 4 of {TOTAL_STEPS}</p>
+                  <p className="text-overline uppercase text-brand-700 mb-2">Step 4 of {TOTAL_STEPS}</p>
                   <h1 className="font-display text-display-md text-ink-900 mb-3">
                     Set your daily goal
                   </h1>
@@ -296,24 +319,27 @@ export default function Onboarding() {
                   </p>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {dailyGoals.map((goal) => (
-                      <button
-                        key={goal.minutes}
-                        onClick={() => setSelectedGoal(goal.minutes)}
-                        className={`flex flex-col items-center gap-2 p-5 rounded-card border-2 transition-all duration-200 text-center group ${
-                          selectedGoal === goal.minutes
-                            ? 'border-brand-600 bg-brand-50 shadow-glow-brand'
-                            : 'border-ink-200 bg-surface-card hover:border-ink-300 hover:shadow-soft-sm'
-                        }`}
-                      >
-                        <span className="text-3xl group-hover:scale-110 transition-transform duration-200">
-                          {goal.emoji}
-                        </span>
-                        <p className="font-display font-semibold text-ink-900">{goal.label}</p>
-                        <p className="text-sm text-ink-500">{goal.description}</p>
-                        <p className="text-xs text-ink-400">{goal.lessons} lesson{goal.lessons > 1 ? 's' : ''}/day</p>
-                      </button>
-                    ))}
+                    {dailyGoals.map((goal) => {
+                      const selected = selectedGoal === goal.minutes;
+                      return (
+                        <button
+                          key={goal.minutes}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => setSelectedGoal(goal.minutes)}
+                          className={`${optionCard(selected)} flex flex-col items-center gap-2 p-5 text-center`}
+                        >
+                          <span aria-hidden="true" className="text-brand-700 group-hover:scale-110 transition-transform duration-200">
+                            <SemanticIcon name={goal.icon} size={30} />
+                          </span>
+                          <span className="font-display font-semibold text-body-md text-ink-900">{goal.label}</span>
+                          <span className="text-body-sm text-ink-500">{goal.description}</span>
+                          <span className="text-caption text-ink-500 tabular-nums">
+                            {goal.lessons} lesson{goal.lessons > 1 ? 's' : ''}/day
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -324,55 +350,54 @@ export default function Onboarding() {
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                    className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-glow-brand"
+                    transition={spring.glide}
+                    className="w-20 h-20 mx-auto mb-6 rounded-modal bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center shadow-glow-brand"
                   >
-                    <Sparkles className="w-10 h-10 text-white" />
+                    <Sparkles className="w-10 h-10 text-white" aria-hidden="true" />
                   </motion.div>
 
                   <h1 className="font-display text-display-md text-ink-900 mb-3">
-                    You're all set! 🎉
+                    You're all set!
                   </h1>
                   <p className="text-body-md text-ink-500 mb-8 max-w-sm mx-auto">
-                    Your personalized {langData?.name} {langData?.flag} learning path is ready.
-                    Let's start your journey!
+                    Your personalized {langData?.name} learning path is ready. Let's start your journey!
                   </p>
 
                   {/* Optional name input */}
-                  <div className="max-w-xs mx-auto mb-8">
-                    <label className="block text-sm font-medium text-ink-700 mb-2 text-left">
-                      What should we call you? <span className="text-ink-400">(optional)</span>
-                    </label>
-                    <input
-                      type="text"
+                  <div className="max-w-xs mx-auto mb-8 text-left">
+                    <Input
+                      label="What should we call you?"
+                      helperText={'Optional — leave blank to stay “Learner”.'}
+                      placeholder="Your name"
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
-                      placeholder="Your name"
-                      className="w-full px-4 py-3 rounded-input border border-ink-300 text-ink-900 placeholder:text-ink-400 focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
                     />
                   </div>
 
                   {/* Summary */}
-                  <div className="bg-brand-50 rounded-card p-5 max-w-sm mx-auto text-left mb-2 border border-brand-100">
-                    <p className="text-sm font-semibold text-brand-800 mb-3">Your Plan</p>
-                    <div className="space-y-2.5 text-sm">
-                      <div className="flex items-center gap-3 text-ink-700">
-                        <BookOpen className="w-4 h-4 text-brand-600 flex-shrink-0" />
-                        <span>Learning <strong>{langData?.name}</strong> {langData?.flag}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-ink-700">
-                        <Target className="w-4 h-4 text-brand-600 flex-shrink-0" />
-                        <span>{motivations.find(m => m.id === selectedMotivation)?.label} focused</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-ink-700">
-                        <Zap className="w-4 h-4 text-brand-600 flex-shrink-0" />
-                        <span>{levels.find(l => l.id === selectedLevel)?.label} level</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-ink-700">
-                        <Clock className="w-4 h-4 text-brand-600 flex-shrink-0" />
-                        <span>{selectedGoal} minutes per day</span>
-                      </div>
-                    </div>
+                  <div className="bg-brand-50 rounded-card p-5 max-w-sm mx-auto text-left mb-2 border border-brand-200">
+                    <p className="text-body-sm font-semibold text-brand-800 mb-3">Your Plan</p>
+                    <ul className="space-y-2.5 text-body-sm text-ink-700">
+                      <li className="flex items-center gap-3">
+                        <BookOpen className="w-4 h-4 text-brand-700 flex-shrink-0" aria-hidden="true" />
+                        <span className="flex items-center gap-1.5">
+                          Learning <strong className="font-semibold">{langData?.name}</strong>
+                          {langData && <Flag code={langData.flagCode} size={16} decorative />}
+                        </span>
+                      </li>
+                      <li className="flex items-center gap-3">
+                        <Target className="w-4 h-4 text-brand-700 flex-shrink-0" aria-hidden="true" />
+                        <span>{motivations.find((m) => m.id === selectedMotivation)?.label} focused</span>
+                      </li>
+                      <li className="flex items-center gap-3">
+                        <Zap className="w-4 h-4 text-brand-700 flex-shrink-0" aria-hidden="true" />
+                        <span>{levels.find((l) => l.id === selectedLevel)?.label} level</span>
+                      </li>
+                      <li className="flex items-center gap-3">
+                        <Clock className="w-4 h-4 text-brand-700 flex-shrink-0" aria-hidden="true" />
+                        <span className="tabular-nums">{selectedGoal} minutes per day</span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
               )}
@@ -382,33 +407,28 @@ export default function Onboarding() {
       </main>
 
       {/* ── Footer Navigation ── */}
-      <footer className="px-4 sm:px-6 py-6 border-t border-ink-200/50">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <button
+      <footer className="px-4 sm:px-6 py-6 border-t border-ink-200">
+        <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
+          <Button
+            variant="ghost"
+            shape="pill"
+            icon={ArrowLeft}
             onClick={goBack}
             disabled={step === 1}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-pill font-medium transition-all duration-200 ${
-              step === 1
-                ? 'text-ink-300 cursor-not-allowed'
-                : 'text-ink-700 hover:bg-ink-100 active:scale-[0.98]'
-            }`}
           >
-            <ArrowLeft className="w-4 h-4" />
             Back
-          </button>
+          </Button>
 
-          <button
+          <Button
+            shape="pill"
+            size="lg"
+            icon={ArrowRight}
+            iconPosition="right"
             onClick={goNext}
             disabled={!canProceed()}
-            className={`inline-flex items-center gap-2 px-7 py-3 rounded-pill font-semibold transition-all duration-200 ${
-              canProceed()
-                ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-soft-sm hover:shadow-glow-brand active:scale-[0.98]'
-                : 'bg-ink-200 text-ink-400 cursor-not-allowed'
-            }`}
           >
             {step === TOTAL_STEPS ? 'Start Learning' : 'Continue'}
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </footer>
     </div>

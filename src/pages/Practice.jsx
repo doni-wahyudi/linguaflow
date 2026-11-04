@@ -5,6 +5,21 @@
  * 2. Speed Drills & Quick Practice Quizzes (with level filters A1/N5, A2/N4, B1/N3)
  * 3. Listening Ear Training Studio (with normal & turtle audio)
  * 4. Searchable Master Vocabulary Library
+ *
+ * Design notes:
+ * - Kit-only: PageWrapper + Card + Badge + Button + Input. The drill and listening
+ *   panels previously carried the same 12-line option-class block twice, with
+ *   `emerald-500` in one and a different green in the other; both now render
+ *   through <AnswerOptions>, which uses the measured `success-*` / `error-*` tiers.
+ * - `text-ink-600` and `text-ink-800` do not exist in the ink scale (50/100/200/
+ *   300/400/500/700/900), so those labels silently inherited their parent colour.
+ *   Every one of them is now a real token.
+ * - `shadow-soft-xs` is not a declared shadow either — it rendered nothing.
+ * - The SRS card was a clickable <div> containing real audio <button>s, which is
+ *   invalid nesting and unreachable by keyboard. The flip is now an explicit
+ *   <button aria-expanded>, matching lesson/FlashCard.jsx.
+ * - Audio controls are 44px (WCAG 2.1 §2.5.5) and named with aria-label; `title`
+ *   alone is not an accessible name for touch or screen-reader users.
  */
 
 import React, { useState, useMemo } from 'react';
@@ -15,28 +30,125 @@ import {
   Turtle,
   Sparkles,
   CheckCircle2,
-  Clock,
   BookOpen,
   Search,
-  Filter,
   Check,
   RotateCw,
   Trophy,
   Zap,
   Headphones,
-  Award,
-  AlertCircle,
-  HelpCircle,
   ArrowRight,
+  X,
 } from 'lucide-react';
 import PageWrapper from '../components/layout/PageWrapper';
+import { Flag } from '../components/brand';
 import { useUser } from '../context/UserContext';
 import { lessonsByLanguage } from '../data/lessons';
 import { getExamsByLanguage } from '../data/exams';
 import languages from '../data/languages';
-import { playCorrect, playIncorrect, playClick } from '../utils/soundEffects';
+import { playCorrect, playIncorrect } from '../utils/soundEffects';
+import {
+  AudioControls,
+  Badge,
+  Button,
+  Card,
+  Chip,
+  Input,
+  SegmentedControl,
+  segmentIds,
+} from '../components/ui';
+import { transitionEase } from '../utils/motion';
 
-const transitionEase = [0.16, 1, 0.3, 1];
+const practiceIds = segmentIds('practice');
+
+/**
+ * Single-select answer list shared by the speed drill and the ear-training
+ * studio. Feedback is never colour-alone: the state is carried by a glyph, a
+ * word ("Correct answer" / "Your answer") and a live region.
+ */
+function AnswerOptions({ options, correctIndex, selectedIndex, answered, onSelect, label }) {
+  return (
+    <div className="space-y-2.5" role="group" aria-label={label}>
+      {options.map((opt, idx) => {
+        const isSelected = selectedIndex === idx;
+        const isCorrect = idx === correctIndex;
+
+        let optionStyle =
+          'border-ink-200 bg-surface-card text-ink-900 hover:border-brand-600 hover:bg-brand-50';
+        if (answered) {
+          if (isCorrect) {
+            optionStyle = 'border-success bg-success-bg text-success-strong font-semibold';
+          } else if (isSelected) {
+            optionStyle = 'border-error bg-error-bg text-error-strong';
+          } else {
+            optionStyle = 'border-ink-200 bg-surface-100 text-ink-500 opacity-60';
+          }
+        }
+
+        return (
+          <button
+            key={idx}
+            type="button"
+            disabled={answered}
+            onClick={() => onSelect(idx)}
+            aria-pressed={isSelected}
+            className={`min-h-14 w-full p-4 rounded-card text-left border-2 text-body-md flex items-center justify-between gap-3 transition-colors ${optionStyle}`}
+          >
+            <span className="flex items-center gap-3 min-w-0">
+              <span
+                aria-hidden="true"
+                className={`inline-flex items-center justify-center w-7 h-7 rounded-pill border-2 text-caption font-bold shrink-0 ${
+                  answered && isCorrect
+                    ? 'border-success text-success-strong'
+                    : answered && isSelected
+                      ? 'border-error text-error-strong'
+                      : 'border-ink-300 text-ink-700'
+                }`}
+              >
+                {String.fromCharCode(65 + idx)}
+              </span>
+              <span className="truncate">{opt}</span>
+            </span>
+
+            {answered && isCorrect && (
+              <CheckCircle2 size={18} className="text-success-strong shrink-0" aria-hidden="true" />
+            )}
+            {answered && isSelected && !isCorrect && (
+              <X size={18} className="text-error-strong shrink-0" aria-hidden="true" />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Post-answer explanation panel with the continue action. */
+function VerdictPanel({ tone = 'info', children, onNext, nextLabel }) {
+  const surfaces = {
+    success: 'bg-success-bg border-success-border',
+    error: 'bg-error-bg border-error-border',
+    info: 'bg-info-bg border-info-border',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: transitionEase }}
+      role="status"
+      aria-live="polite"
+      className={`p-4 rounded-card border space-y-3 ${surfaces[tone]}`}
+    >
+      <div className="text-body-sm text-ink-700 leading-relaxed">{children}</div>
+      {onNext && (
+        <Button shape="pill" size="md" icon={ArrowRight} iconPosition="right" onClick={onNext}>
+          {nextLabel}
+        </Button>
+      )}
+    </motion.div>
+  );
+}
 
 export default function Practice() {
   const { user, progress, speech, streak, xp } = useUser();
@@ -229,501 +341,455 @@ export default function Practice() {
   return (
     <PageWrapper>
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* ── Page Header ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* ── Page Header ──
+            The rail sits under the title rather than opposite it: four tabs plus
+            the title block need ~1180px and the container caps at 1152px, so the
+            side-by-side version wrapped one tab onto a second grey row. */}
+        <div className="flex flex-col gap-4">
           <div>
             <h1 className="font-display text-display-md text-ink-900 flex items-center gap-2">
               <Repeat className="w-8 h-8 text-brand-600" />
               Practice & Training Arena
             </h1>
             <p className="text-body-md text-ink-500 mt-1">
-              Active spaced repetition, speed drills, ear training, and vocabulary reinforcement for {langData?.name} {langData?.flag}.
+              Active spaced repetition, speed drills, ear training, and vocabulary reinforcement for{' '}
+              <strong className="font-semibold text-ink-700">{langData?.name}</strong>{' '}
+              <Flag code={langData?.flagCode} size={16} decorative />.
             </p>
           </div>
 
-          {/* Practice Mode Tab Selector */}
-          <div className="flex flex-wrap gap-1 p-1 bg-ink-100 rounded-pill border border-ink-200 self-start md:self-auto">
-            <button
-              onClick={() => setActiveTab('review')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill text-xs font-semibold transition-all ${
-                activeTab === 'review'
-                  ? 'bg-white text-brand-700 shadow-soft-sm'
-                  : 'text-ink-600 hover:text-ink-900'
-              }`}
-            >
-              <Sparkles size={14} /> Flashcards ({dueWordIds.length} Due)
-            </button>
-
-            <button
-              onClick={() => setActiveTab('quiz')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill text-xs font-semibold transition-all ${
-                activeTab === 'quiz'
-                  ? 'bg-white text-brand-700 shadow-soft-sm'
-                  : 'text-ink-600 hover:text-ink-900'
-              }`}
-            >
-              <Zap size={14} /> Speed Drills
-            </button>
-
-            <button
-              onClick={() => setActiveTab('listening')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill text-xs font-semibold transition-all ${
-                activeTab === 'listening'
-                  ? 'bg-white text-brand-700 shadow-soft-sm'
-                  : 'text-ink-600 hover:text-ink-900'
-              }`}
-            >
-              <Headphones size={14} /> Ear Training
-            </button>
-
-            <button
-              onClick={() => setActiveTab('words')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill text-xs font-semibold transition-all ${
-                activeTab === 'words'
-                  ? 'bg-white text-brand-700 shadow-soft-sm'
-                  : 'text-ink-600 hover:text-ink-900'
-              }`}
-            >
-              <BookOpen size={14} /> Word Library ({allVocabWords.length})
-            </button>
-          </div>
+          {/* Practice Mode Tabs */}
+          <SegmentedControl
+            name="practice"
+            label="Practice mode"
+            value={activeTab}
+            onChange={setActiveTab}
+            className="self-start"
+            tabs={[
+              {
+                id: 'review',
+                icon: Sparkles,
+                label: (
+                  <>
+                    Flashcards{' '}
+                    <span className="tabular-nums">({dueWordIds.length} due)</span>
+                  </>
+                ),
+              },
+              { id: 'quiz', icon: Zap, label: 'Speed Drills' },
+              { id: 'listening', icon: Headphones, label: 'Ear Training' },
+              {
+                id: 'words',
+                icon: BookOpen,
+                label: (
+                  <>
+                    Word Library{' '}
+                    <span className="tabular-nums">({allVocabWords.length})</span>
+                  </>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* ── TAB 1: Spaced Repetition (SRS) Flashcard Gym ── */}
         {activeTab === 'review' && (
-          <div>
+          <div
+            role="tabpanel"
+            id={practiceIds.panelId('review')}
+            aria-labelledby={practiceIds.tabId('review')}
+          >
             {!sessionFinished && currentWord ? (
               <div className="max-w-md mx-auto">
-                <div className="flex items-center justify-between text-xs text-ink-400 font-semibold mb-2">
-                  <span>
+                <div className="flex items-center justify-between gap-3 text-body-sm text-ink-500 font-medium mb-2">
+                  <span className="tabular-nums">
                     Card {sessionIndex + 1} of {reviewWords.length}
                   </span>
-                  <span className="text-brand-600 font-bold">
+                  <Badge variant={dueWordIds.length > 0 ? 'amber' : 'brand'} uppercase>
                     {dueWordIds.length > 0 ? 'Due for SRS review' : 'Daily practice'}
-                  </span>
+                  </Badge>
                 </div>
 
-                {/* Interactive Flashcard */}
-                <div
-                  onClick={() => setIsFlipped((f) => !f)}
-                  className="bg-white rounded-card p-8 border-2 border-brand-200 shadow-soft-lg min-h-[300px] flex flex-col justify-between items-center text-center cursor-pointer select-none transition-all hover:border-brand-400 relative"
-                >
-                  <div className="w-full flex justify-between items-center">
-                    <span className="text-[11px] uppercase tracking-wider font-semibold text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-pill">
+                {/* Interactive Flashcard — the flip is a real button, not a click
+                    handler on the card that wraps the audio buttons. */}
+                <Card padding="lg" className="min-h-72 flex flex-col text-center">
+                  <div className="flex items-center justify-between gap-3">
+                    <Badge variant="brand" uppercase>
                       {isFlipped ? 'Translation' : 'Target Word'}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          speech?.speak(currentWord.word, currentLang);
-                        }}
-                        className="p-1.5 rounded-full hover:bg-brand-50 text-brand-700 transition-colors"
-                        title="Normal speed audio"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          speech?.speakSlow(currentWord.word, currentLang);
-                        }}
-                        className="p-1.5 rounded-full hover:bg-amber-50 text-amber-700 transition-colors"
-                        title="Turtle mode (slow 0.65x speed)"
-                      >
-                        <Turtle className="w-4 h-4" />
-                      </button>
-                    </div>
+                    </Badge>
+                    <AudioControls
+                      text={currentWord.word}
+                      lang={currentLang}
+                      speech={speech}
+                    />
                   </div>
 
                   <div className="my-auto py-6">
-                    <h2 className="font-display font-bold text-4xl text-ink-900 mb-2">
-                      {isFlipped ? currentWord.translation : currentWord.word}
-                    </h2>
-                    {!isFlipped && currentWord.pronunciation && (
-                      <p className="text-sm text-ink-500 font-medium">/{currentWord.pronunciation}/</p>
-                    )}
-                    {isFlipped && currentWord.example && (
-                      <p className="text-xs text-ink-500 italic mt-3 bg-brand-50/50 p-2.5 rounded-xl border border-brand-100 max-w-xs">
-                        "{currentWord.example}"
-                      </p>
-                    )}
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={isFlipped ? 'answer' : 'prompt'}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.18, ease: transitionEase }}
+                      >
+                        <h2 className="font-display font-bold text-display-md text-ink-900 mb-2">
+                          {isFlipped ? currentWord.translation : currentWord.word}
+                        </h2>
+                        {!isFlipped && currentWord.pronunciation && (
+                          <p className="text-body-sm text-ink-500 font-medium">
+                            /{currentWord.pronunciation}/
+                          </p>
+                        )}
+                        {isFlipped && currentWord.example && (
+                          <p className="mt-3 mx-auto max-w-xs p-2.5 rounded-button border border-brand-200 bg-brand-50 text-body-sm text-ink-700 italic">
+                            "{currentWord.example}"
+                          </p>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
                   </div>
 
-                  <p className="text-xs text-ink-400 flex items-center gap-1">
-                    <RotateCw className="w-3.5 h-3.5" /> Tap card to flip
-                  </p>
-                </div>
+                  <Button
+                    variant="outline"
+                    shape="pill"
+                    size="md"
+                    fullWidth
+                    icon={RotateCw}
+                    aria-expanded={isFlipped}
+                    onClick={() => setIsFlipped((f) => !f)}
+                  >
+                    {isFlipped ? 'Show the target word' : 'Flip card'}
+                  </Button>
+                </Card>
 
                 {/* Quality Ratings (SM-2 Spaced Repetition) */}
                 <div className="mt-6">
-                  <p className="text-xs font-semibold text-center uppercase tracking-wide text-ink-400 mb-3">
+                  <p className="text-overline uppercase text-center text-ink-700 mb-3">
                     How well did you recall this word?
                   </p>
 
                   <div className="grid grid-cols-3 gap-2.5">
-                    <button
-                      onClick={() => handleRate(1)}
-                      className="py-3 px-2 rounded-card border-2 border-red-200 bg-red-50/60 hover:bg-red-100 text-red-900 font-medium text-xs text-center transition-all active:scale-95"
-                    >
-                      <span className="block font-bold text-sm mb-0.5">Hard</span>
-                      Need review
-                    </button>
+                    <Button variant="danger" size="lg" fullWidth onClick={() => handleRate(1)}>
+                      <span className="block leading-tight">
+                        <span className="block font-bold">Hard</span>
+                        <span className="block text-caption font-medium opacity-90">Need review</span>
+                      </span>
+                    </Button>
 
-                    <button
-                      onClick={() => handleRate(3)}
-                      className="py-3 px-2 rounded-card border-2 border-amber-200 bg-amber-50/60 hover:bg-amber-100 text-amber-900 font-medium text-xs text-center transition-all active:scale-95"
-                    >
-                      <span className="block font-bold text-sm mb-0.5">Good</span>
-                      Recalled
-                    </button>
+                    <Button variant="outline" size="lg" fullWidth onClick={() => handleRate(3)}>
+                      <span className="block leading-tight">
+                        <span className="block font-bold">Good</span>
+                        <span className="block text-caption font-medium text-ink-500">Recalled</span>
+                      </span>
+                    </Button>
 
-                    <button
-                      onClick={() => handleRate(5)}
-                      className="py-3 px-2 rounded-card border-2 border-brand-200 bg-brand-50/60 hover:bg-brand-100 text-brand-900 font-medium text-xs text-center transition-all active:scale-95"
-                    >
-                      <span className="block font-bold text-sm mb-0.5">Easy</span>
-                      Mastered
-                    </button>
+                    <Button size="lg" fullWidth onClick={() => handleRate(5)}>
+                      <span className="block leading-tight">
+                        <span className="block font-bold">Easy</span>
+                        <span className="block text-caption font-medium opacity-90">Mastered</span>
+                      </span>
+                    </Button>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="max-w-md mx-auto text-center py-12 px-6 bg-white rounded-card border border-ink-200/80 shadow-soft-sm">
-                <div className="w-16 h-16 rounded-full bg-brand-100 text-brand-700 mx-auto flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-8 h-8" />
+              <Card padding="lg" className="max-w-md mx-auto text-center">
+                <div className="w-16 h-16 rounded-pill bg-brand-50 border border-brand-200 text-brand-700 mx-auto flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-8 h-8" aria-hidden="true" />
                 </div>
-                <h2 className="font-display font-bold text-2xl text-ink-900 mb-2">
-                  Session Complete! 🎉
+                <h2 className="font-display font-bold text-display-sm text-ink-900 mb-2">
+                  Session Complete!
                 </h2>
-                <p className="text-sm text-ink-500 mb-6">
+                <p className="text-body-sm text-ink-500 mb-6">
                   You reviewed all cards for today. Your spaced repetition schedule has been updated!
                 </p>
-                <button
-                  onClick={handleResetSession}
-                  className="px-6 py-2.5 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm transition-all"
-                >
+                <Button shape="pill" size="lg" onClick={handleResetSession}>
                   Review Again
-                </button>
-              </div>
+                </Button>
+              </Card>
             )}
           </div>
         )}
 
         {/* ── TAB 2: Speed Drills & Practice Quiz ── */}
         {activeTab === 'quiz' && (
-          <div className="max-w-2xl mx-auto space-y-6">
+          <div
+            role="tabpanel"
+            id={practiceIds.panelId('quiz')}
+            aria-labelledby={practiceIds.tabId('quiz')}
+            className="max-w-2xl mx-auto space-y-6"
+          >
             {/* Level Filter Bar */}
-            <div className="flex items-center justify-between bg-white p-3 rounded-card border border-ink-200/80 shadow-soft-xs">
-              <span className="text-xs font-bold text-ink-700 uppercase tracking-wide">
-                Target Level:
-              </span>
-              <div className="flex gap-1">
-                {['All', 'A1', 'A2', 'B1'].map((lvl) => (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => {
-                      setDrillLevel(lvl);
-                      handleDrillReset();
-                    }}
-                    className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all ${
-                      drillLevel === lvl
-                        ? 'bg-brand-600 text-white shadow-soft-sm'
-                        : 'bg-ink-100 text-ink-600 hover:bg-ink-200'
-                    }`}
-                  >
-                    {lvl === 'All' ? 'All Levels' : lvl}
-                  </button>
-                ))}
+            <Card padding="sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-overline uppercase text-ink-700">Target level</span>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter drills by level">
+                  {['All', 'A1', 'A2', 'B1'].map((lvl) => (
+                    <Chip
+                      key={lvl}
+                      size="sm"
+                      tone="card"
+                      selected={drillLevel === lvl}
+                      onClick={() => {
+                        setDrillLevel(lvl);
+                        handleDrillReset();
+                      }}
+                    >
+                      {lvl === 'All' ? 'All levels' : lvl}
+                    </Chip>
+                  ))}
+                </div>
               </div>
-            </div>
+            </Card>
 
             {!drillFinished && currentDrillQ ? (
-              <div className="bg-white rounded-card p-6 sm:p-8 border border-ink-200/80 shadow-soft-md space-y-6">
-                <div className="flex items-center justify-between text-xs text-ink-400 font-semibold">
-                  <span className="text-brand-700 font-bold uppercase">
-                    Level {currentDrillQ.level} • {currentDrillQ.lessonTitle}
-                  </span>
-                  <span>
-                    Question {drillIndex + 1} of {drillQuestions.length}
-                  </span>
-                </div>
+              <Card padding="md" className="sm:p-8">
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-body-sm text-ink-500">
+                    <Badge variant="brand" uppercase>
+                      Level {currentDrillQ.level} • {currentDrillQ.lessonTitle}
+                    </Badge>
+                    <span className="tabular-nums">
+                      Question {drillIndex + 1} of {drillQuestions.length}
+                    </span>
+                  </div>
 
-                <h3 className="font-display font-bold text-xl sm:text-2xl text-ink-900 leading-snug">
-                  {currentDrillQ.question}
-                </h3>
+                  <h3 className="font-display font-bold text-display-sm text-ink-900 leading-snug">
+                    {currentDrillQ.question}
+                  </h3>
 
-                <div className="space-y-2.5">
-                  {currentDrillQ.options.map((opt, idx) => {
-                    const isSelected = drillSelected === idx;
-                    const isCorrect = idx === currentDrillQ.correctIndex;
+                  <AnswerOptions
+                    options={currentDrillQ.options}
+                    correctIndex={currentDrillQ.correctIndex}
+                    selectedIndex={drillSelected}
+                    answered={drillAnswered}
+                    onSelect={handleDrillAnswer}
+                    label={`Answer options for: ${currentDrillQ.question}`}
+                  />
 
-                    let btnStyle = 'border-ink-200 hover:border-brand-400 bg-white text-ink-800';
-                    if (drillAnswered) {
-                      if (isCorrect) {
-                        btnStyle = 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold';
-                      } else if (isSelected) {
-                        btnStyle = 'border-red-500 bg-red-50 text-red-900';
-                      } else {
-                        btnStyle = 'border-ink-100 opacity-50 bg-white text-ink-400';
-                      }
-                    }
-
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        disabled={drillAnswered}
-                        onClick={() => handleDrillAnswer(idx)}
-                        className={`w-full p-4 rounded-xl text-left border-2 text-sm font-medium flex items-center justify-between transition-all ${btnStyle}`}
-                      >
-                        <span>
-                          {String.fromCharCode(65 + idx)}. {opt}
-                        </span>
-                        {drillAnswered && isCorrect && (
-                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                        )}
-                        {drillAnswered && isSelected && !isCorrect && (
-                          <AlertCircle size={16} className="text-red-600 shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Explanation on answered */}
-                {drillAnswered && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-brand-50/80 border border-brand-200 text-xs text-brand-900 space-y-3"
-                  >
-                    <div>
-                      <span className="font-bold block mb-0.5">Answer Explanation:</span>
-                      {currentDrillQ.explanation || 'Excellent grammar application.'}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleDrillNext}
-                      className="px-5 py-2 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-soft-sm inline-flex items-center gap-1.5"
+                  {/* Explanation on answered */}
+                  {drillAnswered && (
+                    <VerdictPanel
+                      tone={drillSelected === currentDrillQ.correctIndex ? 'success' : 'error'}
+                      onNext={handleDrillNext}
+                      nextLabel={drillIndex + 1 === drillQuestions.length ? 'See Results' : 'Next Question'}
                     >
-                      {drillIndex + 1 === drillQuestions.length ? 'See Results' : 'Next Question'}
-                      <ArrowRight size={14} />
-                    </button>
-                  </motion.div>
-                )}
-              </div>
+                      <span className="font-bold text-ink-900 block mb-0.5">
+                        {drillSelected === currentDrillQ.correctIndex ? 'Correct answer' : 'Explanation'}
+                      </span>
+                      {currentDrillQ.explanation || 'Excellent grammar application.'}
+                    </VerdictPanel>
+                  )}
+                </div>
+              </Card>
             ) : (
-              <div className="bg-white rounded-card p-8 border border-ink-200/80 shadow-soft-md text-center">
-                <Trophy className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                <h3 className="font-display font-bold text-2xl text-ink-900 mb-1">
+              <Card padding="lg" className="text-center">
+                <div className="w-16 h-16 rounded-card bg-amber-50 border border-amber-200 text-amber-700 mx-auto flex items-center justify-center mb-4">
+                  <Trophy className="w-8 h-8" aria-hidden="true" />
+                </div>
+                <h3 className="font-display font-bold text-display-sm text-ink-900 mb-1">
                   Speed Drill Completed!
                 </h3>
-                <p className="text-sm text-ink-500 mb-6">
-                  You scored <strong>{drillScore}</strong> out of{' '}
-                  <strong>{drillQuestions.length}</strong> ({Math.round((drillScore / Math.max(1, drillQuestions.length)) * 100)}%)
+                <p className="text-body-sm text-ink-500 mb-6">
+                  You scored{' '}
+                  <strong className="text-ink-900 tabular-nums">{drillScore}</strong> out of{' '}
+                  <strong className="text-ink-900 tabular-nums">{drillQuestions.length}</strong>{' '}
+                  <span className="tabular-nums">
+                    ({Math.round((drillScore / Math.max(1, drillQuestions.length)) * 100)}%)
+                  </span>
                 </p>
-                <button
-                  type="button"
-                  onClick={handleDrillReset}
-                  className="px-6 py-2.5 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-soft-sm"
-                >
+                <Button shape="pill" size="lg" onClick={handleDrillReset}>
                   Start Another Drill
-                </button>
-              </div>
+                </Button>
+              </Card>
             )}
           </div>
         )}
 
         {/* ── TAB 3: Listening Ear Training Studio ── */}
         {activeTab === 'listening' && (
-          <div className="max-w-2xl mx-auto space-y-6">
+          <div
+            role="tabpanel"
+            id={practiceIds.panelId('listening')}
+            aria-labelledby={practiceIds.tabId('listening')}
+            className="max-w-2xl mx-auto space-y-6"
+          >
             {currentListenQ ? (
-              <div className="bg-white rounded-card p-6 sm:p-8 border border-ink-200/80 shadow-soft-md space-y-6">
-                <div className="flex items-center justify-between text-xs text-ink-400 font-semibold">
-                  <span className="text-brand-700 font-bold uppercase">
-                    Level {currentListenQ.level} • {currentListenQ.examTitle}
-                  </span>
-                  <span>
-                    Audio Task {listenIndex + 1} of {listeningExercises.length}
-                  </span>
-                </div>
-
-                {/* Audio Player Controls */}
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-brand-50 to-amber-50/40 border border-brand-200 text-center space-y-3">
-                  <div className="w-14 h-14 rounded-full bg-brand-600 text-white mx-auto flex items-center justify-center shadow-soft-sm">
-                    <Headphones className="w-7 h-7" />
+              <Card padding="md" className="sm:p-8">
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-body-sm text-ink-500">
+                    <Badge variant="brand" uppercase>
+                      Level {currentListenQ.level} • {currentListenQ.examTitle}
+                    </Badge>
+                    <span className="tabular-nums">
+                      Audio Task {listenIndex + 1} of {listeningExercises.length}
+                    </span>
                   </div>
-                  <h4 className="font-display font-bold text-lg text-ink-900">
-                    Listen to the Native Dialogue
-                  </h4>
-                  <div className="flex items-center justify-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => speech?.speak(currentListenQ.audioScript, currentLang)}
-                      className="px-4 py-2 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-soft-sm active:scale-95"
-                    >
-                      <Volume2 size={15} /> Normal Audio (1x)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => speech?.speakSlow(currentListenQ.audioScript, currentLang)}
-                      className="px-4 py-2 rounded-pill bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold text-xs flex items-center gap-1.5 shadow-soft-sm active:scale-95"
-                    >
-                      <Turtle size={15} /> Turtle Mode (0.65x)
-                    </button>
-                  </div>
-                </div>
 
-                <p className="font-semibold text-base text-ink-900">
-                  {currentListenQ.prompt}
-                </p>
+                  {/* Audio Player Controls */}
+                  <Card tone="brand" padding="md" className="text-center">
+                    <div className="space-y-3">
+                      <div className="w-14 h-14 rounded-pill bg-brand-700 text-white mx-auto flex items-center justify-center">
+                        <Headphones className="w-7 h-7" aria-hidden="true" />
+                      </div>
+                      <h4 className="font-display font-bold text-display-xs text-ink-900">
+                        Listen to the Native Dialogue
+                      </h4>
+                      <p className="text-caption text-ink-700">
+                        Play the clip, then choose what you heard. Turtle mode reads it at 0.65x.
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                        <Button size="md" icon={Volume2} onClick={() => speech?.speak(currentListenQ.audioScript, currentLang)}>
+                          Normal Audio (1x)
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="md"
+                          icon={Turtle}
+                          onClick={() => speech?.speakSlow(currentListenQ.audioScript, currentLang)}
+                        >
+                          Turtle Mode (0.65x)
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
 
-                <div className="space-y-2.5">
-                  {currentListenQ.options.map((opt, idx) => {
-                    const isSelected = listenSelected === idx;
-                    const isCorrect = idx === currentListenQ.correctIndex;
+                  <p className="font-semibold text-body-lg text-ink-900">{currentListenQ.prompt}</p>
 
-                    let btnStyle = 'border-ink-200 hover:border-brand-400 bg-white text-ink-800';
-                    if (listenAnswered) {
-                      if (isCorrect) {
-                        btnStyle = 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold';
-                      } else if (isSelected) {
-                        btnStyle = 'border-red-500 bg-red-50 text-red-900';
-                      } else {
-                        btnStyle = 'border-ink-100 opacity-50 bg-white text-ink-400';
+                  <AnswerOptions
+                    options={currentListenQ.options}
+                    correctIndex={currentListenQ.correctIndex}
+                    selectedIndex={listenSelected}
+                    answered={listenAnswered}
+                    onSelect={handleListenAnswer}
+                    label={`Answer options for: ${currentListenQ.prompt}`}
+                  />
+
+                  {listenAnswered && (
+                    <VerdictPanel
+                      tone={listenSelected === currentListenQ.correctIndex ? 'success' : 'error'}
+                      onNext={
+                        listenIndex + 1 < listeningExercises.length
+                          ? () => {
+                              setListenIndex((i) => i + 1);
+                              setListenAnswered(false);
+                              setListenSelected(null);
+                            }
+                          : undefined
                       }
-                    }
-
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        disabled={listenAnswered}
-                        onClick={() => handleListenAnswer(idx)}
-                        className={`w-full p-4 rounded-xl text-left border-2 text-sm font-medium flex items-center justify-between transition-all ${btnStyle}`}
-                      >
-                        <span>
-                          {String.fromCharCode(65 + idx)}. {opt}
-                        </span>
-                        {listenAnswered && isCorrect && (
-                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-                        )}
-                        {listenAnswered && isSelected && !isCorrect && (
-                          <AlertCircle size={16} className="text-red-600 shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
+                      nextLabel="Next Audio Clip"
+                    >
+                      {currentListenQ.explanation}
+                    </VerdictPanel>
+                  )}
                 </div>
-
-                {listenAnswered && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-brand-50 border border-brand-200 text-xs text-brand-900 space-y-3"
-                  >
-                    <p>{currentListenQ.explanation}</p>
-                    {listenIndex + 1 < listeningExercises.length && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setListenIndex((i) => i + 1);
-                          setListenAnswered(false);
-                          setListenSelected(null);
-                        }}
-                        className="px-5 py-2 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-soft-sm inline-flex items-center gap-1.5"
-                      >
-                        Next Audio Clip <ArrowRight size={14} />
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-              </div>
+              </Card>
             ) : (
-              <p className="text-center text-sm text-ink-500 py-12">
-                No listening exercises found.
-              </p>
+              /* Empty state — the page had no way to say "nothing here". */
+              <Card padding="lg" tone="quiet" className="text-center">
+                <div className="w-14 h-14 rounded-pill bg-surface-200 text-ink-700 mx-auto flex items-center justify-center mb-4">
+                  <Headphones className="w-7 h-7" aria-hidden="true" />
+                </div>
+                <h3 className="font-display font-bold text-display-xs text-ink-900 mb-1">
+                  No listening exercises yet
+                </h3>
+                <p className="text-body-sm text-ink-500 max-w-sm mx-auto">
+                  Ear training pulls its clips from the listening sections of the official mock exams. Start a{' '}
+                  {currentLang === 'ja' ? 'JLPT' : 'CEFR'} mock exam to unlock them here.
+                </p>
+              </Card>
             )}
           </div>
         )}
 
         {/* ── TAB 4: Searchable Vocabulary Library ── */}
         {activeTab === 'words' && (
-          <div className="space-y-4">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search word or translation..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-pill border border-ink-200 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 bg-white"
-              />
-            </div>
+          <div
+            role="tabpanel"
+            id={practiceIds.panelId('words')}
+            aria-labelledby={practiceIds.tabId('words')}
+            className="space-y-4"
+          >
+            <Input
+              srOnlyLabel="Search the vocabulary library"
+              type="search"
+              icon={Search}
+              placeholder="Search word or translation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              size="lg"
+              className="max-w-md"
+            />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {filteredWords.map((item) => {
-                const srsRecord = progress.wordProgress?.[item.id];
-                const isMastered = srsRecord && srsRecord.repetitions >= 3;
+            <p className="text-body-sm text-ink-500" role="status" aria-live="polite">
+              Showing <span className="tabular-nums font-semibold text-ink-700">{filteredWords.length}</span> of{' '}
+              <span className="tabular-nums font-semibold text-ink-700">{allVocabWords.length}</span> words
+              {searchQuery.trim() ? ` for “${searchQuery.trim()}”` : ''}.
+            </p>
 
-                return (
-                  <div
-                    key={item.id}
-                    className="p-4 rounded-card bg-white border border-ink-200/60 shadow-soft-sm hover:shadow-soft-md transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-semibold uppercase text-ink-400 tracking-wider">
-                          {item.level} • {item.lessonTitle}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => speech?.speak(item.word, currentLang)}
-                            className="p-1 text-brand-600 hover:bg-brand-50 rounded-full transition-colors"
-                            title="Normal audio"
-                          >
-                            <Volume2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => speech?.speakSlow(item.word, currentLang)}
-                            className="p-1 text-amber-600 hover:bg-amber-50 rounded-full transition-colors"
-                            title="Turtle slow audio"
-                          >
-                            <Turtle className="w-3.5 h-3.5" />
-                          </button>
+            {filteredWords.length === 0 ? (
+              <Card padding="lg" tone="quiet" className="text-center">
+                <div className="w-14 h-14 rounded-pill bg-surface-200 text-ink-700 mx-auto flex items-center justify-center mb-4">
+                  <Search className="w-7 h-7" aria-hidden="true" />
+                </div>
+                <h3 className="font-display font-bold text-display-xs text-ink-900 mb-1">
+                  No matches for “{searchQuery.trim()}”
+                </h3>
+                <p className="text-body-sm text-ink-500 mb-4">
+                  Try a shorter word, or the translation instead of the term.
+                </p>
+                <Button variant="outline" shape="pill" size="md" onClick={() => setSearchQuery('')}>
+                  Clear search
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {filteredWords.map((item) => {
+                  const srsRecord = progress.wordProgress?.[item.id];
+                  const isMastered = srsRecord && srsRecord.repetitions >= 3;
+
+                  return (
+                    <Card key={item.id} padding="sm" className="flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <Badge variant="outline">{item.level}</Badge>
+                          <AudioControls
+                            text={item.word}
+                            lang={currentLang}
+                            speech={speech}
+                          />
                         </div>
+
+                        <h3 className="font-display font-bold text-display-xs text-ink-900 mb-0.5">
+                          {item.word}
+                        </h3>
+                        {item.pronunciation && (
+                          <p className="text-body-sm text-ink-500 mb-2">/{item.pronunciation}/</p>
+                        )}
+                        <p className="text-body-md font-medium text-brand-800">{item.translation}</p>
+                        <p className="text-caption text-ink-500 mt-2">
+                          from {item.lessonTitle}
+                        </p>
                       </div>
 
-                      <h3 className="font-display font-bold text-xl text-ink-900 mb-0.5">
-                        {item.word}
-                      </h3>
-                      {item.pronunciation && (
-                        <p className="text-xs text-ink-500 mb-2">/{item.pronunciation}/</p>
-                      )}
-                      <p className="text-sm font-medium text-brand-800">{item.translation}</p>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-ink-100 flex items-center justify-between text-xs text-ink-400">
-                      <span>
-                        {srsRecord ? `Repetitions: ${srsRecord.repetitions}` : 'New word'}
-                      </span>
-                      {isMastered && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-pill">
-                          <Check className="w-3 h-3" /> Mastered
+                      <div className="mt-3 pt-3 border-t border-ink-200 flex items-center justify-between gap-2 text-caption text-ink-700">
+                        <span>
+                          {srsRecord
+                            ? `Repetitions: ${srsRecord.repetitions}`
+                            : 'New word'}
                         </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        {isMastered && (
+                          <Badge variant="success" icon={Check}>
+                            Mastered
+                          </Badge>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

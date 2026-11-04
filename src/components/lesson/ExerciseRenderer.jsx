@@ -1,6 +1,7 @@
 /**
  * @file ExerciseRenderer.jsx
- * @description Dynamic exercise dispatcher that maps exercise types to their component views.
+ * @description Dynamic exercise dispatcher that maps exercise types to their
+ * component views.
  */
 
 import React from 'react';
@@ -9,6 +10,20 @@ import MultipleChoice from './MultipleChoice';
 import FillBlank from './FillBlank';
 import MatchPairs from './MatchPairs';
 import WritingCanvas from '../writing/WritingCanvas';
+import { Badge, Card } from '../ui';
+
+/* The renderer is the only place that knows an exercise has no matching case, so
+   the fallback is a real message rather than a blank panel. */
+function UnknownExercise({ type }) {
+  return (
+    <Card padding="lg" tone="quiet" className="text-center">
+      <p className="text-body-md font-semibold text-ink-900">This exercise can’t be shown</p>
+      <p className="text-body-sm text-ink-500 mt-1">
+        Unrecognised exercise type: <code className="font-mono text-caption">{type}</code>
+      </p>
+    </Card>
+  );
+}
 
 export default function ExerciseRenderer({
   exercise,
@@ -26,14 +41,14 @@ export default function ExerciseRenderer({
       return (
         <div className="w-full text-center">
           <div className="mb-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 bg-brand-50 px-3 py-1 rounded-pill inline-block mb-1">
-              Handwriting Practice
-            </span>
-            <h2 className="font-display font-bold text-2xl text-ink-900">
-              {exercise.prompt || `Practice writing "${target}"`}
+            <Badge variant="brand" uppercase size="md" className="mb-1">
+              Handwriting practice
+            </Badge>
+            <h2 className="font-display font-bold text-display-md text-ink-900">
+              {exercise.prompt || `Practice writing “${target}”`}
             </h2>
             {exercise.translation && (
-              <p className="text-sm text-ink-500 mt-1">Meaning: {exercise.translation}</p>
+              <p className="text-body-sm text-ink-500 mt-1">Meaning: {exercise.translation}</p>
             )}
           </div>
           <WritingCanvas
@@ -107,11 +122,7 @@ export default function ExerciseRenderer({
       );
 
     default:
-      return (
-        <div className="p-8 text-center text-ink-500">
-          Unknown exercise type: <code>{exercise.type}</code>
-        </div>
-      );
+      return <UnknownExercise type={exercise.type} />;
   }
 }
 

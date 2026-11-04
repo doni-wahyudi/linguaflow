@@ -1,14 +1,29 @@
 /**
  * @file FlashCard.jsx
- * @description 3D interactive flashcard with front/back flip, audio pronunciation, and example usage.
+ * @description 3D interactive flashcard with front/back flip, audio
+ * pronunciation, and example usage.
+ *
+ * Design notes:
+ * - The card used to be a `<div role="button" tabIndex={0}>` that CONTAINED
+ *   three real buttons. Nested interactive controls are the one pattern screen
+ *   readers reliably get wrong — the reader announces a button whose children are
+ *   also buttons, and keyboard users cannot predict what Space does. Flipping now
+ *   has its own explicit button; the card surface still flips on click for
+ *   pointer users, but it is not in the tab order.
+ * - The audio controls appeared twice, byte-for-byte, so they are one component.
+ * - Both audio buttons were 36px; the kit target floor is 44px (§4 touch targets).
+ * - Chips use the kit Badge, sizes use the type scale, and the continue CTA is a
+ *   kit Button (brand-700, because white on brand-600 measures 3.77:1).
+ * - The flip is a `rotateY` transform, so MotionConfig's reduced-motion handling
+ *   covers it; the card switches faces without animating.
  */
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Volume2, Turtle, RotateCw, CheckCircle2 } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { CheckCircle2, RotateCw } from 'lucide-react';
 import { useUser } from '../../context/UserContext';
-
-const transitionEase = [0.16, 1, 0.3, 1];
+import { AudioControls, Badge, Button } from '../ui';
+import { transitionEase } from '../../utils/motion';
 
 export default function FlashCard({
   word,
@@ -20,21 +35,8 @@ export default function FlashCard({
   onComplete,
 }) {
   const [flipped, setFlipped] = useState(false);
+  const reduceMotion = useReducedMotion();
   const { speech } = useUser();
-
-  const handleSpeak = (e) => {
-    e.stopPropagation();
-    if (speech?.speak) {
-      speech.speak(word, langCode);
-    }
-  };
-
-  const handleSpeakSlow = (e) => {
-    e.stopPropagation();
-    if (speech?.speakSlow) {
-      speech.speakSlow(word, langCode);
-    }
-  };
 
   const handleFlip = () => {
     setFlipped((prev) => !prev);
@@ -42,137 +44,108 @@ export default function FlashCard({
 
   return (
     <div className="flex flex-col items-center justify-center max-w-md mx-auto w-full">
-      <p className="text-sm font-medium text-ink-500 mb-3 flex items-center gap-1.5">
-        <RotateCw className="w-4 h-4 text-brand-600 animate-spin-reverse" />
-        Tap card to flip & reveal translation
-      </p>
-
       {/* 3D Card Container */}
       <div
         className="relative w-full h-80 cursor-pointer select-none perspective-1000"
         onClick={handleFlip}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleFlip();
-          }
-        }}
-        aria-label={`Flashcard for ${word}. Click to flip.`}
       >
         <motion.div
           className="w-full h-full relative"
           style={{ transformStyle: 'preserve-3d' }}
           animate={{ rotateY: flipped ? 180 : 0 }}
-          transition={{ duration: 0.5, ease: transitionEase }}
+          transition={
+            reduceMotion ? { duration: 0 } : { duration: 0.5, ease: transitionEase }
+          }
         >
-          {/* ── Front Face ── */}
+          {/* ── Front Face ──
+              `backface-visibility` hides the face from paint only, so without the
+              matching aria-hidden a screen reader read the word and its meaning
+              together and gave away the answer (WCAG 1.3.1). */}
           <div
-            className="absolute inset-0 bg-white rounded-card p-8 border-2 border-brand-200/80 shadow-soft-lg flex flex-col justify-between items-center text-center backface-hidden"
+            aria-hidden={flipped}
+            inert={flipped ? '' : undefined}
+            className="absolute inset-0 bg-surface-card rounded-card p-6 sm:p-8 border-2 border-brand-200 shadow-soft-lg flex flex-col justify-between items-center text-center backface-hidden"
           >
-            <div className="w-full flex justify-between items-center">
-              <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 bg-brand-50 px-2.5 py-1 rounded-pill">
-                Target Word
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleSpeak}
-                  className="w-9 h-9 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 flex items-center justify-center transition-colors"
-                  title="Normal speed audio"
-                  aria-label="Normal speed audio"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSpeakSlow}
-                  className="w-9 h-9 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center justify-center transition-colors"
-                  title="Turtle mode (slow 0.65x speed)"
-                  aria-label="Turtle mode slow speed audio"
-                >
-                  <Turtle className="w-4 h-4" />
-                </button>
-              </div>
+            <div className="w-full flex justify-between items-center gap-2">
+              <Badge variant="brand" uppercase>
+                Target word
+              </Badge>
+              <AudioControls text={word} lang={langCode} speech={speech} stopPropagation />
             </div>
 
             <div className="my-auto">
-              <h2 className="font-display font-bold text-4xl text-ink-900 mb-2 tracking-tight">
+              <h2 className="font-display font-bold text-display-md text-ink-900 mb-2">
                 {word}
               </h2>
               {pronunciation && (
-                <p className="text-sm text-ink-500 font-medium">/{pronunciation}/</p>
+                <p className="text-body-sm text-ink-500 font-medium">/{pronunciation}/</p>
               )}
             </div>
 
-            <p className="text-xs text-ink-400">Click anywhere to flip</p>
+            <p className="text-caption text-ink-500">Click the card to flip</p>
           </div>
 
-          {/* ── Back Face ── */}
+          {/* ── Back Face ──
+              `inert` (empty string, not `true`, so React 18 omits it when the face
+              is showing) removes the hidden side from the tab order as well as the
+              accessibility tree — aria-hidden alone would leave its audio and
+              "Got it" buttons focusable but invisible, which is worse for keyboard
+              users than announcing both faces. */}
           <div
-            className="absolute inset-0 bg-gradient-to-br from-brand-50/80 to-white rounded-card p-8 border-2 border-brand-300 shadow-soft-lg flex flex-col justify-between items-center text-center backface-hidden"
+            aria-hidden={!flipped}
+            inert={!flipped ? '' : undefined}
+            className="absolute inset-0 bg-gradient-to-br from-brand-50 to-surface-card rounded-card p-6 sm:p-8 border-2 border-brand-200 shadow-soft-lg flex flex-col justify-between items-center text-center backface-hidden"
             style={{ transform: 'rotateY(180deg)' }}
           >
-            <div className="w-full flex justify-between items-center">
-              <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-pill">
+            <div className="w-full flex justify-between items-center gap-2">
+              <Badge variant="amber" uppercase>
                 Meaning
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleSpeak}
-                  className="w-9 h-9 rounded-full bg-brand-50 text-brand-700 hover:bg-brand-100 flex items-center justify-center transition-colors"
-                  title="Normal speed audio"
-                  aria-label="Normal speed audio"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSpeakSlow}
-                  className="w-9 h-9 rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center justify-center transition-colors"
-                  title="Turtle mode (slow 0.65x speed)"
-                  aria-label="Turtle mode slow speed audio"
-                >
-                  <Turtle className="w-4 h-4" />
-                </button>
-              </div>
+              </Badge>
+              <AudioControls text={word} lang={langCode} speech={speech} stopPropagation />
             </div>
 
             <div className="my-auto">
-              <p className="text-xs text-ink-400 font-semibold uppercase tracking-wide mb-1">
-                Translation
-              </p>
-              <h2 className="font-display font-bold text-3xl text-brand-800 mb-4">
+              <p className="text-overline uppercase text-ink-700 mb-1">Translation</p>
+              <h2 className="font-display font-bold text-display-sm text-brand-800 mb-4">
                 {translation}
               </h2>
 
               {example && (
-                <div className="bg-white/80 border border-brand-100 rounded-xl p-3 max-w-xs mx-auto text-left">
-                  <p className="text-xs font-semibold text-ink-700">"{example}"</p>
+                <div className="bg-surface-card border border-brand-200 rounded-card p-3 max-w-xs mx-auto text-left">
+                  <p className="text-body-sm font-semibold text-ink-900">“{example}”</p>
                   {exampleTranslation && (
-                    <p className="text-xs text-ink-500 italic mt-0.5">
-                      {exampleTranslation}
-                    </p>
+                    <p className="text-caption text-ink-500 italic mt-0.5">{exampleTranslation}</p>
                   )}
                 </div>
               )}
             </div>
 
-            <button
+            <Button
               type="button"
+              shape="pill"
+              icon={CheckCircle2}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onComplete) onComplete(true);
               }}
-              className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm px-6 py-2.5 rounded-pill shadow-soft-sm hover:shadow-glow-brand transition-all active:scale-95"
             >
-              <CheckCircle2 className="w-4 h-4" /> Got it! Continue
-            </button>
+              Got it · Continue
+            </Button>
           </div>
         </motion.div>
       </div>
+
+      {/* Keyboard path for the flip. The card itself is a click target, but a
+          control that is only reachable by mouse is not a control. */}
+      <button
+        type="button"
+        onClick={handleFlip}
+        aria-expanded={flipped}
+        className="inline-flex items-center gap-1.5 mt-4 min-h-11 px-4 rounded-pill text-body-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
+      >
+        <RotateCw className="w-4 h-4" aria-hidden="true" />
+        {flipped ? 'Show the word again' : 'Flip to reveal the meaning'}
+      </button>
     </div>
   );
 }

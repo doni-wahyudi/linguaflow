@@ -1,27 +1,70 @@
 /**
  * @file Card.jsx
- * @description A flexible card surface component with multiple visual variants,
- * padding presets, and optional interactive hover animations powered by Framer Motion.
+ * @description The content container primitive, implementing spec §5.2.
+ *
+ * Fixes over the previous build:
+ * - Border is a solid `ink-200` (spec `border-default`). It used to be
+ *   `border-ink-200/50`, which composites to roughly #F3F2F0 on the cream page
+ *   and made the documented border effectively invisible, leaving cards to rest
+ *   entirely on a soft shadow.
+ * - Hover elevation uses the `shadow-card` / `shadow-card-hover` tokens instead
+ *   of an inline shadow string that silently duplicated `shadow-soft-lg`.
+ * - The §5.2 variant set (accent bar, stat, achievement, flashcard) is now
+ *   expressible without one-off classes at each call site.
+ * - `tone` and `earned` replace the surface classes instead of appending to them.
+ *   Two `bg-*` utilities in one class attribute do not resolve by source order —
+ *   Tailwind decides by stylesheet position — so appending was a coin flip.
  *
  * @example
- * <Card variant="interactive" padding="md" onClick={handleClick}>
- *   <h3>Lesson 1</h3>
- * </Card>
+ * <Card>…</Card>
+ * <Card tone="coral">Streak</Card>
+ * <Card accent="brand" padding="sm">…</Card>
+ * <Card earned={isUnlocked}>Achievement</Card>
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { transitionEase } from '../../utils/motion';
 
-const transitionEase = [0.16, 1, 0.3, 1];
+const base = 'bg-surface-card rounded-card border border-ink-200 shadow-card';
 
 const variantClasses = {
-  default: 'bg-surface-card rounded-card shadow-soft-sm border border-ink-200/50',
-  elevated: 'bg-surface-card rounded-card shadow-soft-md border border-ink-200/50',
-  interactive: [
-    'bg-surface-card rounded-card shadow-soft-sm border border-ink-200/50',
-    'cursor-pointer',
-  ].join(' '),
+  default: base,
+  elevated: 'bg-surface-card rounded-card border border-ink-200 shadow-card-hover',
   outlined: 'bg-surface-card rounded-card border-2 border-ink-200',
+  /** Flat card for content that already sits on a coloured surface. */
+  plain: 'bg-surface-card rounded-card',
+};
+
+/* Tinted surfaces for status contexts. Text inside a tinted card must still use
+   ink-900 / ink-700 / ink-500; the tint is a 50-step background, not a palette
+   escape hatch. */
+const toneClasses = {
+  brand: 'bg-brand-50 border-brand-200',
+  amber: 'bg-amber-50 border-amber-200',
+  coral: 'bg-coral-50 border-coral-200',
+  info: 'bg-info-bg border-info/25',
+  quiet: 'bg-surface-100 border-ink-200',
+  /** For hero cards: white-on-emerald measures 5.48:1. */
+  inverse: 'bg-brand-700 border-brand-700 text-white',
+  /* Semantic feedback tints. Without these, every "out of hearts" / "lesson
+     passed" panel hand-wrote `bg-red-100 border-red-200`, which is how the
+     original build ended up with four different failure reds. The tint is a
+     -bg surface; the text inside it still uses the -strong tier. */
+  success: 'bg-success-bg border-success-border',
+  warning: 'bg-warning-bg border-warning-border',
+  error: 'bg-error-bg border-error-border',
+};
+
+/* §5.2 Lesson Card: 4px left accent bar in the category colour. */
+const accentClasses = {
+  brand: 'before:bg-brand-500',
+  amber: 'before:bg-amber-500',
+  coral: 'before:bg-coral-500',
+  success: 'before:bg-success',
+  error: 'before:bg-error',
+  info: 'before:bg-info',
+  ink: 'before:bg-ink-300',
 };
 
 const paddingClasses = {
@@ -31,52 +74,66 @@ const paddingClasses = {
   lg: 'p-8',
 };
 
+/** Compose the surface classes so exactly one bg-* and one border-* survive. */
+function surfaceClasses({ variant, tone, earned }) {
+  let shell = variantClasses[variant] || variantClasses.default;
+
+  const override =
+    (tone && toneClasses[tone]) ||
+    (earned === true && 'border-amber-400') ||
+    (earned === false && 'border-ink-200');
+
+  if (override) {
+    shell = shell
+      .split(' ')
+      .filter((cls) => !cls.startsWith('bg-') && !cls.startsWith('border'))
+      .concat(override.split(' '))
+      .join(' ');
+  }
+
+  if (earned === false) shell += ' opacity-60';
+
+  return shell;
+}
+
 /**
- * Card surface component.
- *
  * @param {object} props
- * @param {React.ReactNode} props.children - Card content.
- * @param {'default'|'elevated'|'interactive'|'outlined'} [props.variant='default'] - Visual variant.
- * @param {'none'|'sm'|'md'|'lg'} [props.padding='md'] - Padding preset.
- * @param {string} [props.className] - Additional CSS classes.
- * @param {Function} [props.onClick] - Click handler (adds interactive semantics).
- * @param {React.Ref} ref - Forwarded ref.
- * @returns {JSX.Element}
+ * @param {React.ReactNode} props.children
+ * @param {'default'|'elevated'|'outlined'|'plain'} [props.variant='default']
+ * @param {'brand'|'amber'|'coral'|'info'|'quiet'|'inverse'|'success'|'warning'|'error'} [props.tone] - Tinted surface.
+ * @param {'none'|'sm'|'md'|'lg'} [props.padding='md']
+ * @param {'brand'|'amber'|'coral'|'success'|'error'|'info'|'ink'} [props.accent] - Adds the §5.2 left accent bar.
+ * @param {boolean} [props.earned] - Achievement card: golden border when earned, muted when locked.
+ * @param {Function} [props.onClick] - Makes the card an accessible button.
+ * @param {string} [props.className]
  */
 const Card = React.forwardRef(
-  (
-    {
-      children,
-      variant = 'default',
-      padding = 'md',
-      className = '',
-      onClick,
-      ...rest
-    },
-    ref,
-  ) => {
+  ({ children, variant = 'default', tone, padding = 'md', accent, earned, className = '', onClick, ...rest }, ref) => {
     const isInteractive = variant === 'interactive' || !!onClick;
 
     const motionProps = isInteractive
       ? {
-          whileHover: { y: -2, boxShadow: '0 4px 8px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08)' },
+          whileHover: { y: -2 },
           whileTap: { scale: 0.99 },
-          transition: { duration: 0.25, ease: transitionEase },
+          transition: { duration: 0.2, ease: transitionEase },
         }
       : {};
 
+    /* A div with role="button" must be keyboard-operable, or it is worse than a
+       link for anyone not using a mouse. */
     const semanticProps = isInteractive
       ? {
           role: 'button',
           tabIndex: 0,
           onClick,
           onKeyDown: (e) => {
-            if ((e.key === 'Enter' || e.key === ' ') && onClick) {
-              e.preventDefault();
-              onClick(e);
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+              if (onClick) {
+                e.preventDefault();
+                onClick(e);
+              }
             }
           },
-          'aria-label': rest['aria-label'] || undefined,
         }
       : {};
 
@@ -84,9 +141,13 @@ const Card = React.forwardRef(
       <motion.div
         ref={ref}
         className={[
-          'font-body transition-shadow duration-200',
-          variantClasses[variant],
+          'font-body transition-all duration-200',
+          surfaceClasses({ variant, tone, earned }),
           paddingClasses[padding],
+          accent
+            ? `relative overflow-hidden before:absolute before:inset-y-0 before:left-0 before:w-1 before:content-[''] ${accentClasses[accent] || accentClasses.brand}`
+            : '',
+          isInteractive ? 'hover:shadow-card-hover' : '',
           className,
         ]
           .filter(Boolean)

@@ -8,10 +8,10 @@ export const languages = [
     id: 'es',
     name: 'Spanish',
     nativeName: 'Español',
-    flag: '🇪🇸',
+    flagCode: 'ES',
     description: 'Vibrant, melodic language spoken by over 500 million people worldwide.',
-    color: '#059669', // Emerald accent
-    bgGradient: 'from-amber-500/10 to-red-500/10',
+    accent: 'brand',
+    tint: 'from-brand-50 to-amber-50',
     speakers: '500M+',
     code: 'es-ES',
     popularPhrases: ['Hola', 'Gracias', 'Por favor', 'Buenos días'],
@@ -30,10 +30,10 @@ export const languages = [
     id: 'ja',
     name: 'Japanese',
     nativeName: '日本語',
-    flag: '🇯🇵',
+    flagCode: 'JP',
     description: 'Fascinating language blending traditional etiquette, culture, and innovation.',
-    color: '#EA580C', // Coral/amber accent
-    bgGradient: 'from-rose-500/10 to-orange-500/10',
+    accent: 'coral',
+    tint: 'from-coral-50 to-amber-50',
     speakers: '125M+',
     code: 'ja-JP',
     popularPhrases: ['こんにちは', 'ありがとう', 'すみません', 'はじめまして'],
@@ -52,10 +52,10 @@ export const languages = [
     id: 'fr',
     name: 'French',
     nativeName: 'Français',
-    flag: '🇫🇷',
+    flagCode: 'FR',
     description: 'The global language of romance, cuisine, philosophy, and diplomacy.',
-    color: '#2563EB', // Azure accent
-    bgGradient: 'from-blue-500/10 to-indigo-500/10',
+    accent: 'info',
+    tint: 'from-info-bg to-surface-100',
     speakers: '280M+',
     code: 'fr-FR',
     popularPhrases: ['Bonjour', 'Merci', "S'il vous plaît", 'Enchanté'],
@@ -73,10 +73,10 @@ export const languages = [
     id: 'de',
     name: 'German',
     nativeName: 'Deutsch',
-    flag: '🇩🇪',
+    flagCode: 'DE',
     description: 'Rich, structured language of thinkers, science, and European commerce.',
-    color: '#D97706', // Amber/gold accent
-    bgGradient: 'from-amber-500/10 to-yellow-500/10',
+    accent: 'amber',
+    tint: 'from-amber-50 to-surface-100',
     speakers: '130M+',
     code: 'de-DE',
     popularPhrases: ['Hallo', 'Guten Tag', 'Danke', 'Auf Wiedersehen'],
@@ -93,3 +93,4 @@ export const languages = [
 ];
 
 export default languages;
+

@@ -99,9 +99,7 @@ const LessonCard = ({
             {StatusIcon && (
               <StatusIcon
                 size={20}
-                className={
-                  isCompleted ? 'text-green-500' : 'text-ink-400'
-                }
+                className={isCompleted ? 'text-success-strong' : 'text-ink-500'}
                 aria-hidden="true"
               />
             )}
@@ -126,9 +124,11 @@ const LessonCard = ({
                 value={completedExercises}
                 max={totalExercises}
                 size="sm"
-                color={isCompleted ? 'brand' : 'brand'}
+                color="success"
+                label={`${lesson.title || 'This lesson'} progress`}
+                valueText={`${completedExercises} of ${totalExercises} exercises done`}
               />
-              <span className="text-label text-ink-500">
+              <span className="text-caption text-ink-500 tabular-nums">
                 {completedExercises}/{totalExercises} exercises
               </span>
             </div>
@@ -137,13 +137,13 @@ const LessonCard = ({
           {/* Bottom row — XP reward + CTA */}
           <div className="flex items-center justify-between pt-1">
             {lesson.xpReward != null && (
-              <span className="text-body-sm font-semibold text-amber-600">
+              <span className="text-body-sm font-semibold text-amber-700">
                 +{lesson.xpReward} XP
               </span>
             )}
 
             {config.cta && (
-              <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-brand-600">
+              <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-brand-700">
                 {config.cta.label}
                 <config.cta.icon size={16} aria-hidden="true" />
               </span>
@@ -154,7 +154,7 @@ const LessonCard = ({
         {/* Locked overlay */}
         {isLocked && (
           <div
-            className="absolute inset-0 flex items-center justify-center bg-white/50"
+            className="absolute inset-0 flex items-center justify-center bg-surface-card/70"
             aria-hidden="true"
           >
             <Lock size={28} className="text-ink-300" />

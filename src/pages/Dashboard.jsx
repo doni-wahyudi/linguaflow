@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { transitionEase } from '../utils/motion';
 import {
   Flame,
   Zap,
@@ -13,9 +14,7 @@ import {
   Play,
   Repeat,
   PenTool,
-  Lock,
   CheckCircle2,
-  Clock,
   Award,
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
@@ -24,6 +23,8 @@ import { categories } from '../data/categories';
 import { lessonsByLanguage } from '../data/lessons';
 import { getLevel, getNextLevel, getLevelProgress } from '../utils/xp';
 import PageWrapper from '../components/layout/PageWrapper';
+import { Flag, SemanticIcon } from '../components/brand';
+import { Card, Badge, ProgressBar, Button } from '../components/ui';
 
 /**
  * Dashboard — Main hub after onboarding
@@ -34,17 +35,37 @@ import PageWrapper from '../components/layout/PageWrapper';
  * 3. Continue learning (last incomplete lesson)
  * 4. Recommended lessons
  * 5. Weekly activity
+ *
+ * Colour tiers follow the measured contrast rules documented in tailwind.config.js.
+ * The emerald hero runs a brand-700→800 gradient with brand-100 text (worst point
+ * 4.84:1); the previous brand-600 gradient with a brand-200 eyebrow measured 2.94:1.
  */
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: transitionEase } },
 };
 
 const stagger = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
+
+/* Icon chips: four sanctioned palette roles, one per destination, with the glyph
+   on the -700 tier so each chip clears 3:1 as a non-text element. */
+const tintClasses = {
+  brand: 'bg-brand-50 border-brand-100 text-brand-700 group-hover:bg-brand-100',
+  amber: 'bg-amber-50 border-amber-100 text-amber-700 group-hover:bg-amber-100',
+  coral: 'bg-coral-50 border-coral-100 text-coral-700 group-hover:bg-coral-100',
+  info: 'bg-info-bg border-info-bg text-info-strong group-hover:bg-info/10',
+};
+
+const quickActions = [
+  { to: '/practice', icon: Repeat, tint: 'brand', title: 'Practice Hub', subtitle: 'Flashcards, drills & audio' },
+  { to: '/exams', icon: Award, tint: 'info', title: 'Official Exams', subtitle: 'CEFR & JLPT certified tests' },
+  { to: '/writing', icon: PenTool, tint: 'coral', title: 'Handwriting Lab', subtitle: 'Stylus & touch practice' },
+  { to: '/lessons', icon: BookOpen, tint: 'amber', title: 'Browse Lessons', subtitle: 'All categories' },
+];
 
 export default function Dashboard() {
   const { user, progress, streak, xp } = useUser();
@@ -125,15 +146,7 @@ export default function Dashboard() {
   }, [progress.completedLessons]);
 
   const maxWeekly = Math.max(...weeklyData.map((d) => d.value), 1);
-
-  // Recent lessons (last 3 completed)
-  const recentCompletions = useMemo(() => {
-    return progress.completedLessons
-      .slice(-3)
-      .reverse()
-      .map((cl) => langLessons.find((l) => l.id === cl.lessonId))
-      .filter(Boolean);
-  }, [progress.completedLessons, langLessons]);
+  const weeklyTotal = weeklyData.reduce((sum, d) => sum + d.value, 0);
 
   return (
     <PageWrapper>
@@ -146,31 +159,47 @@ export default function Dashboard() {
         {/* ── Welcome Header ── */}
         <motion.div variants={fadeUp} className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="font-display text-display-md text-ink-900">
-                {getGreeting()}, {user.name}! {langData?.flag}
+            <div className="min-w-0">
+              <h1 className="font-display text-display-lg text-ink-900 flex items-center gap-3">
+                <span className="min-w-0 truncate">{getGreeting()}, {user.name}</span>
+                {langData && (
+                  <Flag code={langData.flagCode} size={22} />
+                )}
               </h1>
               <p className="text-body-md text-ink-500 mt-1">
                 Continue your {langData?.name} journey
               </p>
             </div>
 
-            {/* Quick stats */}
-            <div className="flex items-center gap-4">
-              {/* Streak */}
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-pill ${
-                streak.currentStreak > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-ink-100 border border-ink-200'
-              }`}>
-                <Flame className={`w-5 h-5 ${streak.currentStreak > 0 ? 'text-amber-500' : 'text-ink-400'}`} />
-                <span className={`font-display font-bold text-lg ${streak.currentStreak > 0 ? 'text-amber-700' : 'text-ink-500'}`}>
+            {/* Streak is the coral role, XP the amber one (§2.4) */}
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex items-center gap-2 px-4 h-10 rounded-pill border ${
+                  streak.currentStreak > 0
+                    ? 'bg-coral-50 border-coral-200'
+                    : 'bg-surface-100 border-ink-200'
+                }`}
+              >
+                <Flame
+                  className={`w-5 h-5 ${streak.currentStreak > 0 ? 'text-coral-600' : 'text-ink-500'}`}
+                  aria-hidden="true"
+                />
+                <span
+                  className={`font-display font-bold text-body-lg tabular-nums ${
+                    streak.currentStreak > 0 ? 'text-coral-700' : 'text-ink-700'
+                  }`}
+                >
                   {streak.currentStreak}
+                  <span className="sr-only"> day streak</span>
                 </span>
               </div>
 
-              {/* XP */}
-              <div className="flex items-center gap-2 px-4 py-2 rounded-pill bg-brand-50 border border-brand-200">
-                <Zap className="w-5 h-5 text-brand-600" />
-                <span className="font-display font-bold text-lg text-brand-700">{xp.totalXP}</span>
+              <div className="flex items-center gap-2 px-4 h-10 rounded-pill bg-amber-50 border border-amber-200">
+                <Zap className="w-5 h-5 text-amber-700" aria-hidden="true" />
+                <span className="font-display font-bold text-body-lg text-amber-800 tabular-nums">
+                  {xp.totalXP}
+                  <span className="sr-only"> total XP</span>
+                </span>
               </div>
             </div>
           </div>
@@ -184,28 +213,31 @@ export default function Dashboard() {
             {/* Continue Learning Card */}
             {nextLesson && (
               <motion.div variants={fadeUp}>
-                <div className="bg-gradient-to-br from-brand-600 to-brand-700 rounded-card p-6 text-white shadow-soft-lg relative overflow-hidden">
-                  {/* Decorative circle */}
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full" />
-                  <div className="absolute -bottom-8 -right-4 w-24 h-24 bg-white/5 rounded-full" />
+                <div className="bg-gradient-to-br from-brand-700 to-brand-800 rounded-card p-6 text-white shadow-soft-lg relative overflow-hidden">
+                  {/* Decorative circles are noise and must not read as content. */}
+                  <div aria-hidden="true" className="absolute -top-10 -right-10 w-40 h-40 bg-surface-card/10 rounded-pill" />
+                  <div aria-hidden="true" className="absolute -bottom-8 -right-4 w-24 h-24 bg-surface-card/5 rounded-pill" />
 
                   <div className="relative z-10">
-                    <p className="text-brand-200 text-sm font-medium mb-2 flex items-center gap-1.5">
-                      <Play className="w-4 h-4" /> Continue Learning
+                    <p className="text-overline text-brand-100 mb-3 flex items-center gap-1.5">
+                      <Play className="w-4 h-4" aria-hidden="true" /> Continue learning
                     </p>
-                    <h2 className="font-display font-bold text-2xl mb-1">
+                    <h2 className="font-display font-bold text-display-sm mb-1.5">
                       {nextLesson.title}
                     </h2>
-                    <p className="text-brand-100 text-sm mb-5">
+                    <p className="text-body-sm text-brand-100 mb-5 max-w-prose">
                       {nextLesson.description}
                     </p>
-                    <button
+                    <Button
+                      variant="inverse"
+                      shape="pill"
+                      size="lg"
+                      icon={ArrowRight}
+                      iconPosition="right"
                       onClick={() => navigate(`/learn/${nextLesson.id}`)}
-                      className="inline-flex items-center gap-2 bg-white text-brand-700 font-semibold px-6 py-2.5 rounded-pill hover:bg-brand-50 transition-all duration-200 active:scale-[0.98] shadow-soft-sm"
                     >
                       Start Lesson
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </motion.div>
@@ -213,50 +245,44 @@ export default function Dashboard() {
 
             {/* Daily Goal */}
             <motion.div variants={fadeUp}>
-              <div className="bg-surface-card rounded-card p-5 border border-ink-200/50 shadow-soft-sm">
-                <div className="flex items-center justify-between mb-4">
+              <Card padding="sm">
+                <div className="flex items-center justify-between gap-3 mb-4">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center">
-                      <Target className="w-5 h-5 text-amber-600" />
+                    <div className="w-9 h-9 rounded-button bg-amber-50 border border-amber-200 flex items-center justify-center">
+                      <Target className="w-5 h-5 text-amber-700" aria-hidden="true" />
                     </div>
                     <div>
                       <h3 className="font-display font-semibold text-ink-900">Daily Goal</h3>
-                      <p className="text-xs text-ink-500">{user.dailyGoal} min/day</p>
+                      <p className="text-caption text-ink-500">{user.dailyGoal} min/day</p>
                     </div>
                   </div>
                   {dailyGoalMet && (
-                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-pill">
-                      <CheckCircle2 className="w-4 h-4" /> Complete!
-                    </span>
+                    <Badge variant="success" icon={CheckCircle2}>Complete</Badge>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {Array.from({ length: dailyGoalLessons }, (_, i) => (
-                    <div key={i} className="flex-1">
-                      <div className={`h-3 rounded-full transition-all duration-500 ${
-                        i < todayCompleted
-                          ? 'bg-gradient-to-r from-amber-400 to-amber-500'
-                          : 'bg-ink-100'
-                      }`} />
-                    </div>
-                  ))}
-                </div>
-                <p className="text-sm text-ink-500 mt-2">
+                <ProgressBar
+                  value={todayCompleted}
+                  max={dailyGoalLessons}
+                  color="amber"
+                  label="Daily goal"
+                  valueText={`${todayCompleted} of ${dailyGoalLessons} lessons`}
+                />
+                <p className="text-body-sm text-ink-500 mt-2 tabular-nums">
                   {todayCompleted} of {dailyGoalLessons} lessons completed today
                 </p>
-              </div>
+              </Card>
             </motion.div>
 
             {/* Lesson Categories */}
             <motion.div variants={fadeUp}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-display font-semibold text-xl text-ink-900">Lessons</h2>
+                <h2 className="font-display font-semibold text-display-xs text-ink-900">Lessons</h2>
                 <Link
                   to="/lessons"
-                  className="text-sm font-medium text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 transition-colors"
+                  className="text-body-sm font-semibold text-brand-700 hover:text-brand-800 inline-flex items-center gap-1 transition-colors"
                 >
-                  View All <ChevronRight className="w-4 h-4" />
+                  View all <ChevronRight className="w-4 h-4" aria-hidden="true" />
                 </Link>
               </div>
 
@@ -264,35 +290,30 @@ export default function Dashboard() {
                 {langCategories.slice(0, 4).map((cat) => {
                   const catLessons = langLessons.filter((l) => l.categoryId === cat.id);
                   const completedCount = catLessons.filter((l) => progress.isLessonCompleted(l.id)).length;
-                  const isLocked = cat.unlockAfter && !langCategories
-                    .find(c => c.id === cat.unlockAfter)
-                    ?.id;
-                  const prog = catLessons.length > 0 ? (completedCount / catLessons.length) * 100 : 0;
 
                   return (
-                    <Link
-                      key={cat.id}
-                      to="/lessons"
-                      className="bg-surface-card rounded-card p-4 border border-ink-200/50 shadow-soft-sm hover:shadow-soft-md hover:-translate-y-0.5 transition-all duration-200 group"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-2xl">{cat.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-display font-semibold text-ink-900 truncate">{cat.name}</p>
-                          <p className="text-xs text-ink-500">{completedCount}/{catLessons.length} lessons</p>
+                    <Link key={cat.id} to="/lessons" className="group block">
+                      <Card padding="sm" className="h-full hover:shadow-card-hover hover:-translate-y-0.5">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="w-9 h-9 rounded-button bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+                            <SemanticIcon name={cat.icon} size={18} className="text-brand-700" />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-display font-semibold text-ink-900 truncate">{cat.name}</p>
+                            <p className="text-caption text-ink-500 tabular-nums">
+                              {completedCount}/{catLessons.length} lessons
+                            </p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-ink-500 group-hover:text-brand-700 transition-colors" aria-hidden="true" />
                         </div>
-                        <ChevronRight className="w-4 h-4 text-ink-400 group-hover:text-brand-600 transition-colors" />
-                      </div>
 
-                      {/* Progress bar */}
-                      <div className="h-1.5 bg-ink-100 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${prog}%` }}
-                          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                        <ProgressBar
+                          value={completedCount}
+                          max={catLessons.length || 1}
+                          size="sm"
+                          label={`${cat.name} progress`}
                         />
-                      </div>
+                      </Card>
                     </Link>
                   );
                 })}
@@ -304,159 +325,146 @@ export default function Dashboard() {
           <div className="space-y-5">
             {/* Level Progress */}
             <motion.div variants={fadeUp}>
-              <div className="bg-surface-card rounded-card p-5 border border-ink-200/50 shadow-soft-sm">
+              <Card padding="sm">
                 <h3 className="font-display font-semibold text-ink-900 mb-4 flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-amber-500" /> Your Level
+                  <Trophy className="w-5 h-5 text-amber-700" aria-hidden="true" /> Your Level
                 </h3>
 
                 <div className="text-center mb-4">
-                  <span className="text-4xl block mb-2">{currentLevel.emoji}</span>
-                  <p className="font-display font-bold text-lg text-ink-900">{currentLevel.name}</p>
+                  <span className="w-14 h-14 mx-auto mb-2 rounded-card bg-brand-50 border border-brand-100 flex items-center justify-center">
+                    <SemanticIcon
+                      name={currentLevel.icon}
+                      size={28}
+                      className="text-brand-700"
+                      label={currentLevel.name}
+                    />
+                  </span>
+                  <p className="font-display font-bold text-body-lg text-ink-900">{currentLevel.name}</p>
                   {nextLevel && (
-                    <p className="text-xs text-ink-500 mt-1">
-                      {xp.xpToNextLevel} XP to {nextLevel.name} {nextLevel.emoji}
+                    <p className="text-caption text-ink-500 mt-1 tabular-nums">
+                      {xp.xpToNextLevel} XP to {nextLevel.name}
                     </p>
                   )}
                 </div>
 
-                {/* Level progress bar */}
-                <div className="h-2.5 bg-ink-100 rounded-full overflow-hidden mb-2">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${levelProg * 100}%` }}
-                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                  />
-                </div>
-                <p className="text-xs text-ink-500 text-center">
+                <ProgressBar
+                  value={levelProg}
+                  max={1}
+                  label="Progress to next level"
+                  valueText={`${Math.round(levelProg * 100)}% to ${nextLevel?.name || 'the next level'}`}
+                  className="mb-2"
+                />
+                <p className="text-caption text-ink-500 text-center tabular-nums">
                   {xp.totalXP} XP total
                 </p>
-              </div>
+              </Card>
             </motion.div>
 
             {/* Weekly Activity */}
             <motion.div variants={fadeUp}>
-              <div className="bg-surface-card rounded-card p-5 border border-ink-200/50 shadow-soft-sm">
-                <h3 className="font-display font-semibold text-ink-900 mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-brand-600" /> This Week
-                </h3>
-
-                <div className="flex items-end justify-between gap-2 h-24">
-                  {weeklyData.map((day, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full flex items-end justify-center" style={{ height: '64px' }}>
-                        <motion.div
-                          className={`w-full max-w-[28px] rounded-md ${
-                            day.isToday
-                              ? 'bg-brand-500'
-                              : day.value > 0
-                              ? 'bg-brand-200'
-                              : 'bg-ink-100'
-                          }`}
-                          initial={{ height: 0 }}
-                          animate={{ height: day.value > 0 ? `${Math.max((day.value / maxWeekly) * 100, 20)}%` : '12%' }}
-                          transition={{ duration: 0.5, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }}
-                        />
-                      </div>
-                      <span className={`text-xs font-medium ${
-                        day.isToday ? 'text-brand-600' : 'text-ink-400'
-                      }`}>
-                        {day.day}
-                      </span>
-                    </div>
-                  ))}
+              <Card padding="sm">
+                <div className="flex items-baseline justify-between gap-2 mb-4">
+                  <h3 className="font-display font-semibold text-ink-900 flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-brand-700" aria-hidden="true" /> Weekly activity
+                  </h3>
+                  <span className="text-caption text-ink-500">Last 7 days</span>
                 </div>
-              </div>
+
+                {weeklyTotal === 0 ? (
+                  /* An all-zero bar chart read as a broken widget; say it in words. */
+                  <div className="py-6 text-center">
+                    <p className="text-body-sm text-ink-700">No lessons in the last 7 days</p>
+                    <p className="text-caption text-ink-500 mt-1">
+                      Finish one lesson today and this fills in.
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    className="flex items-end justify-between gap-2 h-28"
+                    role="group"
+                    aria-label={`Lessons completed per day over the last 7 days, ${weeklyTotal} total`}
+                  >
+                    {weeklyData.map((day, i) => (
+                      <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5">
+                        <span className="text-caption text-ink-700 tabular-nums leading-none h-4">
+                          {day.value > 0 ? day.value : ''}
+                        </span>
+                        <div className="w-full h-14 flex items-end justify-center">
+                          <motion.div
+                            role="img"
+                            aria-label={`${day.day}: ${day.value} lesson${day.value === 1 ? '' : 's'}`}
+                            className={`w-full max-w-7 rounded-button ${
+                              day.value > 0
+                                ? day.isToday ? 'bg-brand-700' : 'bg-brand-600'
+                                : 'bg-ink-200'
+                            }`}
+                            initial={{ height: 0 }}
+                            animate={{
+                              height: day.value > 0 ? `${Math.max((day.value / maxWeekly) * 100, 20)}%` : '12%',
+                            }}
+                            transition={{ duration: 0.5, delay: i * 0.05, ease: transitionEase }}
+                          />
+                        </div>
+                        <span className={`text-caption ${day.isToday ? 'text-ink-900 font-bold' : 'text-ink-500'}`}>
+                          {day.day}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
             </motion.div>
 
             {/* Quick Actions */}
             <motion.div variants={fadeUp}>
-              <div className="bg-surface-card rounded-card p-5 border border-ink-200/50 shadow-soft-sm">
+              <Card padding="sm">
                 <h3 className="font-display font-semibold text-ink-900 mb-3">Quick Actions</h3>
-                <div className="space-y-2">
-                  <Link
-                    to="/practice"
-                    className="flex items-center gap-3 p-3 rounded-button hover:bg-brand-50 transition-colors group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-brand-50 border border-brand-100 flex items-center justify-center group-hover:bg-brand-100 transition-colors">
-                      <Repeat className="w-4 h-4 text-brand-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-ink-900">Practice Hub</p>
-                      <p className="text-xs text-ink-500">Flashcards, drills & audio</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-ink-400 ml-auto" />
-                  </Link>
-
-                  <Link
-                    to="/exams"
-                    className="flex items-center gap-3 p-3 rounded-button hover:bg-emerald-50 transition-colors group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
-                      <Award className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-ink-900">Official Exams</p>
-                      <p className="text-xs text-ink-500">CEFR & JLPT certified tests</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-ink-400 ml-auto" />
-                  </Link>
-
-                  <Link
-                    to="/writing"
-                    className="flex items-center gap-3 p-3 rounded-button hover:bg-purple-50 transition-colors group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-                      <PenTool className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-ink-900">Handwriting Lab</p>
-                      <p className="text-xs text-ink-500">Stylus & touch practice</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-ink-400 ml-auto" />
-                  </Link>
-
-                  <Link
-                    to="/lessons"
-                    className="flex items-center gap-3 p-3 rounded-button hover:bg-amber-50 transition-colors group"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
-                      <BookOpen className="w-4 h-4 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-ink-900">Browse Lessons</p>
-                      <p className="text-xs text-ink-500">All categories</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-ink-400 ml-auto" />
-                  </Link>
+                <div className="space-y-1">
+                  {quickActions.map(({ to, icon: Icon, tint, title, subtitle }) => (
+                    <Link
+                      key={to}
+                      to={to}
+                      className="flex items-center gap-3 p-3 rounded-button hover:bg-surface-100 transition-colors group"
+                    >
+                      <div className={`w-9 h-9 rounded-button border flex items-center justify-center transition-colors ${tintClasses[tint]}`}>
+                        <Icon className="w-4 h-4" aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-body-sm font-semibold text-ink-900">{title}</p>
+                        <p className="text-caption text-ink-500">{subtitle}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-ink-500 ml-auto" aria-hidden="true" />
+                    </Link>
+                  ))}
                 </div>
-              </div>
+              </Card>
             </motion.div>
 
             {/* Streak Card */}
             <motion.div variants={fadeUp}>
-              <div className={`rounded-card p-5 border shadow-soft-sm ${
-                streak.currentStreak > 0
-                  ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'
-                  : 'bg-surface-card border-ink-200/50'
-              }`}>
+              <Card padding="sm" tone={streak.currentStreak > 0 ? 'coral' : 'quiet'}>
                 <div className="flex items-center gap-3 mb-3">
-                  <Flame className={`w-8 h-8 ${streak.currentStreak > 0 ? 'text-amber-500' : 'text-ink-300'}`} />
+                  <Flame
+                    className={`w-8 h-8 ${streak.currentStreak > 0 ? 'text-coral-600' : 'text-ink-300'}`}
+                    aria-hidden="true"
+                  />
                   <div>
-                    <p className="font-display font-bold text-2xl text-ink-900">{streak.currentStreak}</p>
-                    <p className="text-xs text-ink-500">day streak</p>
+                    <p className="font-display font-bold text-display-sm text-ink-900 tabular-nums">
+                      {streak.currentStreak}
+                    </p>
+                    <p className="text-caption text-ink-500">day streak</p>
                   </div>
                 </div>
                 {streak.currentStreak > 0 ? (
-                  <p className="text-sm text-amber-700">
-                    🔥 Keep it going! Longest: {streak.longestStreak} days
+                  <p className="text-body-sm text-coral-700">
+                    Keep it going — longest run {streak.longestStreak} days.
                   </p>
                 ) : (
-                  <p className="text-sm text-ink-500">
-                    Complete a lesson today to start your streak!
+                  <p className="text-body-sm text-ink-500">
+                    Complete a lesson today to start your streak.
                   </p>
                 )}
-              </div>
+              </Card>
             </motion.div>
           </div>
         </div>

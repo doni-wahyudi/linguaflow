@@ -1,8 +1,12 @@
 /**
  * @file MobileNav.jsx
- * @description Fixed bottom tab navigation for mobile screens. Uses React Router
- * NavLink for active states and Framer Motion for subtle active-tab animations.
+ * @description Fixed bottom tab navigation for mobile screens (§9). Uses React
+ * Router NavLink for active states and Framer Motion for the active-tab pop.
  * Hidden on md+ breakpoints.
+ *
+ * Contrast: inactive labels used to be `text-[11px] text-ink-400`, which measures
+ * 2.52:1 and is unreadable as navigation text. They are now 12px `ink-500` (4.80:1)
+ * and the active tone is brand-700 (5.48:1) rather than brand-600 (3.77:1).
  *
  * @example
  * <MobileNav />
@@ -12,6 +16,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LayoutDashboard, BookOpen, Repeat, Award, PenTool, User } from 'lucide-react';
+import { spring } from '../../utils/motion';
 
 const tabs = [
   { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -30,37 +35,29 @@ const tabs = [
 const MobileNav = () => {
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-white border-t border-ink-200/50 safe-bottom"
+      className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-surface-card border-t border-ink-200 safe-bottom"
       aria-label="Mobile tab navigation"
     >
-      <div className="flex items-stretch justify-around h-16">
+      {/* §9 bar height is 56px; each tab stays a ≥44px touch target. */}
+      <div className="flex items-stretch justify-around h-14">
         {tabs.map((tab) => {
           const TabIcon = tab.icon;
           return (
             <NavLink
               key={tab.to}
               to={tab.to}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-colors duration-150"
-              aria-label={tab.label}
+              className="flex-1 flex flex-col items-center justify-center gap-1 text-caption font-semibold transition-colors duration-150"
             >
               {({ isActive }) => (
                 <>
                   <motion.div
-                    animate={isActive ? { scale: 1.15 } : { scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                    className={
-                      isActive ? 'text-brand-600' : 'text-ink-400'
-                    }
+                    animate={isActive ? { scale: 1.12 } : { scale: 1 }}
+                    transition={spring.pop}
+                    className={isActive ? 'text-brand-700' : 'text-ink-500'}
                   >
-                    <TabIcon size={22} />
+                    <TabIcon size={20} strokeWidth={isActive ? 2.4 : 2} aria-hidden="true" />
                   </motion.div>
-                  <span
-                    className={
-                      isActive ? 'text-brand-600' : 'text-ink-400'
-                    }
-                  >
-                    {tab.label}
-                  </span>
+                  <span className={isActive ? 'text-brand-700' : 'text-ink-500'}>{tab.label}</span>
                 </>
               )}
             </NavLink>

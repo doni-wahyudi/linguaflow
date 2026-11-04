@@ -19,6 +19,7 @@ import {
   Sparkles,
   Download,
 } from 'lucide-react';
+import { Button, Badge } from '../ui';
 
 const COLORS = [
   { name: 'Ink Black', value: '#1C1917' },
@@ -32,6 +33,57 @@ const BRUSH_SIZES = [
   { label: 'Medium', value: 7 },
   { label: 'Calligraphy', value: 14 },
 ];
+
+/*
+ * Paper palette.
+ *
+ * A canvas is a raster surface: it is painted once, outside CSS, so it cannot
+ * inherit the theme by class name. Two consequences, both deliberate:
+ *
+ * 1. The values must match tokens exactly, and they now do — these are the
+ *    literal triplets declared in src/styles/index.css. The previous draft used
+ *    Tailwind's COOL greys (`#E5E7EB` gray-200, `#F3F4F6` gray-100, `#CBD5E1`
+ *    slate-300) inside a warm-ink design system. Measured, those are
+ *    indistinguishable from their warm equivalents on paper (1.18 vs 1.20,
+ *    1.05 vs 1.04, 1.42 vs 1.42) — this is a coherence fix, not a contrast fix,
+ *    but it is why the grid used to read as a different product from the page.
+ * 2. The paper stays cream in dark mode, like a photograph. Grid lines follow it,
+ *    not the theme, because a dark grid on cream paper would be a bug.
+ *
+ * Guide lines sit between 1.04:1 and 1.42:1 against the paper by design: they are
+ * tracing aids, and WCAG 2.1 §1.4.11 excludes "graphical objects that are
+ * essential for understanding the content"— these are the opposite, decoration
+ * that the stroke itself is drawn over. The one colour that IS a label is the
+ * export watermark, which uses ink-700 (9.82:1) rather than ink-500 (4.59:1) so
+ * it clears AA at the small end of its size range.
+ */
+const PAPER = {
+  bg: '#FAFAF7', // --surface-bg  (250 250 247)
+  hairline: '#F5F5F4', // --ink-100  (245 245 244)
+  guide: '#E7E5E4', // --ink-200  (231 229 228)
+  baseline: '#D6D3D1', // --ink-300  (214 211 209)
+  label: '#44403C', // --ink-700  ( 68  64  60)
+};
+
+/*
+ * Toolbar button classes.
+ *
+ * The previous draft built every tool from `p-1.5` around a 16px icon, which is
+ * a 28px hit area on a component whose own header comment says it is
+ * tablet-optimised. They are now 44×44 (WCAG 2.5.5 target size) and share one
+ * definition, so "selected" and "idle" cannot drift apart tool by tool.
+ *
+ * `text-ink-600` appears four times in that draft and resolves to nothing —
+ * there is no ink-600 in the token set (see tailwind.config.js: 50/100/200/300/
+ * 400/500/700/900), so those icons were inheriting the parent colour rather than
+ * being deliberately muted. The nearest real tier is ink-700.
+ */
+const TOOL_BTN =
+  'inline-flex items-center justify-center shrink-0 h-11 w-11 rounded-button border transition-colors';
+const TOOL_IDLE = `${TOOL_BTN} border-ink-200 text-ink-700 hover:bg-ink-100`;
+const TOOL_ON = `${TOOL_BTN} bg-brand-50 border-brand-600 text-brand-700`;
+const TOOL_WARN = `${TOOL_BTN} bg-amber-50 border-amber-600 text-amber-700`;
+const TOOL_DISABLED = 'disabled:opacity-40 disabled:cursor-not-allowed';
 
 export default function WritingCanvas({
   targetCharacter = '',
@@ -105,7 +157,7 @@ export default function WritingCanvas({
     if (activeGrid === 'rice') {
       // Asian 4-quadrant Rice Grid (田字格)
       ctx.save();
-      ctx.strokeStyle = '#E5E7EB';
+      ctx.strokeStyle = PAPER.guide;
       ctx.lineWidth = 1.5;
 
       // Outer border
@@ -121,8 +173,10 @@ export default function WritingCanvas({
       ctx.moveTo(w / 2, 10);
       ctx.lineTo(w / 2, h - 10);
 
-      // Subtle diagonals
-      ctx.strokeStyle = '#F3F4F6';
+      // Subtle diagonals — faded from the same guide token rather than dropped
+      // to ink-100, which measured 1.04:1 on paper and simply vanished.
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = PAPER.guide;
       ctx.moveTo(10, 10);
       ctx.lineTo(w - 10, h - 10);
       ctx.moveTo(w - 10, 10);
@@ -132,7 +186,7 @@ export default function WritingCanvas({
     } else if (activeGrid === 'lined') {
       // Latin Notebook Grid (Headline, Midline, Baseline, Descender)
       ctx.save();
-      ctx.strokeStyle = '#E5E7EB';
+      ctx.strokeStyle = PAPER.guide;
       ctx.lineWidth = 1.5;
 
       const pad = 24;
@@ -160,7 +214,7 @@ export default function WritingCanvas({
       // Baseline (solid, primary)
       ctx.beginPath();
       ctx.setLineDash([]);
-      ctx.strokeStyle = '#CBD5E1';
+      ctx.strokeStyle = PAPER.baseline;
       ctx.lineWidth = 2;
       ctx.moveTo(pad, baseline);
       ctx.lineTo(w - pad, baseline);
@@ -299,12 +353,12 @@ export default function WritingCanvas({
 
     const ctx = exportCanvas.getContext('2d');
 
-    // Warm paper canvas background (#FAF9F5)
-    ctx.fillStyle = '#FAF9F5';
+    // Warm paper canvas background
+    ctx.fillStyle = PAPER.bg;
     ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
 
     // Card border
-    ctx.strokeStyle = '#E7E5E4';
+    ctx.strokeStyle = PAPER.guide;
     ctx.lineWidth = Math.max(3, Math.round(w * 0.006));
     const pad = 12;
     ctx.strokeRect(pad, pad, exportCanvas.width - pad * 2, exportCanvas.height - pad * 2);
@@ -314,7 +368,7 @@ export default function WritingCanvas({
 
     // Watermark / details in footer
     ctx.save();
-    ctx.fillStyle = '#78716C';
+    ctx.fillStyle = PAPER.label;
     const fontSize = Math.max(16, Math.round(w * 0.035));
     ctx.font = `600 ${fontSize}px "Plus Jakarta Sans", -apple-system, sans-serif`;
     ctx.textAlign = 'center';
@@ -342,53 +396,63 @@ export default function WritingCanvas({
   return (
     <div ref={containerRef} className={`flex flex-col items-center w-full max-w-lg mx-auto ${className}`}>
       {/* ── Toolbar: Controls & Tools ── */}
-      <div className="w-full bg-white rounded-t-card p-3 border border-ink-200/80 border-b-0 flex flex-wrap items-center justify-between gap-2 shadow-soft-sm">
+      <div className="w-full bg-surface-card rounded-t-card p-3 border border-ink-200 border-b-0 flex flex-wrap items-center justify-between gap-2 shadow-soft-sm">
         {/* Colors */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {COLORS.map((c) => (
             <button
               key={c.name}
               type="button"
+              aria-label={`${c.name} ink`}
+              aria-pressed={!isEraser && color === c.value}
               onClick={() => {
                 setColor(c.value);
                 setIsEraser(false);
               }}
-              style={{ backgroundColor: c.value }}
-              title={c.name}
-              className={`w-7 h-7 rounded-full border-2 transition-transform ${
-                !isEraser && color === c.value
-                  ? 'scale-110 border-brand-500 shadow-soft-sm'
-                  : 'border-white hover:scale-105'
-              }`}
-            />
+              /* 44px target, 24px swatch centred inside it. */
+              className="inline-flex items-center justify-center shrink-0 h-11 w-11 rounded-button"
+            >
+              <span
+                aria-hidden="true"
+                style={{ backgroundColor: c.value }}
+                className={`w-7 h-7 rounded-pill border-2 transition-transform ${
+                  !isEraser && color === c.value
+                    ? 'scale-110 border-brand-700 ring-2 ring-brand-200'
+                    : 'border-surface-card hover:scale-105'
+                }`}
+              />
+            </button>
           ))}
 
-          {/* Eraser */}
+          {/* Eraser — amber rather than brand, because it is the one tool that
+              removes work rather than adding it. */}
           <button
             type="button"
             onClick={() => setIsEraser((e) => !e)}
-            className={`p-1.5 rounded-button border transition-colors ${
-              isEraser
-                ? 'bg-amber-100 border-amber-400 text-amber-900'
-                : 'border-ink-200 text-ink-600 hover:bg-ink-100'
-            }`}
-            title="Eraser"
+            aria-pressed={isEraser}
+            aria-label="Eraser"
+            className={isEraser ? TOOL_WARN : TOOL_IDLE}
           >
-            <Eraser size={16} />
+            <Eraser size={18} aria-hidden="true" />
           </button>
         </div>
 
         {/* Brush Size */}
-        <div className="flex items-center gap-1 bg-ink-100 p-0.5 rounded-button">
+        <div
+          className="flex items-center gap-1 bg-ink-100 p-1 rounded-button"
+          role="group"
+          aria-label="Brush size"
+        >
           {BRUSH_SIZES.map((b) => (
             <button
               key={b.label}
               type="button"
               onClick={() => setBrushSize(b.value)}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-button transition-all ${
+              aria-pressed={brushSize === b.value}
+              className={`h-9 px-3 text-caption font-semibold rounded-button transition-colors ${
                 brushSize === b.value
-                  ? 'bg-white text-brand-700 shadow-soft-sm'
-                  : 'text-ink-500 hover:text-ink-900'
+                  ? 'bg-surface-card text-brand-700 shadow-soft-sm'
+                  : 'text-ink-700 hover:text-ink-900'
               }`}
             >
               {b.label}
@@ -402,14 +466,11 @@ export default function WritingCanvas({
           <button
             type="button"
             onClick={() => setShowGhost((g) => !g)}
-            className={`p-1.5 rounded-button border transition-colors ${
-              showGhost
-                ? 'bg-brand-50 border-brand-300 text-brand-700'
-                : 'border-ink-200 text-ink-400 hover:bg-ink-100'
-            }`}
-            title={showGhost ? 'Hide Ghost Guide' : 'Show Ghost Guide'}
+            aria-pressed={showGhost}
+            aria-label={showGhost ? 'Hide ghost guide' : 'Show ghost guide'}
+            className={showGhost ? TOOL_ON : TOOL_IDLE}
           >
-            {showGhost ? <Eye size={16} /> : <EyeOff size={16} />}
+            {showGhost ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />}
           </button>
 
           {/* Grid Toggle */}
@@ -420,10 +481,10 @@ export default function WritingCanvas({
                 prev === 'rice' ? 'lined' : prev === 'lined' ? 'none' : 'rice'
               )
             }
-            className="p-1.5 rounded-button border border-ink-200 text-ink-600 hover:bg-ink-100 transition-colors"
-            title={`Grid: ${activeGrid}`}
+            aria-label={`Grid: ${activeGrid}. Tap to change.`}
+            className={activeGrid === 'none' ? TOOL_IDLE : TOOL_ON}
           >
-            <Grid size={16} />
+            <Grid size={18} aria-hidden="true" />
           </button>
 
           {/* Export PNG */}
@@ -431,11 +492,10 @@ export default function WritingCanvas({
             type="button"
             disabled={strokes.length === 0}
             onClick={handleExportPNG}
-            className="p-1.5 rounded-button border border-ink-200 text-ink-600 hover:bg-brand-50 hover:text-brand-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            title="Export Artwork as PNG"
-            aria-label="Export Artwork as PNG"
+            className={`${TOOL_IDLE} ${TOOL_DISABLED}`}
+            aria-label="Export artwork as PNG"
           >
-            <Download size={16} />
+            <Download size={18} aria-hidden="true" />
           </button>
 
           {/* Undo */}
@@ -443,10 +503,10 @@ export default function WritingCanvas({
             type="button"
             disabled={strokes.length === 0}
             onClick={handleUndo}
-            className="p-1.5 rounded-button border border-ink-200 text-ink-600 hover:bg-ink-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            title="Undo stroke"
+            className={`${TOOL_IDLE} ${TOOL_DISABLED}`}
+            aria-label="Undo last stroke"
           >
-            <RotateCcw size={16} />
+            <RotateCcw size={18} aria-hidden="true" />
           </button>
 
           {/* Clear */}
@@ -454,23 +514,28 @@ export default function WritingCanvas({
             type="button"
             disabled={strokes.length === 0}
             onClick={handleClear}
-            className="p-1.5 rounded-button border border-ink-200 text-ink-600 hover:bg-red-50 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            title="Clear canvas"
+            className={`${TOOL_BTN} ${TOOL_DISABLED} border-ink-200 text-error-strong hover:bg-error-bg hover:text-error`}
+            aria-label="Clear canvas"
           >
-            <Trash2 size={16} />
+            <Trash2 size={18} aria-hidden="true" />
           </button>
         </div>
       </div>
 
       {/* ── Drawing Area ── */}
       <div
-        className="relative bg-white border border-ink-200/80 shadow-soft-md rounded-b-card overflow-hidden touch-none select-none cursor-crosshair"
-        style={{ width: `${canvasDim.width}px`, height: `${canvasDim.height}px` }}
+        className="relative border border-ink-200 shadow-soft-md rounded-b-card overflow-hidden touch-none select-none cursor-crosshair"
+        style={{ width: `${canvasDim.width}px`, height: `${canvasDim.height}px`, backgroundColor: PAPER.bg }}
       >
-        {/* Ghost tracing watermark */}
+        {/* Ghost tracing watermark.
+            Was `text-ink-200/50` — measured 1.04:1 against the paper, which is to
+            say invisible, for the one element whose job is to be traced. It now
+            uses ink-300 at full strength (1.42:1): still quiet next to real ink,
+            but legible as a large glyph. */}
         {showGhost && targetCharacter && (
           <div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none select-none font-display font-medium text-ink-200/50"
+            aria-hidden="true"
+            className="absolute inset-0 flex items-center justify-center pointer-events-none select-none font-display font-medium text-ink-300"
             style={{
               fontSize:
                 targetCharacter.length > 3
@@ -495,6 +560,15 @@ export default function WritingCanvas({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          /* A canvas exposes nothing by itself. The ghost guide it is tracing is
+             a graphic, so the character has to be spoken here or it does not
+             exist for non-visual users at all. */
+          role="img"
+          aria-label={
+            targetCharacter
+              ? `Handwriting canvas. Trace the character ${targetCharacter} using a stylus, finger or mouse.`
+              : 'Freehand writing canvas. Draw with a stylus, finger or mouse.'
+          }
           className="absolute inset-0 touch-none"
         />
       </div>
@@ -502,52 +576,61 @@ export default function WritingCanvas({
       {/* ── Tablet Self-Evaluation & Verification Bar ── */}
       <div className="w-full mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-ink-500 font-medium">
+          <span className="text-caption text-ink-700 font-medium tabular-nums">
             {strokes.length} {strokes.length === 1 ? 'stroke' : 'strokes'} drawn
           </span>
           {expectedStrokes && (
-            <span
-              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-pill transition-all ${
+            /* The three states used to be raw emerald / amber / ink-600 chips with
+               a 🎯 prefix. They are the Badge variants the kit already measures
+               against cream and white. */
+            <Badge
+              size="md"
+              variant={
                 strokes.length === expectedStrokes
-                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  ? 'success'
                   : strokes.length > expectedStrokes
-                  ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                  : 'bg-ink-100 text-ink-600 border border-ink-200'
-              }`}
+                    ? 'warning'
+                    : 'default'
+              }
+              numeric
             >
               {strokes.length === expectedStrokes
-                ? `🎯 Perfect Stroke Count (${strokes.length}/${expectedStrokes})`
-                : `Target: ${expectedStrokes} strokes (${strokes.length}/${expectedStrokes})`}
-            </span>
+                ? `Perfect stroke count (${strokes.length}/${expectedStrokes})`
+                : `Target ${expectedStrokes} strokes (${strokes.length}/${expectedStrokes})`}
+            </Badge>
           )}
         </div>
 
         {!evaluated ? (
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               disabled={strokes.length === 0}
               onClick={() => handleSelfGrade(false)}
-              className="px-3.5 py-2 rounded-pill border border-ink-300 text-ink-700 hover:bg-ink-100 text-xs font-semibold transition-all disabled:opacity-40"
             >
               Needs Practice
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              icon={CheckCircle2}
               disabled={strokes.length === 0}
               onClick={() => handleSelfGrade(true)}
-              className="px-5 py-2 rounded-pill bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-soft-sm flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-40"
             >
-              <CheckCircle2 size={15} /> Looks Great! (+15 XP)
-            </button>
+              Looks Great · +15 XP
+            </Button>
           </div>
         ) : (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-2 text-xs font-bold text-green-700 bg-green-50 px-4 py-2 rounded-pill border border-green-200"
+            className="flex items-center gap-2"
           >
-            <Sparkles size={14} className="text-amber-500" /> Practice Recorded!
+            <Badge variant="success" size="md" icon={Sparkles}>
+              Practice recorded
+            </Badge>
           </motion.div>
         )}
       </div>

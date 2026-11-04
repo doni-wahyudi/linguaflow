@@ -4,9 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
-  User,
   Globe,
   Target,
   Trophy,
@@ -15,17 +13,26 @@ import {
   BookOpen,
   Award,
   CheckCircle2,
-  Settings,
-  RotateCcw,
-  Sparkles,
+  Pencil,
 } from 'lucide-react';
 import PageWrapper from '../components/layout/PageWrapper';
+import { Flag, SemanticIcon } from '../components/brand';
+import { Card, Badge, ProgressBar, Button, Input } from '../components/ui';
 import { useUser } from '../context/UserContext';
 import languages from '../data/languages';
 import { getLevel, getNextLevel, getLevelProgress } from '../utils/xp';
 
+/**
+ * Profile — user identity, level progress, preferences and achievements.
+ *
+ * Built on the ui/ kit: every panel is a <Card> (so borders, radius and shadow
+ * come from §5.2 tokens rather than `bg-white border-ink-200/60` strings that
+ * composited to an almost invisible edge), the level meter is a <ProgressBar>,
+ * and the two toggle grids are real buttons with `aria-pressed`.
+ */
+
 export default function Profile() {
-  const { user, updateUser, progress, streak, xp, resetUser } = useUser();
+  const { user, updateUser, progress, streak, xp } = useUser();
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user.name || '');
 
@@ -54,42 +61,42 @@ export default function Profile() {
       id: 'first_lesson',
       title: 'First Step',
       description: 'Completed your very first lesson',
-      emoji: '🌱',
+      icon: 'seedling',
       unlocked: progress.completedLessons.length >= 1,
     },
     {
       id: 'streak_3',
       title: 'Habit Builder',
       description: 'Maintained a 3-day learning streak',
-      emoji: '🔥',
+      icon: 'streak',
       unlocked: streak.longestStreak >= 3 || streak.currentStreak >= 3,
     },
     {
       id: 'streak_7',
       title: 'Unstoppable',
       description: 'Maintained a 7-day streak',
-      emoji: '⚡',
+      icon: 'energy',
       unlocked: streak.longestStreak >= 7 || streak.currentStreak >= 7,
     },
     {
       id: 'vocab_10',
       title: 'Word Collector',
       description: 'Learned 10 or more vocabulary words',
-      emoji: '📚',
+      icon: 'reading',
       unlocked: progress.totalWordsLearned >= 10,
     },
     {
       id: 'xp_250',
       title: 'High Achiever',
       description: 'Earned 250+ experience points',
-      emoji: '⭐',
+      icon: 'star',
       unlocked: xp.totalXP >= 250,
     },
     {
       id: 'level_sprout',
       title: 'Green Thumb',
       description: 'Reached Sprout level or above',
-      emoji: '🌿',
+      icon: 'sprout',
       unlocked: xp.totalXP >= 100,
     },
   ];
@@ -98,169 +105,159 @@ export default function Profile() {
     <PageWrapper>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* ── User Profile Card ── */}
-        <div className="bg-white rounded-card p-6 sm:p-8 border border-ink-200/60 shadow-soft-sm">
+        <Card padding="lg">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white text-2xl font-bold shadow-soft-md">
+              <div className="w-16 h-16 rounded-card bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center text-white font-display text-display-sm font-bold shadow-soft-md">
                 {user.name ? user.name.charAt(0).toUpperCase() : 'L'}
               </div>
 
               <div>
                 {editingName ? (
-                  <form onSubmit={handleSaveName} className="flex gap-2 items-center">
-                    <input
-                      type="text"
+                  <form onSubmit={handleSaveName} className="flex flex-wrap gap-2 items-center">
+                    <Input
+                      aria-label="Display name"
                       value={nameInput}
                       onChange={(e) => setNameInput(e.target.value)}
-                      className="px-3 py-1.5 rounded-button border border-brand-500 text-sm focus:outline-none"
+                      size="sm"
                       autoFocus
                     />
-                    <button
-                      type="submit"
-                      className="bg-brand-600 text-white text-xs px-3 py-1.5 rounded-pill font-semibold"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingName(false)}
-                      className="text-ink-400 text-xs px-2 py-1"
-                    >
+                    <Button type="submit" size="sm">Save</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setEditingName(false)}>
                       Cancel
-                    </button>
+                    </Button>
                   </form>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <h1 className="font-display font-bold text-2xl text-ink-900">
+                    <h1 className="font-display font-bold text-display-xs text-ink-900">
                       {user.name || 'Language Learner'}
                     </h1>
                     <button
+                      type="button"
                       onClick={() => {
                         setNameInput(user.name || '');
                         setEditingName(true);
                       }}
-                      className="text-xs text-brand-600 hover:text-brand-700 font-medium ml-1"
+                      className="inline-flex items-center gap-1 text-caption font-semibold text-brand-700 hover:text-brand-800"
                     >
+                      <Pencil size={13} aria-hidden="true" />
                       Edit
+                      <span className="sr-only">display name</span>
                     </button>
                   </div>
                 )}
-                <p className="text-sm text-ink-500 flex items-center gap-2 mt-0.5">
-                  Level {currentLevel.name} {currentLevel.emoji} · Active Learner
+                <p className="text-body-sm text-ink-500 flex items-center gap-2 mt-0.5">
+                  <SemanticIcon name={currentLevel.icon} size={16} className="text-brand-700" />
+                  Level {currentLevel.name} · Active Learner
                 </p>
               </div>
             </div>
 
             {/* Level badge */}
-            <div className="bg-brand-50 border border-brand-200 rounded-2xl px-5 py-3 text-center sm:text-right w-full sm:w-auto">
-              <p className="text-xs font-semibold text-brand-700 uppercase tracking-wider">
-                Current Level
+            <Card tone="brand" padding="sm" className="w-full sm:w-auto text-center sm:text-right">
+              <p className="text-caption uppercase font-semibold text-brand-700">Current Level</p>
+              <p className="font-display font-bold text-display-xs text-brand-900 flex items-center justify-center sm:justify-end gap-2">
+                <SemanticIcon name={currentLevel.icon} size={20} className="text-brand-700" />
+                {currentLevel.name}
               </p>
-              <p className="font-display font-bold text-lg text-brand-900">
-                {currentLevel.name} {currentLevel.emoji}
-              </p>
-              <p className="text-xs text-ink-500 mt-0.5">
+              <p className="text-caption text-ink-500 mt-0.5 tabular-nums">
                 {xp.totalXP} / {nextLevel?.minXP || '5000+'} XP
               </p>
-            </div>
+            </Card>
           </div>
 
           {/* Level Progress Bar */}
-          <div className="mt-6">
-            <div className="h-2.5 bg-ink-100 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${levelProgress * 100}%` }}
-                transition={{ duration: 0.8 }}
-              />
-            </div>
-            {nextLevel && (
-              <p className="text-right text-xs text-ink-400 mt-1">
-                {xp.xpToNextLevel} XP until {nextLevel.name} {nextLevel.emoji}
-              </p>
-            )}
-          </div>
-        </div>
+          <ProgressBar
+            className="mt-6"
+            value={levelProgress * 100}
+            size="md"
+            label={`Progress to ${nextLevel?.name || 'next level'}`}
+            valueText={`${xp.xpToNextLevel ?? 0} XP remaining`}
+          />
+          {nextLevel && (
+            <p className="text-right text-caption text-ink-500 mt-1.5 tabular-nums">
+              {xp.xpToNextLevel} XP until {nextLevel.name}
+            </p>
+          )}
+        </Card>
 
         {/* ── Learning Stats Bento ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white rounded-card p-4 border border-ink-200/60 shadow-soft-sm">
-            <Zap className="w-5 h-5 text-amber-500 mb-2" />
-            <p className="font-display font-bold text-2xl text-ink-900">{xp.totalXP}</p>
-            <p className="text-xs text-ink-500 font-medium">Total XP</p>
-          </div>
-
-          <div className="bg-white rounded-card p-4 border border-ink-200/60 shadow-soft-sm">
-            <Flame className="w-5 h-5 text-orange-500 mb-2" />
-            <p className="font-display font-bold text-2xl text-ink-900">
-              {streak.currentStreak} days
-            </p>
-            <p className="text-xs text-ink-500 font-medium">
-              Current Streak (Best: {streak.longestStreak})
-            </p>
-          </div>
-
-          <div className="bg-white rounded-card p-4 border border-ink-200/60 shadow-soft-sm">
-            <BookOpen className="w-5 h-5 text-brand-600 mb-2" />
-            <p className="font-display font-bold text-2xl text-ink-900">
-              {progress.completedLessons.length}
-            </p>
-            <p className="text-xs text-ink-500 font-medium">Lessons Completed</p>
-          </div>
-
-          <div className="bg-white rounded-card p-4 border border-ink-200/60 shadow-soft-sm">
-            <Sparkles className="w-5 h-5 text-purple-500 mb-2" />
-            <p className="font-display font-bold text-2xl text-ink-900">
-              {progress.totalWordsLearned}
-            </p>
-            <p className="text-xs text-ink-500 font-medium">Words Learned</p>
-          </div>
+          {[
+            { icon: Zap, tint: 'text-amber-600', value: xp.totalXP, label: 'Total XP' },
+            {
+              icon: Flame,
+              tint: 'text-coral-600',
+              value: `${streak.currentStreak} days`,
+              label: `Current Streak (Best: ${streak.longestStreak})`,
+            },
+            {
+              icon: BookOpen,
+              tint: 'text-brand-600',
+              value: progress.completedLessons.length,
+              label: 'Lessons Completed',
+            },
+            {
+              icon: Trophy,
+              tint: 'text-brand-600',
+              value: progress.totalWordsLearned,
+              label: 'Words Learned',
+            },
+          ].map((stat) => (
+            <Card key={stat.label} padding="sm" className="h-full">
+              <stat.icon className={`w-5 h-5 ${stat.tint} mb-2`} aria-hidden="true" />
+              <p className="font-display font-bold text-display-xs text-ink-900 tabular-nums">{stat.value}</p>
+              <p className="text-caption text-ink-500 font-medium">{stat.label}</p>
+            </Card>
+          ))}
         </div>
 
         {/* ── Language Switcher & Settings ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Target Language */}
-          <div className="bg-white rounded-card p-6 border border-ink-200/60 shadow-soft-sm">
-            <h2 className="font-display font-semibold text-lg text-ink-900 mb-3 flex items-center gap-2">
-              <Globe className="w-5 h-5 text-brand-600" /> Target Language
+          <Card padding="md">
+            <h2 className="font-display font-semibold text-display-sm text-ink-900 mb-3 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-brand-700" aria-hidden="true" /> Target Language
             </h2>
-            <p className="text-xs text-ink-500 mb-4">
+            <p className="text-caption text-ink-500 mb-4">
               Select which language curriculum you are currently focusing on:
             </p>
 
             <div className="space-y-2">
-              {languages.map((l) => (
-                <button
-                  key={l.id}
-                  onClick={() => handleLanguageChange(l.id)}
-                  className={`w-full p-3 rounded-card border-2 flex items-center justify-between text-left transition-all ${
-                    user.selectedLanguage === l.id
-                      ? 'border-brand-600 bg-brand-50 text-brand-900 shadow-soft-sm'
-                      : 'border-ink-200 hover:border-ink-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{l.flag}</span>
-                    <div>
-                      <p className="font-semibold text-sm">{l.name}</p>
-                      <p className="text-xs text-ink-500">{l.nativeName}</p>
-                    </div>
-                  </div>
-                  {user.selectedLanguage === l.id && (
-                    <CheckCircle2 className="w-5 h-5 text-brand-600" />
-                  )}
-                </button>
-              ))}
+              {languages.map((l) => {
+                const selected = user.selectedLanguage === l.id;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => handleLanguageChange(l.id)}
+                    className={`w-full p-3 rounded-card border-2 flex items-center justify-between text-left transition-colors ${
+                      selected
+                        ? 'border-brand-700 bg-brand-50 text-ink-900'
+                        : 'border-ink-200 bg-surface-card hover:border-ink-300 text-ink-700'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Flag code={l.flagCode} size={26} decorative />
+                      <span>
+                        <span className="block font-semibold text-body-sm">{l.name}</span>
+                        <span className="block text-caption text-ink-500">{l.nativeName}</span>
+                      </span>
+                    </span>
+                    {selected && <CheckCircle2 className="w-5 h-5 text-brand-700" aria-hidden="true" />}
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </Card>
 
           {/* Daily Goal */}
-          <div className="bg-white rounded-card p-6 border border-ink-200/60 shadow-soft-sm">
-            <h2 className="font-display font-semibold text-lg text-ink-900 mb-3 flex items-center gap-2">
-              <Target className="w-5 h-5 text-amber-500" /> Daily Target
+          <Card padding="md">
+            <h2 className="font-display font-semibold text-display-sm text-ink-900 mb-3 flex items-center gap-2">
+              <Target className="w-5 h-5 text-amber-700" aria-hidden="true" /> Daily Target
             </h2>
-            <p className="text-xs text-ink-500 mb-4">
+            <p className="text-caption text-ink-500 mb-4">
               Adjust your daily practice pace to stay consistent:
             </p>
 
@@ -270,61 +267,70 @@ export default function Profile() {
                 { min: 10, label: '10 min/day', desc: 'Regular' },
                 { min: 15, label: '15 min/day', desc: 'Serious' },
                 { min: 20, label: '20 min/day', desc: 'Intense' },
-              ].map((g) => (
-                <button
-                  key={g.min}
-                  onClick={() => handleGoalChange(g.min)}
-                  className={`p-3 rounded-card border-2 text-center transition-all ${
-                    user.dailyGoal === g.min
-                      ? 'border-brand-600 bg-brand-50 text-brand-900 shadow-soft-sm'
-                      : 'border-ink-200 hover:border-ink-300'
-                  }`}
-                >
-                  <p className="font-bold text-sm">{g.label}</p>
-                  <p className="text-xs text-ink-500">{g.desc}</p>
-                </button>
-              ))}
+              ].map((g) => {
+                const selected = user.dailyGoal === g.min;
+                return (
+                  <button
+                    key={g.min}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => handleGoalChange(g.min)}
+                    className={`p-3 rounded-card border-2 text-center transition-colors ${
+                      selected
+                        ? 'border-brand-700 bg-brand-50 text-ink-900'
+                        : 'border-ink-200 bg-surface-card hover:border-ink-300 text-ink-700'
+                    }`}
+                  >
+                    <p className="font-bold text-body-sm tabular-nums">{g.label}</p>
+                    <p className="text-caption text-ink-500">{g.desc}</p>
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* ── Badges & Achievements ── */}
-        <div className="bg-white rounded-card p-6 border border-ink-200/60 shadow-soft-sm">
-          <h2 className="font-display font-semibold text-lg text-ink-900 mb-4 flex items-center gap-2">
-            <Award className="w-5 h-5 text-amber-500" /> Achievements & Badges
+        <Card padding="md">
+          <h2 className="font-display font-semibold text-display-sm text-ink-900 mb-4 flex items-center gap-2">
+            <Award className="w-5 h-5 text-amber-700" aria-hidden="true" /> Achievements & Badges
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {achievements.map((ach) => (
-              <div
+              <Card
                 key={ach.id}
-                className={`p-4 rounded-card border transition-all flex items-start gap-3 ${
-                  ach.unlocked
-                    ? 'bg-amber-50/50 border-amber-200 text-ink-900'
-                    : 'bg-ink-50/50 border-ink-200/50 text-ink-400 opacity-60'
-                }`}
+                tone={ach.unlocked ? 'amber' : 'quiet'}
+                padding="sm"
+                className={`h-full ${ach.unlocked ? '' : 'opacity-60'}`}
               >
-                <div
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${
-                    ach.unlocked ? 'bg-amber-100' : 'bg-ink-100 grayscale'
-                  }`}
-                >
-                  {ach.emoji}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="font-display font-bold text-sm truncate">
-                    {ach.title}
-                  </p>
-                  <p className="text-xs leading-relaxed mt-0.5">{ach.description}</p>
-                  <span className="text-[10px] uppercase font-bold tracking-wider mt-1.5 inline-block text-amber-700">
-                    {ach.unlocked ? '✓ Unlocked' : 'Locked'}
+                <div className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className={`w-11 h-11 rounded-card grid place-items-center shrink-0 ${
+                      ach.unlocked ? 'bg-amber-100 text-amber-700' : 'bg-ink-100 text-ink-500'
+                    }`}
+                  >
+                    <SemanticIcon name={ach.icon} size={22} />
                   </span>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display font-bold text-body-sm text-ink-900 truncate">{ach.title}</p>
+                    <p className="text-caption leading-relaxed mt-0.5 text-ink-500">{ach.description}</p>
+                    <Badge
+                      variant={ach.unlocked ? 'success' : 'subtle'}
+                      size="sm"
+                      className="mt-1.5"
+                      icon={ach.unlocked ? CheckCircle2 : undefined}
+                    >
+                      {ach.unlocked ? 'Unlocked' : 'Locked'}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
     </PageWrapper>
   );

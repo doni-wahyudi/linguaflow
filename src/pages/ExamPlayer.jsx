@@ -3,17 +3,34 @@
  * @description Fullscreen authentic examination simulator for CEFR and JLPT mock exams.
  * Features strict countdown timer, multi-section navigation, audio listening comprehension,
  * reading passage layouts, question review palette, and accredited Certificate generation.
+ *
+ * Design notes:
+ * - Kit-only. The score report, section breakdown, certificate and both dialogs
+ *   were hand-rolled, which is where `emerald-*`, `red-*`, `rounded-xl`,
+ *   `text-[11px]` and four different "pass" greens came from.
+ * - `shadow-soft-xs` (×2) and `text-amber-950` are not declared tokens, so they
+ *   rendered as nothing at all; they now use `shadow-soft-sm` / `amber-800`.
+ * - The countdown effect used to call `handleSubmitExam()` from inside the
+ *   `setTimeRemaining` updater while its closure was pinned to the mount render,
+ *   so a timed-out exam submitted against an empty answer map — a silent zero.
+ *   The clock now only ticks; a separate effect submits with a latest-ref.
+ * - Dialogs are the kit `Modal`, so they get the focus trap, the ref-counted
+ *   scroll lock, Escape dismissal and a real accessible name. `dismissOnBackdrop`
+ *   is off: an exam is exactly the context where a stray click must not destroy
+ *   work.
+ * - No emoji glyphs. The reading passage and the unanswered-questions warning use
+ *   Lucide icons, matching the rest of the app.
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Clock,
   Flag,
   CheckCircle2,
   AlertCircle,
+  BookOpen,
   Volume2,
   Turtle,
   ArrowRight,
@@ -21,19 +38,22 @@ import {
   Award,
   Trophy,
   ShieldCheck,
-  RotateCcw,
   Printer,
-  ChevronRight,
-  Sparkles,
   HelpCircle,
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { getExamById } from '../data/exams';
-import languages from '../data/languages';
 import Confetti from '../components/ui/Confetti';
-import { playCelebration, playCorrect, playIncorrect, playClick } from '../utils/soundEffects';
+import { playCelebration, playIncorrect, playClick } from '../utils/soundEffects';
+import { Badge, Button, Card, Modal, ProgressBar, SegmentedControl, segmentIds } from '../components/ui';
 
-const transitionEase = [0.16, 1, 0.3, 1];
+/* The score-report rail is the kit SegmentedControl; ids are generated from this
+   namespace so the tabs and the panels agree (WCAG 1.3.1). */
+const reportIds = segmentIds('exam-report');
+const REPORT_TABS = [
+  { id: 'result', label: 'Official Certificate' },
+  { id: 'review', label: 'Answer Key Review' },
+];
 
 export default function ExamPlayer() {
   const { examId } = useParams();
@@ -41,10 +61,6 @@ export default function ExamPlayer() {
   const { user, progress, speech, streak, xp } = useUser();
 
   const exam = useMemo(() => getExamById(examId), [examId]);
-  const langData = useMemo(
-    () => languages.find((l) => l.id === exam?.languageId),
-    [exam]
-  );
 
   // Flatten questions with section metadata
   const allQuestions = useMemo(() => {
@@ -93,18 +109,25 @@ export default function ExamPlayer() {
     if (isSubmitted || !exam) return;
 
     const timer = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleSubmitExam(); // Auto-submit when time expires
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeRemaining((prev) => Math.max(0, prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
   }, [isSubmitted, exam]);
+
+  /* Keep the submit closure pointing at the CURRENT render. The first build
+     called handleSubmitExam() from inside the tick updater, whose closure was
+     pinned to the mount render, so the answers it read were always `{}` — a
+     timed-out exam scored zero no matter what the candidate had answered. */
+  const submitRef = useRef(null);
+  useEffect(() => {
+    submitRef.current = handleSubmitExam;
+  });
+
+  useEffect(() => {
+    if (isSubmitted || !exam || timeRemaining > 0) return;
+    submitRef.current?.();
+  }, [timeRemaining, isSubmitted, exam]);
 
   if (!exam || !currentQ) return null;
 
@@ -223,114 +246,96 @@ export default function ExamPlayer() {
 
         <div className="max-w-4xl mx-auto w-full space-y-6">
           {/* Top navigation tabs */}
-          <div className="flex items-center justify-between border-b border-ink-200 pb-4">
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-brand-50 text-brand-700">
-                <ShieldCheck className="w-6 h-6" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-ink-200 pb-4">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center justify-center w-11 h-11 rounded-button bg-brand-50 border border-brand-200 text-brand-700 shrink-0">
+                <ShieldCheck className="w-6 h-6" aria-hidden="true" />
               </span>
               <div>
-                <h1 className="font-display font-bold text-xl text-ink-900">
+                <h1 className="font-display font-bold text-display-sm text-ink-900">
                   {exam.title}
                 </h1>
-                <p className="text-xs text-ink-500">Official Score Report & Verification</p>
+                <p className="text-caption text-ink-500">Official Score Report &amp; Verification</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('result')}
-                className={`px-4 py-2 rounded-pill text-xs font-semibold transition-all ${
-                  activeTab === 'result'
-                    ? 'bg-brand-600 text-white shadow-soft-sm'
-                    : 'bg-white border border-ink-200 text-ink-600 hover:bg-ink-50'
-                }`}
-              >
-                Official Certificate
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('review')}
-                className={`px-4 py-2 rounded-pill text-xs font-semibold transition-all ${
-                  activeTab === 'review'
-                    ? 'bg-brand-600 text-white shadow-soft-sm'
-                    : 'bg-white border border-ink-200 text-ink-600 hover:bg-ink-50'
-                }`}
-              >
-                Answer Key Review
-              </button>
-            </div>
+            <SegmentedControl
+              name="exam-report"
+              label="Score report sections"
+              tabs={REPORT_TABS}
+              value={activeTab}
+              onChange={setActiveTab}
+            />
           </div>
 
           {/* TAB 1: Official Score Report & Certificate */}
           {activeTab === 'result' && (
-            <div className="space-y-6">
+            <div role="tabpanel" id={reportIds.panelId('result')} aria-labelledby={reportIds.tabId('result')} className="space-y-6">
               {/* Verdict Banner */}
-              <div
-                className={`p-6 rounded-card border-2 flex flex-col sm:flex-row items-center justify-between gap-6 ${
-                  isPassed
-                    ? 'bg-emerald-50/80 border-emerald-300'
-                    : 'bg-amber-50/80 border-amber-300'
-                }`}
-              >
-                <div className="flex items-center gap-4 text-center sm:text-left">
-                  <div
-                    className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${
-                      isPassed
-                        ? 'bg-emerald-600 text-white shadow-soft-md'
-                        : 'bg-amber-500 text-white shadow-soft-md'
-                    }`}
-                  >
-                    {isPassed ? <Trophy className="w-8 h-8" /> : <AlertCircle className="w-8 h-8" />}
-                  </div>
-                  <div>
-                    <span
-                      className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-pill inline-block mb-1 ${
+              <Card tone={isPassed ? 'success' : 'warning'} padding="md" className="border-2">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-4 text-center sm:text-left">
+                    <div
+                      className={`w-16 h-16 rounded-button flex items-center justify-center shrink-0 border ${
                         isPassed
-                          ? 'bg-emerald-200 text-emerald-900'
-                          : 'bg-amber-200 text-amber-900'
+                          ? 'bg-surface-card border-success-border text-success-strong'
+                          : 'bg-surface-card border-warning-border text-warning-strong'
                       }`}
                     >
-                      {isDistinction
-                        ? 'Passed with Distinction'
-                        : isPassed
-                        ? 'Official Pass'
-                        : 'Review Required'}
-                    </span>
-                    <h2 className="font-display font-bold text-2xl text-ink-900">
-                      {isPassed
-                        ? `Congratulations! You scored ${finalPercentage}%`
-                        : `Final Score: ${finalPercentage}% (Pass: ${exam.passingScore}%)`}
-                    </h2>
-                    <p className="text-xs text-ink-600 mt-0.5">
-                      {isPassed
-                        ? `You have officially demonstrated Level ${exam.level} proficiency under standard examination conditions.`
-                        : `You were close! Review the incorrect answers below and retake to earn your official certificate.`}
-                    </p>
+                      {isPassed ? (
+                        <Trophy className="w-8 h-8" aria-hidden="true" />
+                      ) : (
+                        <AlertCircle className="w-8 h-8" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div>
+                      {/* Overline rather than a filled chip: a `success` badge on a
+                          `success`-tinted banner is the same colour as its background,
+                          so the chip would simply vanish. */}
+                      <p
+                        className={`text-overline uppercase tracking-wide mb-1 ${
+                          isPassed ? 'text-success-strong' : 'text-warning-strong'
+                        }`}
+                      >
+                        {isDistinction
+                          ? 'Passed with Distinction'
+                          : isPassed
+                          ? 'Official Pass'
+                          : 'Review Required'}
+                      </p>
+                      <h2 className="font-display font-bold text-display-sm text-ink-900">
+                        {isPassed
+                          ? `Congratulations! You scored ${finalPercentage}%`
+                          : `Final Score: ${finalPercentage}% (Pass: ${exam.passingScore}%)`}
+                      </h2>
+                      <p className="text-body-sm text-ink-700 mt-0.5">
+                        {isPassed
+                          ? `You have officially demonstrated Level ${exam.level} proficiency under standard examination conditions.`
+                          : `You were close! Review the incorrect answers below and retake to earn your official certificate.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex sm:flex-col gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      shape="pill"
+                      size="md"
+                      icon={Printer}
+                      onClick={() => window.print()}
+                    >
+                      Print Report
+                    </Button>
+                    <Button shape="pill" size="md" onClick={() => navigate('/exams')}>
+                      All Exams
+                    </Button>
                   </div>
                 </div>
+              </Card>
 
-                <div className="flex sm:flex-col gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="px-4 py-2.5 rounded-pill bg-white border border-ink-300 text-ink-700 hover:bg-ink-50 font-semibold text-xs flex items-center gap-2 shadow-soft-sm"
-                  >
-                    <Printer className="w-4 h-4" /> Print Report
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/exams')}
-                    className="px-4 py-2.5 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs flex items-center gap-2 shadow-soft-sm"
-                  >
-                    All Exams
-                  </button>
-                </div>
-              </div>
-
-              {/* Section-by-Section Breakdown Bento */}
-              <div className="bg-white rounded-card p-6 border border-ink-200/80 shadow-soft-sm">
-                <h3 className="font-display font-bold text-lg text-ink-900 mb-4">
+              {/* Section-by-Section Breakdown */}
+              <Card padding="md">
+                <h3 className="font-display font-bold text-display-xs text-ink-900 mb-4">
                   Competency Section Scores
                 </h3>
                 <div className="space-y-4">
@@ -340,61 +345,63 @@ export default function ExamPlayer() {
                       total: sec.questions.length,
                       percentage: 0,
                     };
+                    const meetsBar = secScore.percentage >= 60;
 
                     return (
                       <div key={sec.id}>
-                        <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                          <span className="text-ink-800">{sec.name}</span>
-                          <span className="text-ink-500">
+                        <div className="flex items-center justify-between text-body-sm font-semibold mb-1.5">
+                          <span className="text-ink-900">{sec.name}</span>
+                          <span className="text-ink-500 tabular-nums">
                             {secScore.correct} / {secScore.total} correct ({secScore.percentage}%)
                           </span>
                         </div>
-                        <div className="w-full h-2.5 bg-ink-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              secScore.percentage >= 60
-                                ? 'bg-emerald-500'
-                                : 'bg-amber-500'
-                            }`}
-                            style={{ width: `${secScore.percentage}%` }}
-                          />
-                        </div>
+                        {/* Colour is paired with the numeric readout above, so the
+                            fill never carries the pass/fail verdict alone. */}
+                        <ProgressBar
+                          value={secScore.percentage}
+                          max={100}
+                          size="sm"
+                          color={meetsBar ? 'success' : 'amber'}
+                          animated={false}
+                          label={`${sec.name} score`}
+                          valueText={`${secScore.percentage} percent — ${meetsBar ? 'meets the 60% section bar' : 'below the 60% section bar'}`}
+                        />
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              </Card>
 
               {/* Accredited Certificate Card (If Passed) */}
               {isPassed && (
-                <div className="bg-gradient-to-br from-[#FAF9F5] to-amber-50/40 rounded-card p-8 border-4 border-double border-amber-300/80 shadow-soft-lg text-center relative overflow-hidden">
+                <div className="bg-gradient-to-br from-surface-bg to-amber-50 rounded-card p-8 border-4 border-double border-amber-300 shadow-soft-lg text-center relative overflow-hidden">
                   <div className="max-w-xl mx-auto space-y-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 mx-auto flex items-center justify-center text-white shadow-soft-md">
-                      <Award className="w-9 h-9" />
+                    <div className="w-16 h-16 rounded-pill bg-amber-50 border border-amber-300 mx-auto flex items-center justify-center text-amber-700">
+                      <Award className="w-9 h-9" aria-hidden="true" />
                     </div>
 
-                    <p className="text-xs uppercase tracking-widest font-bold text-amber-800">
+                    <p className="text-caption uppercase tracking-widest font-bold text-amber-800">
                       Certificate of Language Proficiency
                     </p>
 
-                    <h2 className="font-display font-bold text-3xl text-ink-900 tracking-tight">
+                    <h2 className="font-display font-bold text-display-md text-ink-900 tracking-tight">
                       {user.name || 'Candidate'}
                     </h2>
 
-                    <p className="text-xs text-ink-600 max-w-md mx-auto leading-relaxed">
+                    <p className="text-body-sm text-ink-700 max-w-md mx-auto leading-relaxed">
                       has successfully satisfied all testing requirements and demonstrated certified foreign language competence in
                     </p>
 
-                    <div className="py-2 px-6 bg-white rounded-2xl border border-amber-200 inline-block shadow-soft-sm">
-                      <span className="font-display font-bold text-xl text-brand-900 block">
+                    <div className="py-2 px-6 bg-surface-card rounded-button border border-amber-200 inline-block shadow-soft-sm">
+                      <span className="font-display font-bold text-display-xs text-brand-900 block">
                         {exam.title}
                       </span>
-                      <span className="text-xs text-brand-700 font-semibold">
+                      <span className="text-body-sm text-brand-700 font-semibold">
                         Grade: {finalPercentage}% • Level {exam.level} ({exam.framework})
                       </span>
                     </div>
 
-                    <div className="pt-4 border-t border-amber-200 flex items-center justify-between text-[11px] text-ink-500 font-medium">
+                    <div className="pt-4 border-t border-amber-200 flex items-center justify-between text-caption text-ink-700">
                       <span>Authority: {exam.certifyingBody}</span>
                       <span>Verified: {new Date().toLocaleDateString()}</span>
                     </div>
@@ -406,8 +413,8 @@ export default function ExamPlayer() {
 
           {/* TAB 2: Detailed Pedagogical Answer Key Review */}
           {activeTab === 'review' && (
-            <div className="space-y-4">
-              <h3 className="font-display font-bold text-xl text-ink-900">
+            <div role="tabpanel" id={reportIds.panelId('review')} aria-labelledby={reportIds.tabId('review')} className="space-y-4">
+              <h3 className="font-display font-bold text-display-sm text-ink-900">
                 Question by Question Detailed Review
               </h3>
               <div className="space-y-4">
@@ -416,42 +423,26 @@ export default function ExamPlayer() {
                   const isCorrect = userAnswer === q.correctIndex;
 
                   return (
-                    <div
-                      key={q.id}
-                      className={`p-5 rounded-card bg-white border-2 transition-all ${
-                        isCorrect ? 'border-emerald-200' : 'border-red-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-ink-500">
+                    <Card key={q.id} accent={isCorrect ? 'success' : 'error'}>
+                      <div className="flex items-center justify-between mb-2 gap-3">
+                        <span className="text-caption font-bold text-ink-700">
                           Question {idx + 1} • {q.sectionName}
                         </span>
-                        <span
-                          className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-pill ${
-                            isCorrect
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
+                        <Badge
+                          variant={isCorrect ? 'success' : 'error'}
+                          icon={isCorrect ? CheckCircle2 : AlertCircle}
                         >
-                          {isCorrect ? (
-                            <>
-                              <CheckCircle2 size={13} /> Correct
-                            </>
-                          ) : (
-                            <>
-                              <AlertCircle size={13} /> Incorrect
-                            </>
-                          )}
-                        </span>
+                          {isCorrect ? 'Correct' : 'Incorrect'}
+                        </Badge>
                       </div>
 
                       {q.sentence && (
-                        <p className="font-display font-semibold text-lg text-ink-900 mb-2">
+                        <p className="font-display font-semibold text-display-xs text-ink-900 mb-2">
                           {q.sentence}
                         </p>
                       )}
 
-                      <p className="text-sm text-ink-700 mb-3">{q.prompt}</p>
+                      <p className="text-body-md text-ink-700 mb-3">{q.prompt}</p>
 
                       {/* Options */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
@@ -462,25 +453,25 @@ export default function ExamPlayer() {
                           return (
                             <div
                               key={optIdx}
-                              className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between ${
+                              className={`flex items-center justify-between gap-2 p-3 rounded-button border-2 text-body-sm font-semibold ${
                                 isRealCorrect
-                                  ? 'bg-emerald-50 border-emerald-400 text-emerald-900'
+                                  ? 'bg-success-bg border-success text-success-strong'
                                   : isSelected
-                                  ? 'bg-red-50 border-red-300 text-red-900'
-                                  : 'bg-ink-50/50 border-ink-200 text-ink-600'
+                                  ? 'bg-error-bg border-error text-error-strong'
+                                  : 'bg-surface-100 border-ink-200 text-ink-700'
                               }`}
                             >
                               <span>
                                 {String.fromCharCode(65 + optIdx)}. {opt}
                               </span>
                               {isRealCorrect && (
-                                <span className="text-[10px] uppercase font-bold text-emerald-700">
-                                  Correct Answer
+                                <span className="text-caption uppercase font-bold text-success-strong shrink-0">
+                                  Correct answer
                                 </span>
                               )}
                               {isSelected && !isRealCorrect && (
-                                <span className="text-[10px] uppercase font-bold text-red-700">
-                                  Your Choice
+                                <span className="text-caption uppercase font-bold text-error-strong shrink-0">
+                                  Your choice
                                 </span>
                               )}
                             </div>
@@ -490,12 +481,14 @@ export default function ExamPlayer() {
 
                       {/* Explanation */}
                       {q.explanation && (
-                        <div className="p-3 rounded-xl bg-brand-50/80 border border-brand-200 text-xs text-brand-900">
-                          <span className="font-bold block mb-0.5">Linguistic Explanation:</span>
+                        <div className="p-3 rounded-button bg-brand-50 border border-brand-200 text-body-sm text-ink-700">
+                          <span className="font-bold text-brand-800 block mb-0.5">
+                            Linguistic Explanation:
+                          </span>
                           {q.explanation}
                         </div>
                       )}
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
@@ -510,170 +503,183 @@ export default function ExamPlayer() {
   return (
     <div className="min-h-screen bg-surface-bg flex flex-col justify-between">
       {/* ── Top Bar: Exam Info & Countdown Timer ── */}
-      <header className="h-16 px-4 sm:px-8 bg-white border-b border-ink-200/80 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-soft-xs">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
+      <header className="min-h-16 px-4 sm:px-8 py-3 bg-surface-card border-b border-ink-200 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-soft-sm">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button
+            variant="outline"
+            size="lg"
+            iconOnly
+            icon={X}
             onClick={() => setShowExitModal(true)}
-            className="p-2 rounded-full hover:bg-ink-100 text-ink-500 hover:text-ink-900 transition-colors"
-            title="Exit Exam"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700 bg-brand-50 px-2 py-0.5 rounded-pill">
+            aria-label="Exit exam"
+          />
+          <div className="min-w-0">
+            <Badge variant="brand" uppercase className="mb-0.5">
               Level {exam.level}
-            </span>
-            <h2 className="font-display font-bold text-sm sm:text-base text-ink-900 truncate max-w-[200px] sm:max-w-md">
+            </Badge>
+            {/* h1, not h2: this is the only page heading in the active testing view,
+                and the question below it is an h2 — WCAG 1.3.1 heading hierarchy. */}
+            <h1 className="font-display font-bold text-body-lg text-ink-900 truncate max-w-48 sm:max-w-md">
               {exam.title}
-            </h2>
+            </h1>
           </div>
         </div>
 
-        {/* Live Countdown Timer */}
+        {/* Live Countdown Timer. `aria-live="off"` because a per-second polite
+            announcement is worse than silence; the value is available on demand. */}
         <div
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-pill border font-mono font-bold text-sm transition-all ${
+          className={`flex items-center gap-2 px-3.5 h-10 rounded-pill border font-semibold text-body-md tabular-nums transition-colors ${
             isTimeCritical
-              ? 'bg-red-50 border-red-300 text-red-700 animate-pulse'
-              : 'bg-ink-100 border-ink-200 text-ink-800'
+              ? 'bg-error-bg border-error text-error-strong animate-pulse'
+              : 'bg-ink-100 border-ink-200 text-ink-900'
           }`}
+          role="timer"
+          aria-label={isTimeCritical ? `Time remaining: ${formatTime(timeRemaining)} — under three minutes` : `Time remaining: ${formatTime(timeRemaining)}`}
         >
-          <Clock className="w-4 h-4 text-ink-500" />
+          <Clock className={`w-4 h-4 ${isTimeCritical ? 'text-error-strong' : 'text-ink-500'}`} aria-hidden="true" />
           <span>{formatTime(timeRemaining)}</span>
         </div>
 
         {/* Finish / Submit Button */}
-        <button
-          type="button"
-          onClick={() => setShowConfirmModal(true)}
-          className="px-4 py-2 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-soft-sm transition-all active:scale-95"
-        >
+        <Button shape="pill" size="md" onClick={() => setShowConfirmModal(true)}>
           Submit Exam
-        </button>
+        </Button>
       </header>
 
       {/* ── Main Exam Arena ── */}
       <main className="flex-1 max-w-4xl mx-auto w-full p-4 sm:p-8 space-y-6">
         {/* Section Indicator Breadcrumb */}
-        <div className="flex items-center justify-between text-xs text-ink-500 font-medium">
-          <span className="font-bold text-brand-800 uppercase tracking-wide">
+        <div className="flex items-center justify-between text-body-sm text-ink-500 font-medium gap-3">
+          <span className="text-overline uppercase text-brand-800 truncate">
             {currentQ.sectionName}
           </span>
-          <span>
+          <span className="tabular-nums shrink-0">
             Question {currentQuestionIndex + 1} of {allQuestions.length}
           </span>
         </div>
 
         {/* Reading Passage Container (if applicable) */}
         {currentQ.sectionPassage && (
-          <div className="p-6 rounded-card bg-amber-50/50 border border-amber-200/80 shadow-soft-xs">
-            <h3 className="font-display font-bold text-base text-amber-950 mb-2">
-              📖 {currentQ.sectionPassage.title}
-            </h3>
-            <p className="text-xs sm:text-sm text-ink-800 leading-relaxed whitespace-pre-line font-medium font-serif">
+          <Card tone="amber" padding="md">
+            {/* h2: the testing view's only page heading is the exam title (h1), so
+                the passage sits directly under it — an h3 here skipped a level. */}
+            <h2 className="font-display font-bold text-display-xs text-amber-800 mb-2 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 shrink-0" aria-hidden="true" />
+              {currentQ.sectionPassage.title}
+            </h2>
+            <p className="text-body-md text-ink-900 leading-relaxed whitespace-pre-line">
               {currentQ.sectionPassage.text}
             </p>
-          </div>
+          </Card>
         )}
 
         {/* Listening Audio Widget (if applicable) */}
         {currentQ.audioScript && (
-          <div className="p-5 rounded-card bg-brand-50/60 border border-brand-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0">
-                <Volume2 className="w-5 h-5" />
+          <Card tone="brand" padding="md">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-pill bg-brand-700 text-white flex items-center justify-center shrink-0">
+                  <Volume2 className="w-5 h-5" aria-hidden="true" />
+                </div>
+                <div className="text-left">
+                  <p className="font-display font-bold text-body-md text-ink-900">
+                    Audio Listening Task
+                  </p>
+                  <p className="text-caption text-ink-700" aria-live="polite">
+                    Played {listenCounts[currentQ.id] || 0} {listenCounts[currentQ.id] === 1 ? 'time' : 'times'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-display font-bold text-sm text-ink-900">
-                  Audio Listening Task
-                </p>
-                <p className="text-xs text-ink-500">
-                  Listened {listenCounts[currentQ.id] || 0} times
-                </p>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handlePlayAudio(false)}
-                className="px-4 py-2 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-soft-sm active:scale-95"
-              >
-                <Volume2 size={14} /> Play Normal
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePlayAudio(true)}
-                className="px-3.5 py-2 rounded-pill bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold text-xs flex items-center gap-1.5 shadow-soft-sm active:scale-95"
-              >
-                <Turtle size={14} /> Slow Turtle
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button size="md" icon={Volume2} onClick={() => handlePlayAudio(false)}>
+                  Play Normal
+                </Button>
+                <Button
+                  variant="outline"
+                  size="md"
+                  icon={Turtle}
+                  onClick={() => handlePlayAudio(true)}
+                >
+                  Slow
+                </Button>
+              </div>
             </div>
-          </div>
+          </Card>
         )}
 
         {/* Question Card */}
-        <div className="bg-white rounded-card p-6 sm:p-8 border border-ink-200/80 shadow-soft-md space-y-6">
-          {currentQ.sentence && (
-            <div className="p-4 rounded-xl bg-ink-50 border border-ink-100">
-              <h2 className="font-display font-bold text-xl sm:text-2xl text-ink-900 leading-snug">
-                {currentQ.sentence}
-              </h2>
+        <Card padding="md" className="sm:p-8">
+          <div className="space-y-6">
+            {currentQ.sentence && (
+              <div className="p-4 rounded-button bg-surface-100 border border-ink-200">
+                <h2 className="font-display font-bold text-display-sm sm:text-display-md text-ink-900 leading-snug">
+                  {currentQ.sentence}
+                </h2>
+              </div>
+            )}
+
+            <p className="font-medium text-body-md sm:text-body-lg text-ink-900 leading-relaxed">
+              {currentQ.prompt}
+            </p>
+
+            {/* Options — same group / aria-pressed pattern the lesson exercise uses. */}
+            <div
+              className="space-y-3"
+              role="group"
+              aria-label={`Answer options for question ${currentQuestionIndex + 1} of ${allQuestions.length}`}
+            >
+              {currentQ.options.map((opt, idx) => {
+                const isSelected = userAnswers[currentQ.id] === idx;
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectOption(idx)}
+                    aria-pressed={isSelected}
+                    className={`w-full min-h-14 p-4 rounded-card text-left border-2 flex items-center justify-between gap-3 transition-colors ${
+                      isSelected
+                        ? 'border-brand-700 bg-brand-50 text-ink-900 shadow-soft-sm'
+                        : 'border-ink-200 bg-surface-card text-ink-900 hover:border-brand-600 hover:bg-brand-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        aria-hidden="true"
+                        className={`w-8 h-8 rounded-pill text-caption font-bold flex items-center justify-center shrink-0 border-2 ${
+                          isSelected
+                            ? 'bg-brand-700 text-white border-brand-700'
+                            : 'bg-surface-card text-ink-700 border-ink-300'
+                        }`}
+                      >
+                        {String.fromCharCode(65 + idx)}
+                      </span>
+                      <span className="font-medium text-body-md">{opt}</span>
+                    </div>
+
+                    {isSelected && (
+                      <CheckCircle2 className="w-5 h-5 text-brand-700 shrink-0" aria-hidden="true" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          )}
-
-          <p className="font-medium text-sm sm:text-base text-ink-800 leading-relaxed">
-            {currentQ.prompt}
-          </p>
-
-          {/* Star Questions (Reorder) or Standard Multiple Choice */}
-          <div className="space-y-3">
-            {currentQ.options.map((opt, idx) => {
-              const isSelected = userAnswers[currentQ.id] === idx;
-
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSelectOption(idx)}
-                  className={`w-full p-4 rounded-xl text-left border-2 flex items-center justify-between gap-3 transition-all ${
-                    isSelected
-                      ? 'border-brand-600 bg-brand-50/70 text-brand-900 ring-2 ring-brand-500/20 shadow-soft-sm'
-                      : 'border-ink-200 hover:border-ink-300 hover:bg-ink-50/50 text-ink-800'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center shrink-0 border ${
-                        isSelected
-                          ? 'bg-brand-600 text-white border-brand-600'
-                          : 'bg-white text-ink-600 border-ink-300'
-                      }`}
-                    >
-                      {String.fromCharCode(65 + idx)}
-                    </span>
-                    <span className="font-medium text-sm sm:text-base">{opt}</span>
-                  </div>
-
-                  {isSelected && (
-                    <CheckCircle2 className="w-5 h-5 text-brand-600 shrink-0" />
-                  )}
-                </button>
-              );
-            })}
           </div>
-        </div>
+        </Card>
 
         {/* ── Question Navigator Palette ── */}
-        <div className="bg-white rounded-card p-4 border border-ink-200/80 shadow-soft-sm">
-          <div className="flex items-center justify-between mb-3 text-xs">
-            <span className="font-bold text-ink-700">Question Palette</span>
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1 text-ink-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-brand-600 inline-block" /> Answered ({answeredCount})
+        <Card padding="sm">
+          <div className="flex items-center justify-between mb-3 text-body-sm gap-3">
+            <span className="font-bold text-ink-900">Question Palette</span>
+            <div className="flex items-center gap-3 text-caption">
+              <span className="flex items-center gap-1.5 text-ink-700">
+                <span className="w-2.5 h-2.5 rounded-pill bg-brand-700 inline-block shrink-0" aria-hidden="true" />
+                Answered <span className="tabular-nums font-semibold">({answeredCount})</span>
               </span>
-              <span className="flex items-center gap-1 text-amber-600">
-                <Flag size={12} /> Flagged ({flaggedQuestions.size})
+              <span className="flex items-center gap-1.5 text-amber-700">
+                <Flag size={12} className="shrink-0" aria-hidden="true" />
+                Flagged <span className="tabular-nums font-semibold">({flaggedQuestions.size})</span>
               </span>
             </div>
           </div>
@@ -689,162 +695,153 @@ export default function ExamPlayer() {
                   key={q.id}
                   type="button"
                   onClick={() => setCurrentQuestionIndex(idx)}
-                  className={`w-8 h-8 rounded-lg text-xs font-bold transition-all relative ${
+                  aria-current={isCurrent ? 'true' : undefined}
+                  aria-label={`Question ${idx + 1}${isAnswered ? ', answered' : ', not answered'}${isFlagged ? ', flagged for review' : ''}`}
+                  className={`w-10 h-10 rounded-button text-caption font-bold transition-colors relative ${
                     isCurrent
-                      ? 'bg-brand-600 text-white ring-2 ring-brand-500/40'
+                      ? 'bg-brand-700 text-white'
                       : isAnswered
-                      ? 'bg-brand-100 text-brand-800 border border-brand-300'
-                      : 'bg-ink-100 text-ink-600 hover:bg-ink-200'
+                      ? 'bg-brand-100 text-brand-800 border border-brand-300 hover:bg-brand-200'
+                      : 'bg-ink-100 text-ink-700 border border-ink-200 hover:bg-ink-200'
                   }`}
                 >
-                  {idx + 1}
+                  <span className="tabular-nums">{idx + 1}</span>
                   {isFlagged && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full ring-1 ring-white" />
+                    /* amber-700, not amber-500: the dot is non-text UI and needs
+                       3:1 against the tile it sits on (amber-500 measured 1.9:1
+                       against ink-100). The white ring is what separates it from
+                       the brand-700 "current" tile. */
+                    <span
+                      className="absolute -top-1 -right-1 w-3 h-3 bg-amber-700 rounded-pill ring-2 ring-surface-card"
+                      aria-hidden="true"
+                    />
                   )}
                 </button>
               );
             })}
           </div>
-        </div>
+        </Card>
       </main>
 
       {/* ── Bottom Bar: Navigation & Flagging ── */}
-      <footer className="h-16 px-4 sm:px-8 bg-white border-t border-ink-200/80 flex items-center justify-between gap-4 sticky bottom-0 z-30">
-        <button
-          type="button"
+      <footer className="min-h-16 px-4 sm:px-8 py-3 bg-surface-card border-t border-ink-200 flex items-center justify-between gap-4 sticky bottom-0 z-30">
+        <Button
+          variant={flaggedQuestions.has(currentQ.id) ? 'secondary' : 'outline'}
+          shape="pill"
+          size="md"
+          aria-pressed={flaggedQuestions.has(currentQ.id)}
           onClick={() => toggleFlag(currentQ.id)}
-          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-pill border text-xs font-semibold transition-all ${
-            flaggedQuestions.has(currentQ.id)
-              ? 'bg-amber-100 border-amber-300 text-amber-900'
-              : 'border-ink-200 text-ink-600 hover:bg-ink-100'
-          }`}
+          icon={Flag}
         >
-          <Flag size={14} className={flaggedQuestions.has(currentQ.id) ? 'fill-amber-500' : ''} />
           {flaggedQuestions.has(currentQ.id) ? 'Flagged for Review' : 'Flag Question'}
-        </button>
+        </Button>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            shape="pill"
+            size="md"
             disabled={currentQuestionIndex === 0}
+            icon={ArrowLeft}
             onClick={() => setCurrentQuestionIndex((i) => Math.max(0, i - 1))}
-            className="px-4 py-2 rounded-pill border border-ink-300 text-ink-700 hover:bg-ink-100 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
           >
-            <ArrowLeft size={14} /> Previous
-          </button>
+            Previous
+          </Button>
 
           {currentQuestionIndex + 1 < allQuestions.length ? (
-            <button
-              type="button"
+            <Button
+              shape="pill"
+              size="md"
+              icon={ArrowRight}
+              iconPosition="right"
               onClick={() => setCurrentQuestionIndex((i) => i + 1)}
-              className="px-5 py-2 rounded-pill bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold flex items-center gap-1 shadow-soft-sm"
             >
-              Next <ArrowRight size={14} />
-            </button>
+              Next
+            </Button>
           ) : (
-            <button
-              type="button"
+            <Button
+              shape="pill"
+              size="md"
+              icon={CheckCircle2}
+              iconPosition="right"
               onClick={() => setShowConfirmModal(true)}
-              className="px-5 py-2 rounded-pill bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 shadow-soft-sm"
             >
-              Review & Finish <CheckCircle2 size={14} />
-            </button>
+              Review &amp; Finish
+            </Button>
           )}
         </div>
       </footer>
 
       {/* ── Submission Confirmation Modal ── */}
-      <AnimatePresence>
-        {showConfirmModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-card p-6 max-w-md w-full shadow-soft-xl border border-ink-200 text-center"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 mx-auto flex items-center justify-center mb-4">
-                <HelpCircle className="w-7 h-7" />
-              </div>
-              <h3 className="font-display font-bold text-xl text-ink-900 mb-2">
-                Submit Examination?
-              </h3>
-              <p className="text-xs text-ink-500 mb-6 leading-relaxed">
-                You have answered <strong>{answeredCount}</strong> of{' '}
-                <strong>{allQuestions.length}</strong> questions.
-                {unansweredCount > 0 && (
-                  <span className="text-amber-700 block mt-1 font-semibold">
-                    ⚠️ You still have {unansweredCount} unanswered questions!
-                  </span>
-                )}
-                {flaggedQuestions.size > 0 && (
-                  <span className="text-ink-600 block mt-0.5">
-                    ({flaggedQuestions.size} questions are flagged for review).
-                  </span>
-                )}
-              </p>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmModal(false)}
-                  className="flex-1 py-2.5 px-4 rounded-pill border border-ink-300 text-ink-700 hover:bg-ink-100 font-semibold text-xs transition-colors"
-                >
-                  Return to Test
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmitExam}
-                  className="flex-1 py-2.5 px-4 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs shadow-soft-sm transition-colors"
-                >
-                  Confirm & Submit
-                </button>
-              </div>
-            </motion.div>
+      <Modal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        title="Submit Examination?"
+        size="sm"
+        /* An exam is the one place a stray click must not destroy work. */
+        dismissOnBackdrop={false}
+        footer={
+          <>
+            <Button variant="outline" shape="pill" size="lg" fullWidth onClick={() => setShowConfirmModal(false)}>
+              Return to Test
+            </Button>
+            <Button shape="pill" size="lg" fullWidth onClick={handleSubmitExam}>
+              Confirm &amp; Submit
+            </Button>
+          </>
+        }
+      >
+        <div className="text-center space-y-4">
+          <div className="w-14 h-14 rounded-button bg-amber-50 border border-amber-200 text-amber-700 mx-auto flex items-center justify-center">
+            <HelpCircle className="w-7 h-7" aria-hidden="true" />
           </div>
-        )}
-      </AnimatePresence>
+          <div className="space-y-2">
+            <p className="text-body-md text-ink-700 leading-relaxed">
+              You have answered <strong className="text-ink-900">{answeredCount}</strong> of{' '}
+              <strong className="text-ink-900">{allQuestions.length}</strong> questions.
+            </p>
+            {unansweredCount > 0 && (
+              <p className="flex items-center justify-center gap-2 text-body-sm font-semibold text-warning-strong bg-warning-bg border border-warning-border rounded-button px-3 py-2">
+                <AlertCircle size={16} className="shrink-0" aria-hidden="true" />
+                You still have {unansweredCount} unanswered {unansweredCount === 1 ? 'question' : 'questions'}!
+              </p>
+            )}
+            {flaggedQuestions.size > 0 && (
+              <p className="text-body-sm text-ink-700">
+                {flaggedQuestions.size} {flaggedQuestions.size === 1 ? 'question is' : 'questions are'} flagged for review.
+              </p>
+            )}
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Quit / Exit Modal ── */}
-      <AnimatePresence>
-        {showExitModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink-900/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-card p-6 max-w-md w-full shadow-soft-xl border border-red-200 text-center"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 mx-auto flex items-center justify-center mb-4">
-                <AlertCircle className="w-7 h-7" />
-              </div>
-              <h3 className="font-display font-bold text-xl text-ink-900 mb-2">
-                Abandon Examination?
-              </h3>
-              <p className="text-xs text-ink-500 mb-6">
-                Exiting will cancel this exam attempt. Your answers will not be recorded and you will need to restart from the beginning.
-              </p>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowExitModal(false)}
-                  className="flex-1 py-2.5 px-4 rounded-pill border border-ink-300 text-ink-700 hover:bg-ink-100 font-semibold text-xs"
-                >
-                  Stay in Exam
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/exams')}
-                  className="flex-1 py-2.5 px-4 rounded-pill bg-red-600 hover:bg-red-700 text-white font-semibold text-xs"
-                >
-                  Quit Exam
-                </button>
-              </div>
-            </motion.div>
+      <Modal
+        isOpen={showExitModal}
+        onClose={() => setShowExitModal(false)}
+        title="Abandon Examination?"
+        size="sm"
+        dismissOnBackdrop={false}
+        footer={
+          <>
+            <Button variant="outline" shape="pill" size="lg" fullWidth onClick={() => setShowExitModal(false)}>
+              Stay in Exam
+            </Button>
+            <Button variant="danger" shape="pill" size="lg" fullWidth onClick={() => navigate('/exams')}>
+              Quit Exam
+            </Button>
+          </>
+        }
+      >
+        <div className="text-center space-y-4">
+          <div className="w-14 h-14 rounded-button bg-error-bg border border-error-border text-error-strong mx-auto flex items-center justify-center">
+            <AlertCircle className="w-7 h-7" aria-hidden="true" />
           </div>
-        )}
-      </AnimatePresence>
+          <p className="text-body-md text-ink-700 leading-relaxed">
+            Exiting will cancel this exam attempt. Your answers will not be recorded and you will need to restart from the beginning.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

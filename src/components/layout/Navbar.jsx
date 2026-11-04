@@ -1,7 +1,8 @@
 /**
  * @file Navbar.jsx
- * @description Top navigation bar for authenticated pages. Features logo, navigation links
- * with active states, XP/streak displays, profile avatar, and a mobile hamburger menu.
+ * @description Top navigation bar for authenticated pages. Features the brand
+ * logo, navigation links with active states, XP/streak readouts, profile avatar,
+ * and a focus-managed mobile drawer.
  *
  * @example
  * <Navbar />
@@ -22,8 +23,8 @@ import {
   PenTool,
   Award,
 } from 'lucide-react';
-
-const transitionEase = [0.16, 1, 0.3, 1];
+import { Logo } from '../brand';
+import { transitionEase } from '../../utils/motion';
 
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -66,19 +67,48 @@ const overlayVariants = {
 const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const sidebarRef = useRef(null);
+  const triggerRef = useRef(null);
 
-  /** Close sidebar on Escape */
+  /** Close sidebar on Escape, lock scroll, and manage focus for the drawer */
   useEffect(() => {
+    if (!mobileOpen) return;
+
+    const FOCUSABLE =
+      'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
     const handler = (e) => {
-      if (e.key === 'Escape') setMobileOpen(false);
+      if (e.key === 'Escape') {
+        setMobileOpen(false);
+        return;
+      }
+      // Tab trap: the page behind the overlay is still in the DOM, so without
+      // this a keyboard user tabs out of the drawer into content they cannot
+      // see or reach back from.
+      if (e.key !== 'Tab' || !sidebarRef.current) return;
+      const items = [...sidebarRef.current.querySelectorAll(FOCUSABLE)];
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
-    if (mobileOpen) {
-      document.addEventListener('keydown', handler);
-      document.body.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handler);
+    document.body.style.overflow = 'hidden';
+
+    // Move focus into the drawer so keyboard users are not left behind the
+    // overlay; return it to the hamburger on close.
+    const firstLink = sidebarRef.current?.querySelector('a, button');
+    firstLink?.focus();
+
     return () => {
       document.removeEventListener('keydown', handler);
       document.body.style.overflow = '';
+      triggerRef.current?.focus();
     };
   }, [mobileOpen]);
 
@@ -101,28 +131,26 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
 
   return (
     <>
-      <header className="fixed top-0 inset-x-0 z-50 h-16 bg-white/90 backdrop-blur-md border-b border-ink-200/50">
+      <header className="fixed top-0 inset-x-0 z-50 h-16 bg-surface-card/90 backdrop-blur-md border-b border-ink-200">
         <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Left — Logo & Mobile Toggle */}
           <div className="flex items-center gap-3">
             {/* Hamburger (mobile) */}
             <button
               type="button"
+              ref={triggerRef}
               className="md:hidden flex items-center justify-center w-9 h-9 rounded-button text-ink-700 hover:bg-ink-100 transition-colors"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation menu"
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav-drawer"
             >
               <Menu size={22} />
             </button>
 
-            {/* Logo */}
-            <NavLink
-              to="/dashboard"
-              className="flex items-center gap-2 font-display text-display-sm text-brand-700 select-none"
-              aria-label="LinguaFlow home"
-            >
-              <span className="text-xl">🌿</span>
-              <span className="hidden sm:inline">LinguaFlow</span>
+            {/* Logo — the same mark the landing page uses */}
+            <NavLink to="/dashboard" aria-label="LinguaFlow home">
+              <Logo variant="full" size="sm" />
             </NavLink>
           </div>
 
@@ -136,7 +164,7 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
                     {isActive && (
                       <motion.div
                         layoutId="nav-underline"
-                        className="absolute bottom-0 left-3 right-3 h-0.5 bg-brand-600 rounded-full"
+                        className="absolute bottom-0 left-3 right-3 h-0.5 bg-brand-600 rounded-pill"
                         transition={{ duration: 0.25, ease: transitionEase }}
                       />
                     )}
@@ -148,28 +176,24 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
 
           {/* Right — Stats & Avatar */}
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* XP */}
-            <div
-              className="flex items-center gap-1 text-body-sm font-semibold text-amber-600"
-              aria-label={`${xp} experience points`}
-            >
-              <Zap size={16} className="text-amber-500" />
+            {/* XP — amber-700 is the small-text tier (4.8:1); -600 would fail AA */}
+            <div className="flex items-center gap-1 text-body-sm font-semibold text-amber-700">
+              <Zap size={16} aria-hidden="true" className="text-amber-600" />
               <span className="tabular-nums">{xp.toLocaleString()}</span>
+              <span className="sr-only">experience points</span>
             </div>
 
-            {/* Streak */}
-            <div
-              className="flex items-center gap-1 text-body-sm font-semibold text-coral-600"
-              aria-label={`${streak} day streak`}
-            >
-              <Flame size={16} className="text-coral-500" />
+            {/* Streak — coral-700 for the same reason */}
+            <div className="flex items-center gap-1 text-body-sm font-semibold text-coral-700">
+              <Flame size={16} aria-hidden="true" className="text-coral-600" />
               <span className="tabular-nums">{streak}</span>
+              <span className="sr-only">day streak</span>
             </div>
 
             {/* Avatar */}
             <NavLink
               to="/profile"
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-100 text-brand-700 font-semibold text-xs overflow-hidden transition-shadow hover:shadow-glow-brand"
+              className="flex items-center justify-center w-9 h-9 rounded-pill bg-brand-100 text-brand-700 font-semibold text-caption overflow-hidden transition-shadow hover:shadow-glow-brand"
               aria-label="Profile"
             >
               {avatarUrl ? (
@@ -194,7 +218,7 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
           <>
             {/* Overlay */}
             <motion.div
-              className="fixed inset-0 z-[60] bg-black/40 md:hidden"
+              className="fixed inset-0 z-nav-overlay bg-black/40 md:hidden"
               variants={overlayVariants}
               initial="hidden"
               animate="visible"
@@ -207,18 +231,17 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
             {/* Sidebar panel */}
             <motion.nav
               ref={sidebarRef}
+              id="mobile-nav-drawer"
               variants={sidebarVariants}
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="fixed inset-y-0 left-0 z-[70] w-72 bg-white shadow-soft-xl md:hidden flex flex-col"
+              className="fixed inset-y-0 left-0 z-nav-drawer w-72 bg-surface-card shadow-soft-xl md:hidden flex flex-col"
               aria-label="Mobile navigation"
             >
               {/* Close button */}
-              <div className="flex items-center justify-between h-16 px-4 border-b border-ink-200/50">
-                <span className="font-display text-display-sm text-brand-700">
-                  🌿 LinguaFlow
-                </span>
+              <div className="flex items-center justify-between h-16 px-4 border-b border-ink-200">
+                <Logo variant="full" size="sm" />
                 <button
                   type="button"
                   onClick={() => setMobileOpen(false)}
@@ -240,7 +263,7 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
                       onClick={() => setMobileOpen(false)}
                       className={({ isActive }) =>
                         [
-                          'flex items-center gap-3 px-4 py-3 rounded-button text-body-md font-semibold transition-colors duration-150',
+                          'flex items-center gap-3 px-4 h-11 rounded-button text-body-md font-semibold transition-colors duration-150',
                           isActive
                             ? 'bg-brand-50 text-brand-700'
                             : 'text-ink-700 hover:bg-ink-100',

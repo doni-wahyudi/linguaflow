@@ -33,16 +33,16 @@ export const PERFECT_SCORE_BONUS = 25;
  * @property {string} name  — display name
  * @property {number} minXP — inclusive lower bound
  * @property {number} maxXP — exclusive upper bound (Infinity for the last tier)
- * @property {string} emoji — representative emoji
+ * @property {string} icon  — semantic icon key, resolved by components/brand/icons.jsx
  */
 
 /** Ordered list of level tiers. */
 export const LEVELS = [
-  { name: 'Seedling', minXP: 0, maxXP: 100, emoji: '🌱' },
-  { name: 'Sprout', minXP: 100, maxXP: 500, emoji: '🌿' },
-  { name: 'Sapling', minXP: 500, maxXP: 1500, emoji: '🌳' },
-  { name: 'Tree', minXP: 1500, maxXP: 5000, emoji: '🏔️' },
-  { name: 'Forest', minXP: 5000, maxXP: Infinity, emoji: '🌲' },
+  { name: 'Seedling', minXP: 0, maxXP: 100, icon: 'seedling' },
+  { name: 'Sprout', minXP: 100, maxXP: 500, icon: 'sprout' },
+  { name: 'Sapling', minXP: 500, maxXP: 1500, icon: 'sapling' },
+  { name: 'Tree', minXP: 1500, maxXP: 5000, icon: 'tree' },
+  { name: 'Forest', minXP: 5000, maxXP: Infinity, icon: 'forest' },
 ];
 
 // ─── Public helpers ─────────────────────────────────────────────────────────

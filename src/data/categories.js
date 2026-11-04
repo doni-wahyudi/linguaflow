@@ -2,13 +2,17 @@
  * @file categories.js
  * @description Lesson categories catalog with progressive unlocking hierarchy and CEFR/JLPT level mapping.
  * Spans Beginner (A1 / N5), Elementary (A2 / N4), and Intermediate (B1 / N3).
+ *
+ * `icon` is a semantic key resolved by `components/brand/icons.jsx`. It replaced
+ * an `emoji` field: emoji render inconsistently across operating systems and
+ * cannot be recoloured to the design tokens.
  */
 
 export const categories = [
   {
     id: 'basics',
     name: 'Basics & Essentials',
-    emoji: '🌱',
+    icon: 'basics',
     description: 'Core words, greetings, yes/no, and everyday conversational foundation.',
     order: 1,
     unlockAfter: null, // Unlocked by default
@@ -19,7 +23,7 @@ export const categories = [
   {
     id: 'greetings',
     name: 'Greetings & Introductions',
-    emoji: '👋',
+    icon: 'greetings',
     description: 'Polite welcomes, introductions, formal etiquette, and friendly farewells.',
     order: 2,
     unlockAfter: 'basics',
@@ -30,7 +34,7 @@ export const categories = [
   {
     id: 'numbers',
     name: 'Numbers & Time',
-    emoji: '🔢',
+    icon: 'numbers',
     description: 'Count 1 to 100, express quantities, prices, hours, and calendar time.',
     order: 3,
     unlockAfter: 'greetings',
@@ -41,7 +45,7 @@ export const categories = [
   {
     id: 'food-drink',
     name: 'Food & Dining',
-    emoji: '🍽️',
+    icon: 'dining',
     description: 'Ordering food, dining at restaurants, café drinks, and culinary phrases.',
     order: 4,
     unlockAfter: 'numbers',
@@ -52,7 +56,7 @@ export const categories = [
   {
     id: 'travel',
     name: 'Travel & Directions',
-    emoji: '✈️',
+    icon: 'travel',
     description: 'Airports, train stations, asking for directions, hotels, and exploring a city.',
     order: 5,
     unlockAfter: 'food-drink',
@@ -63,7 +67,7 @@ export const categories = [
   {
     id: 'family',
     name: 'Family & People',
-    emoji: '👨‍👩‍👧',
+    icon: 'family',
     description: 'Describe family members, relationships, personalities, professions, and feelings.',
     order: 6,
     unlockAfter: 'travel',
@@ -74,7 +78,7 @@ export const categories = [
   {
     id: 'work-career',
     name: 'Work & Professional Life',
-    emoji: '💼',
+    icon: 'work',
     description: 'Office communication, team meetings, job applications, deadlines, and careers.',
     order: 7,
     unlockAfter: 'family',
@@ -85,7 +89,7 @@ export const categories = [
   {
     id: 'opinions-culture',
     name: 'Opinions & Modern Culture',
-    emoji: '💡',
+    icon: 'ideas',
     description: 'Expressing viewpoints, agreeing/disagreeing, discussing hobbies, media, and society.',
     order: 8,
     unlockAfter: 'work-career',

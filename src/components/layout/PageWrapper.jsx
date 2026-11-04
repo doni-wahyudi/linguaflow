@@ -15,13 +15,14 @@ import { motion } from 'framer-motion';
 import Navbar from './Navbar';
 import MobileNav from './MobileNav';
 import { useUser } from '../../context/UserContext';
+import { transitionEase } from '../../utils/motion';
 
 const pageVariants = {
   hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.35, ease: transitionEase },
   },
 };
 
@@ -70,7 +71,7 @@ const PageWrapper = ({ children, title, className = '', navbarProps = {} }) => {
           .join(' ')}
       >
         {title && (
-          <h1 className="font-display text-display-md text-ink-900 mb-6">
+          <h1 className="font-display text-display-lg text-ink-900 mb-6">
             {title}
           </h1>
         )}

@@ -2,10 +2,27 @@
  * @file LessonPlayer.jsx
  * @description Fullscreen interactive lesson player with progress bar, hearts system,
  * dynamic exercise runner, instant feedback, and gamified summary completion screen.
+ *
+ * Design notes:
+ * - Every surface here is a kit component. The first build hand-rolled its own
+ *   dialogs (`bg-white rounded-card p-8 border-red-200`), its own progress track
+ *   (`bg-ink-100` + a brand-500→brand-400 gradient) and its own buttons, which is
+ *   where the off-palette greens, reds and oranges entered. Card / Badge / Button /
+ *   ProgressBar now own those decisions.
+ * - The header progress fill was `brand-400` on a light track — 1.9:1, a WCAG 2.1
+ *   §1.4.11 failure. ProgressBar's fill tiers are pre-measured against `ink-200`,
+ *   so the bar is the compliance fix as well as the deduplication.
+ * - `amber-400 → amber-500` behind a white trophy icon measured 2.15:1. The trophy
+ *   now sits on a `brand`/`amber` 50-step tint with a `-700` glyph, the same
+ *   convention the achievement cards use.
+ * - Icon-only controls in the header are 44px (WCAG 2.1 §2.5.5 target size); the
+ *   previous `p-2` variants measured 36px.
+ * - Feedback colour is never carried by hue alone: the verdict chips pair the tone
+ *   with an icon and a word, and the hearts row exposes its count to assistive tech.
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -13,16 +30,14 @@ import {
   Zap,
   Flame,
   ArrowRight,
-  RotateCcw,
   CheckCircle2,
   AlertCircle,
   Trophy,
-  Sparkles,
   Volume2,
   VolumeX,
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
-import { getLessonById, lessonsByLanguage } from '../data/lessons';
+import { getLessonById } from '../data/lessons';
 import ExerciseRenderer from '../components/lesson/ExerciseRenderer';
 import { calculateXP } from '../utils/xp';
 import {
@@ -34,8 +49,12 @@ import {
   setSoundEnabled,
 } from '../utils/soundEffects';
 import Confetti from '../components/ui/Confetti';
+import { Badge, Button, Card, ProgressBar } from '../components/ui';
+import { transitionEase } from '../utils/motion';
 
-const transitionEase = [0.16, 1, 0.3, 1];
+/* Icon-only header controls come from the kit: <Button size="lg" iconOnly> is a
+   44x44 target (WCAG 2.1 §2.5.5) with the same focus ring as every other action,
+   so the local 44px recipe that used to live here is gone. */
 
 export default function LessonPlayer() {
   const { lessonId } = useParams();
@@ -159,69 +178,70 @@ export default function LessonPlayer() {
     return (
       <div className="min-h-screen bg-surface-bg flex flex-col items-center justify-center p-4 relative overflow-hidden">
         {percentage >= 70 && <Confetti duration={4000} particleCount={120} />}
-        <motion.div
+        <Card
+          padding="lg"
+          className="max-w-md w-full text-center relative z-10 shadow-soft-xl"
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: transitionEase }}
-          className="max-w-md w-full bg-white rounded-card p-8 border border-brand-200/80 shadow-soft-xl text-center relative z-10"
         >
-          {/* Trophy Header */}
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 mx-auto flex items-center justify-center text-white shadow-glow-amber mb-6">
-            <Trophy className="w-10 h-10" />
+          {/* Trophy Header — tinted plate + `-700` glyph; white on amber-400 measured 2.15:1. */}
+          <div className="w-20 h-20 rounded-card bg-amber-50 border border-amber-200 mx-auto flex items-center justify-center text-amber-700 mb-6">
+            <Trophy className="w-10 h-10" aria-hidden="true" />
           </div>
 
-          <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 bg-brand-50 px-3 py-1 rounded-pill inline-block mb-2">
+          <Badge variant="brand" uppercase className="mb-2">
             Lesson Finished
-          </span>
+          </Badge>
 
-          <h1 className="font-display font-bold text-3xl text-ink-900 mb-2">
-            Awesome Work! 🎉
+          <h1 className="font-display font-bold text-display-md text-ink-900 mb-2">
+            Awesome Work!
           </h1>
-          <p className="text-ink-500 text-sm mb-6">
-            You completed <strong>{lesson.title}</strong>
+          <p className="text-body-sm text-ink-500 mb-6">
+            You completed <strong className="text-ink-700 font-semibold">{lesson.title}</strong>
           </p>
 
           {/* Stats Bento */}
           <div className="grid grid-cols-3 gap-3 mb-8">
-            <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-3">
-              <Zap className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-              <p className="font-display font-bold text-lg text-ink-900">+{earnedXP}</p>
-              <p className="text-[11px] text-ink-500 font-medium">XP Earned</p>
+            <div className="bg-amber-50 border border-amber-200 rounded-card p-3">
+              <Zap className="w-5 h-5 text-amber-700 mx-auto mb-1" aria-hidden="true" />
+              <p className="font-display font-bold text-display-xs text-ink-900 tabular-nums">+{earnedXP}</p>
+              <p className="text-caption text-ink-500">XP Earned</p>
             </div>
 
-            <div className="bg-brand-50/80 border border-brand-200/60 rounded-xl p-3">
-              <CheckCircle2 className="w-5 h-5 text-brand-600 mx-auto mb-1" />
-              <p className="font-display font-bold text-lg text-ink-900">{percentage}%</p>
-              <p className="text-[11px] text-ink-500 font-medium">Accuracy</p>
+            <div className="bg-brand-50 border border-brand-200 rounded-card p-3">
+              <CheckCircle2 className="w-5 h-5 text-brand-700 mx-auto mb-1" aria-hidden="true" />
+              <p className="font-display font-bold text-display-xs text-ink-900 tabular-nums">{percentage}%</p>
+              <p className="text-caption text-ink-500">Accuracy</p>
             </div>
 
-            <div className="bg-orange-50/80 border border-orange-200/60 rounded-xl p-3">
-              <Flame className="w-5 h-5 text-orange-500 mx-auto mb-1" />
-              <p className="font-display font-bold text-lg text-ink-900">
+            <div className="bg-coral-50 border border-coral-200 rounded-card p-3">
+              <Flame className="w-5 h-5 text-coral-700 mx-auto mb-1" aria-hidden="true" />
+              <p className="font-display font-bold text-display-xs text-ink-900 tabular-nums">
                 {streak.currentStreak}
               </p>
-              <p className="text-[11px] text-ink-500 font-medium">Day Streak</p>
+              <p className="text-caption text-ink-500">Day Streak</p>
             </div>
           </div>
 
           {/* Action CTAs */}
-          <div className="space-y-3">
-            <button
+          <div className="flex flex-col gap-3">
+            <Button
+              shape="pill"
+              size="lg"
+              fullWidth
+              icon={ArrowRight}
+              iconPosition="right"
               onClick={() => navigate('/dashboard')}
-              className="w-full py-3.5 px-6 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold flex items-center justify-center gap-2 shadow-soft-sm hover:shadow-glow-brand transition-all active:scale-[0.98]"
             >
               Continue to Dashboard
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            </Button>
 
-            <button
-              onClick={handleRetry}
-              className="w-full py-3 px-6 rounded-pill border border-ink-200 text-ink-700 hover:bg-ink-100 font-medium text-sm transition-colors"
-            >
+            <Button variant="outline" shape="pill" size="lg" fullWidth onClick={handleRetry}>
               Practice Again
-            </button>
+            </Button>
           </div>
-        </motion.div>
+        </Card>
       </div>
     );
   }
@@ -230,35 +250,32 @@ export default function LessonPlayer() {
   if (hearts === 0) {
     return (
       <div className="min-h-screen bg-surface-bg flex flex-col items-center justify-center p-4">
-        <motion.div
+        <Card
+          tone="error"
+          padding="lg"
+          className="max-w-md w-full text-center shadow-soft-xl"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-white rounded-card p-8 border border-red-200 shadow-soft-xl text-center"
+          transition={{ duration: 0.4, ease: transitionEase }}
         >
-          <div className="w-16 h-16 rounded-full bg-red-100 mx-auto flex items-center justify-center text-red-500 mb-4">
-            <Heart className="w-8 h-8 fill-red-500" />
+          <div className="w-16 h-16 rounded-pill bg-surface-card border border-error-border mx-auto flex items-center justify-center mb-4">
+            <Heart className="w-8 h-8 fill-error text-error" aria-hidden="true" />
           </div>
-          <h2 className="font-display font-bold text-2xl text-ink-900 mb-2">
+          <h2 className="font-display font-bold text-display-sm text-ink-900 mb-2">
             Out of Hearts!
           </h2>
-          <p className="text-ink-500 text-sm mb-6 leading-relaxed">
+          <p className="text-body-sm text-ink-700 mb-6 leading-relaxed">
             Don't worry — language learning is built on making mistakes. Take a deep breath and give it another try!
           </p>
           <div className="flex gap-3">
-            <button
-              onClick={handleRetry}
-              className="flex-1 py-3 px-4 rounded-pill bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm transition-colors"
-            >
+            <Button shape="pill" size="lg" fullWidth onClick={handleRetry}>
               Try Again
-            </button>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex-1 py-3 px-4 rounded-pill border border-ink-300 text-ink-700 hover:bg-ink-100 font-medium text-sm transition-colors"
-            >
+            </Button>
+            <Button variant="outline" shape="pill" size="lg" fullWidth onClick={() => navigate('/dashboard')}>
               Dashboard
-            </button>
+            </Button>
           </div>
-        </motion.div>
+        </Card>
       </div>
     );
   }
@@ -267,54 +284,68 @@ export default function LessonPlayer() {
   return (
     <div className="min-h-screen bg-surface-bg flex flex-col justify-between">
       {/* ── Top Bar ── */}
-      <header className="px-4 sm:px-6 h-16 border-b border-ink-200/60 bg-white/80 backdrop-blur-md flex items-center justify-between gap-4">
+      <header className="px-4 sm:px-6 h-16 border-b border-ink-200 bg-surface-card flex items-center justify-between gap-4">
         {/* Close Button */}
-        <button
+        <Button
+          variant="outline"
+          size="lg"
+          iconOnly
+          icon={X}
           onClick={() => navigate('/lessons')}
-          className="p-2 rounded-full hover:bg-ink-100 text-ink-500 hover:text-ink-900 transition-colors"
-          title="Exit lesson"
           aria-label="Exit lesson"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        />
 
-        {/* Progress Bar */}
-        <div className="flex-1 max-w-xl mx-2">
-          <div className="h-3 bg-ink-100 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={{ duration: 0.35, ease: transitionEase }}
-            />
-          </div>
+        {/* Lesson identity. The compact quiz header never had a heading at all, so
+            screen-reader users landed on a page whose only name was "Exit lesson".
+            Visible from `sm` up; on a phone it stays in the accessible tree via
+            `sr-only` rather than stealing width from the progress bar. */}
+        <h1 className="sr-only sm:not-sr-only sm:min-w-0 sm:truncate font-display font-bold text-body-md text-ink-900">
+          {lesson.title}
+        </h1>
+
+        {/* Progress — kit ProgressBar: the brand-500→brand-400 gradient this
+            replaced measured 1.9:1 against its track (WCAG 2.1 §1.4.11). */}
+        <div className="flex-1 max-w-xl mx-2 min-w-0">
+          <ProgressBar
+            value={progressPercent}
+            max={100}
+            size="md"
+            color="brand"
+            label="Lesson progress"
+            valueText={`Exercise ${currentIndex + 1} of ${exercises.length}`}
+          />
         </div>
 
         {/* Right Header Actions: Sound Toggle + Hearts */}
         <div className="flex items-center gap-3">
-          {/* Sound FX Toggle */}
-          <button
-            type="button"
+          {/* Sound FX Toggle — `tint` when on, neutral outline when off. The two
+              states used to be hand-written class strings stacked on a local
+              ICON_BTN recipe, which is also what made its idle label ink-500
+              (4.6:1) instead of the kit's stronger tone. */}
+          <Button
+            variant={soundOn ? 'tint' : 'outline'}
+            size="lg"
+            iconOnly
+            icon={soundOn ? Volume2 : VolumeX}
             onClick={handleToggleSound}
-            className={`p-2 rounded-full transition-colors ${
-              soundOn
-                ? 'text-brand-600 hover:bg-brand-50'
-                : 'text-ink-400 hover:bg-ink-100'
-            }`}
-            title={soundOn ? 'Sound effects enabled' : 'Sound effects muted'}
+            aria-pressed={soundOn}
             aria-label={soundOn ? 'Mute sound effects' : 'Enable sound effects'}
-          >
-            {soundOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
-          </button>
+          />
 
-          {/* Hearts indicator */}
-          <div className="flex items-center gap-1.5" aria-label={`${hearts} hearts remaining`}>
+          {/* Hearts indicator — role="img" so the count is announced as one value
+              instead of three unnamed glyphs. */}
+          <div
+            className="flex items-center gap-1.5"
+            role="img"
+            aria-label={`${hearts} of 3 hearts remaining`}
+          >
             {Array.from({ length: 3 }, (_, i) => (
               <Heart
                 key={i}
+                aria-hidden="true"
                 className={`w-5 h-5 transition-transform ${
                   i < hearts
-                    ? 'text-red-500 fill-red-500 scale-100'
+                    ? 'text-error fill-error scale-100'
                     : 'text-ink-300 fill-transparent scale-90'
                 }`}
               />
@@ -349,64 +380,60 @@ export default function LessonPlayer() {
       <footer
         className={`border-t p-4 sm:p-6 transition-colors duration-300 ${
           !currentAnswered
-            ? 'bg-white border-ink-200/60'
+            ? 'bg-surface-card border-ink-200'
             : currentCorrect
-            ? 'bg-green-50/90 border-green-200'
-            : 'bg-red-50/90 border-red-200'
+            ? 'bg-success-bg border-success-border'
+            : 'bg-error-bg border-error-border'
         }`}
       >
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-          {/* Status Message */}
-          <div className="flex items-center gap-3">
+          {/* Status Message — announced when the verdict changes. */}
+          <div className="flex items-center gap-3" role="status" aria-live="polite">
             {currentAnswered ? (
               currentCorrect ? (
                 <>
-                  <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center">
-                    <CheckCircle2 className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-pill bg-surface-card border border-success-border flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-6 h-6 text-success-strong" aria-hidden="true" />
                   </div>
                   <div>
-                    <p className="font-display font-bold text-green-900 text-base">
+                    <p className="font-display font-bold text-body-lg text-success-strong">
                       Excellent!
                     </p>
-                    <p className="text-xs text-green-700">Ready for the next one</p>
+                    <p className="text-body-sm text-ink-700">Ready for the next one</p>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-pill bg-surface-card border border-error-border flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-6 h-6 text-error-strong" aria-hidden="true" />
                   </div>
                   <div>
-                    <p className="font-display font-bold text-red-900 text-base">
+                    <p className="font-display font-bold text-body-lg text-error-strong">
                       Don't give up!
                     </p>
-                    <p className="text-xs text-red-700">Review and keep practicing</p>
+                    <p className="text-body-sm text-ink-700">Review and keep practicing</p>
                   </div>
                 </>
               )
             ) : (
-              <span className="text-xs text-ink-400">
+              <span className="text-body-sm text-ink-500">
                 Exercise {currentIndex + 1} of {exercises.length}
               </span>
             )}
           </div>
 
           {/* Continue button */}
-          <button
-            type="button"
+          <Button
+            shape="pill"
+            size="lg"
+            variant={currentAnswered && !currentCorrect ? 'danger' : 'primary'}
             disabled={!currentAnswered}
+            icon={ArrowRight}
+            iconPosition="right"
             onClick={handleContinue}
-            className={`px-8 py-3.5 rounded-pill font-semibold text-sm flex items-center gap-2 transition-all duration-200 ${
-              !currentAnswered
-                ? 'bg-ink-200 text-ink-400 cursor-not-allowed'
-                : currentCorrect
-                ? 'bg-green-600 hover:bg-green-700 text-white shadow-soft-sm active:scale-95'
-                : 'bg-red-600 hover:bg-red-700 text-white shadow-soft-sm active:scale-95'
-            }`}
           >
             {currentIndex + 1 === exercises.length ? 'Finish Lesson' : 'Continue'}
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </footer>
     </div>

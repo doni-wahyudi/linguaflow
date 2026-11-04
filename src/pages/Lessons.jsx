@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { transitionEase } from '../utils/motion';
 import {
   BookOpen,
   Lock,
   CheckCircle2,
   ChevronRight,
-  ArrowRight,
-  Sparkles,
   Play,
   Search,
   Award,
@@ -18,14 +17,21 @@ import { languages } from '../data/languages';
 import { categories } from '../data/categories';
 import { lessonsByLanguage } from '../data/lessons';
 import PageWrapper from '../components/layout/PageWrapper';
+import { Flag, SemanticIcon } from '../components/brand';
+import { Card, Badge, ProgressBar, Input, Button } from '../components/ui';
 
 /**
  * Lessons — Browse all curriculum categories organized by official proficiency levels (CEFR & JLPT).
+ *
+ * Presentation comes from the ui/ kit: level tiles and lesson cards are <Card>s,
+ * completion meters are <ProgressBar>s (so they carry an accessible name), and
+ * search is <Input>. Colours stay on the token scale — the previous build used
+ * `text-ink-600`, which is not a token at all and silently rendered unstyled.
  */
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: transitionEase } },
 };
 
 const stagger = {
@@ -117,90 +123,98 @@ export default function Lessons() {
         <motion.div variants={fadeUp} className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-display-md text-ink-900 mb-1 flex items-center gap-2">
-              {langData.flag} {langData.name} Curriculum
+              <Flag code={langData.flagCode} size={22} decorative />
+              {langData.name} Curriculum
             </h1>
             <p className="text-body-md text-ink-500">
-              Structured according to the official <strong>{frameworkName}</strong> framework ({langData.framework?.fullName}).
+              Structured according to the official{' '}
+              <strong className="font-semibold text-ink-700">{frameworkName}</strong> framework ({langData.framework?.fullName}).
             </p>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative w-full md:w-64">
-            <Search className="w-4 h-4 text-ink-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
+          {/* Search — a real labelled field, not a bare styled input */}
+          <div className="w-full md:w-72">
+            <Input
+              srOnlyLabel="Search lessons"
               placeholder="Search lessons or topics..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-pill border border-ink-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
+              icon={Search}
             />
           </div>
         </motion.div>
 
         {/* Level Progression Banner */}
-        <motion.div variants={fadeUp} className="mb-6 bg-white rounded-card p-4 border border-ink-200/80 shadow-soft-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-ink-600 flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-amber-500" />
-              {frameworkName} Certification Progress
-            </span>
-            <span className="text-xs text-ink-400">
-              Complete lessons to unlock higher level exams
-            </span>
-          </div>
+        <motion.div variants={fadeUp} className="mb-6">
+          <Card padding="sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+              <span className="text-caption uppercase font-semibold text-brand-700 flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-amber-600" aria-hidden="true" />
+                {frameworkName} Certification Progress
+              </span>
+              <span className="text-caption text-ink-500">
+                Complete lessons to unlock higher level exams
+              </span>
+            </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {Object.entries(levelStats).map(([lvl, stat]) => (
-              <div
-                key={lvl}
-                onClick={() => setSelectedLevel(lvl)}
-                className={`p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                  selectedLevel === lvl
-                    ? 'border-brand-600 bg-brand-50/50 shadow-soft-sm'
-                    : 'border-ink-200/60 hover:border-ink-300 bg-ink-50/40'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-display font-bold text-sm text-ink-900">
-                    {frameworkName} {lvl}
-                  </span>
-                  <span className="text-xs font-semibold text-brand-700">
-                    {stat.percent}%
-                  </span>
-                </div>
-                <div className="h-1.5 bg-ink-200 rounded-full overflow-hidden mb-1">
-                  <div
-                    className="h-full bg-brand-600 rounded-full"
-                    style={{ width: `${stat.percent}%` }}
-                  />
-                </div>
-                <p className="text-[11px] text-ink-500">
-                  {stat.completed} of {stat.total} lessons
-                </p>
-              </div>
-            ))}
-          </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {Object.entries(levelStats).map(([lvl, stat]) => {
+                const active = selectedLevel === lvl;
+                return (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => setSelectedLevel(lvl)}
+                    aria-pressed={active}
+                    className={[
+                      'text-left p-3 rounded-card border bg-surface-card transition-colors',
+                      active ? 'border-brand-700 bg-brand-50' : 'border-ink-200 hover:border-ink-300',
+                    ].join(' ')}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-display font-bold text-body-sm text-ink-900">
+                        {frameworkName} {lvl}
+                      </span>
+                      <span className="text-caption font-semibold tabular-nums text-brand-700">
+                        {stat.percent}%
+                      </span>
+                    </div>
+                    <ProgressBar
+                      value={stat.percent}
+                      size="sm"
+                      label={`${frameworkName} ${lvl}`}
+                      valueText={`${stat.completed} of ${stat.total} lessons`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
         </motion.div>
 
         {/* Level Filter Tabs */}
         <motion.div variants={fadeUp} className="mb-8 flex flex-wrap gap-2 items-center">
-          <span className="text-xs font-semibold text-ink-400 mr-1 flex items-center gap-1">
-            <Filter size={13} /> Filter Level:
+          <span className="text-caption font-semibold text-ink-500 mr-1 flex items-center gap-1.5">
+            <Filter size={14} aria-hidden="true" /> Filter Level:
           </span>
-          {availableLevels.map((lvl) => (
-            <button
-              key={lvl}
-              type="button"
-              onClick={() => setSelectedLevel(lvl)}
-              className={`px-3.5 py-1.5 rounded-pill text-xs font-semibold transition-all ${
-                selectedLevel === lvl
-                  ? 'bg-brand-600 text-white shadow-soft-sm'
-                  : 'bg-white border border-ink-200 text-ink-600 hover:bg-ink-100'
-              }`}
-            >
-              {lvl === 'All' ? 'All Tiers' : `${frameworkName} ${lvl}`}
-            </button>
-          ))}
+          {availableLevels.map((lvl) => {
+            const active = selectedLevel === lvl;
+            return (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => setSelectedLevel(lvl)}
+                aria-pressed={active}
+                className={`px-3.5 h-8 rounded-pill text-caption font-semibold transition-colors ${
+                  active
+                    ? 'bg-brand-700 text-white'
+                    : 'bg-surface-card border border-ink-300 text-ink-700 hover:bg-ink-100'
+                }`}
+              >
+                {lvl === 'All' ? 'All Tiers' : `${frameworkName} ${lvl}`}
+              </button>
+            );
+          })}
         </motion.div>
 
         {/* Category List */}
@@ -217,41 +231,31 @@ export default function Lessons() {
               <motion.div key={cat.id} variants={fadeUp}>
                 {/* Category Header */}
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-3xl">{cat.emoji}</span>
+                  <span className="grid place-items-center w-11 h-11 rounded-card bg-brand-50 border border-brand-200 shrink-0">
+                    <SemanticIcon name={cat.icon} size={22} className="text-brand-700" />
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                      <h2 className="font-display font-semibold text-xl text-ink-900">{cat.name}</h2>
-                      {/* Level Badge */}
-                      <span className="text-[11px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-pill">
-                        {frameworkName} {catLevel}
-                      </span>
-                      {allDone && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-0.5 rounded-pill border border-green-200">
-                          <CheckCircle2 className="w-3 h-3" /> Complete
-                        </span>
-                      )}
-                      {!unlocked && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink-400 bg-ink-100 px-2 py-0.5 rounded-pill">
-                          <Lock className="w-3 h-3" /> Locked
-                        </span>
-                      )}
+                      <h2 className="font-display font-semibold text-display-xs text-ink-900">{cat.name}</h2>
+                      <Badge variant="amber" size="sm">{frameworkName} {catLevel}</Badge>
+                      {allDone && <Badge variant="success" size="sm" icon={CheckCircle2}>Complete</Badge>}
+                      {!unlocked && <Badge variant="default" size="sm" icon={Lock}>Locked</Badge>}
                     </div>
-                    <p className="text-sm text-ink-500">{cat.description}</p>
+                    <p className="text-body-sm text-ink-500">{cat.description}</p>
                   </div>
-                  <span className="text-sm font-semibold text-ink-600 flex-shrink-0">
+                  <span className="text-body-sm font-semibold tabular-nums text-ink-700 flex-shrink-0">
                     {completedCount}/{catLessons.length}
                   </span>
                 </div>
 
                 {/* Progress bar */}
-                <div className="h-1.5 bg-ink-100 rounded-full overflow-hidden mb-4">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${prog}%` }}
-                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  />
-                </div>
+                <ProgressBar
+                  value={prog}
+                  size="sm"
+                  label={cat.name}
+                  valueText={`${completedCount} of ${catLessons.length} lessons complete`}
+                  className="mb-4"
+                />
 
                 {/* Lesson Cards */}
                 {unlocked ? (
@@ -260,80 +264,90 @@ export default function Lessons() {
                       const completed = progress.isLessonCompleted(lesson.id);
                       const prevLesson = idx > 0 ? catLessons[idx - 1] : null;
                       const available = !prevLesson || progress.isLessonCompleted(prevLesson.id);
+                      const disabled = !available && !completed;
 
                       return (
-                        <button
+                        <Card
                           key={lesson.id}
-                          onClick={() => {
-                            if (available || completed) {
-                              navigate(`/learn/${lesson.id}`);
-                            }
-                          }}
-                          disabled={!available && !completed}
-                          className={`text-left p-4 rounded-card border transition-all duration-200 group ${
-                            completed
-                              ? 'bg-brand-50/50 border-brand-200 hover:shadow-soft-sm'
-                              : available
-                              ? 'bg-surface-card border-ink-200/50 hover:shadow-soft-md hover:-translate-y-0.5 cursor-pointer'
-                              : 'bg-ink-50 border-ink-200/30 opacity-60 cursor-not-allowed'
+                          tone={completed ? 'brand' : undefined}
+                          padding="sm"
+                          className={`h-full transition-shadow ${
+                            disabled ? 'opacity-60' : 'hover:shadow-card-hover hover:-translate-y-0.5'
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              {completed ? (
-                                <CheckCircle2 className="w-5 h-5 text-brand-600 flex-shrink-0" />
-                              ) : available ? (
-                                <Play className="w-5 h-5 text-brand-600 flex-shrink-0 group-hover:text-brand-700" />
-                              ) : (
-                                <Lock className="w-5 h-5 text-ink-400 flex-shrink-0" />
+                          <button
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => { if (!disabled) navigate(`/learn/${lesson.id}`); }}
+                            className="block w-full text-left disabled:cursor-not-allowed"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {completed ? (
+                                  <CheckCircle2 className="w-5 h-5 text-success-strong flex-shrink-0" aria-hidden="true" />
+                                ) : available ? (
+                                  <Play className="w-5 h-5 text-brand-700 flex-shrink-0" aria-hidden="true" />
+                                ) : (
+                                  <Lock className="w-5 h-5 text-ink-400 flex-shrink-0" aria-hidden="true" />
+                                )}
+                                <h3 className="font-display font-semibold text-body-md text-ink-900 truncate">
+                                  {lesson.title}
+                                </h3>
+                              </div>
+                              {!disabled && (
+                                <ChevronRight className="w-4 h-4 text-ink-400 flex-shrink-0" aria-hidden="true" />
                               )}
-                              <h3 className="font-display font-semibold text-ink-900">{lesson.title}</h3>
                             </div>
-                            {(available || completed) && (
-                              <ChevronRight className="w-4 h-4 text-ink-400 group-hover:text-brand-600 transition-colors flex-shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-sm text-ink-500 mb-2 leading-relaxed">{lesson.description}</p>
-                          <div className="flex items-center gap-2.5 text-xs text-ink-400">
-                            <span className="font-semibold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md">
-                              {frameworkName} {lesson.level || catLevel}
-                            </span>
-                            <span>•</span>
-                            <span>{lesson.vocabulary?.length || 0} words</span>
-                            <span>•</span>
-                            <span className="text-amber-600 font-medium">+{lesson.xpReward} XP</span>
-                          </div>
-                        </button>
+                            <p className="text-body-sm text-ink-500 mb-2 leading-relaxed">{lesson.description}</p>
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-caption text-ink-500">
+                              <span className="font-semibold text-brand-700 bg-brand-100 px-2 py-0.5 rounded-input">
+                                {frameworkName} {lesson.level || catLevel}
+                              </span>
+                              <span aria-hidden="true">•</span>
+                              <span className="tabular-nums">{lesson.vocabulary?.length || 0} words</span>
+                              <span aria-hidden="true">•</span>
+                              <span className="font-semibold text-amber-700 tabular-nums">+{lesson.xpReward} XP</span>
+                            </div>
+                            {disabled && <span className="sr-only">Locked — finish the previous lesson first</span>}
+                          </button>
+                        </Card>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="bg-ink-50 rounded-card p-6 border border-ink-200/30 text-center">
-                    <Lock className="w-8 h-8 text-ink-300 mx-auto mb-2" />
-                    <p className="text-sm text-ink-500">
-                      Complete <strong>{langCategories.find(c => c.id === cat.unlockAfter)?.name}</strong> ({frameworkName} {catLevel}) to unlock
+                  <Card tone="quiet" padding="md" className="border-dashed text-center">
+                    <Lock className="w-8 h-8 text-ink-400 mx-auto mb-2" aria-hidden="true" />
+                    <p className="text-body-sm text-ink-700">
+                      Complete{' '}
+                      <strong className="font-semibold">
+                        {langCategories.find((c) => c.id === cat.unlockAfter)?.name}
+                      </strong>{' '}
+                      ({frameworkName} {catLevel}) to unlock
                     </p>
-                  </div>
+                  </Card>
                 )}
               </motion.div>
             );
           })}
 
           {filteredCategories.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-card border border-ink-200">
-              <BookOpen className="w-10 h-10 text-ink-300 mx-auto mb-2" />
-              <p className="font-semibold text-ink-700">No lessons found matching your filters</p>
-              <button
-                type="button"
+            <Card padding="lg" className="text-center">
+              <BookOpen className="w-10 h-10 text-ink-400 mx-auto mb-2" aria-hidden="true" />
+              <p className="font-display font-semibold text-body-lg text-ink-900">
+                No lessons found matching your filters
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3 !text-brand-700 underline underline-offset-2"
                 onClick={() => {
                   setSelectedLevel('All');
                   setSearchQuery('');
                 }}
-                className="mt-3 text-xs text-brand-600 font-semibold hover:underline"
               >
                 Reset filters
-              </button>
-            </div>
+              </Button>
+            </Card>
           )}
         </div>
       </motion.div>

@@ -1,11 +1,53 @@
 /**
  * @file MatchPairs.jsx
- * @description Interactive vocabulary matching game. Connect source words with target translations.
+ * @description Interactive vocabulary matching game. Connect source words with
+ * target translations.
+ *
+ * Design notes:
+ * - Both columns previously repeated the same 4-branch class string verbatim.
+ *   It is one `tileClasses()` helper now, which is also how the off-palette
+ *   states got fixed in one pass instead of two.
+ * - Validation colours come from `success-*` / `error-*`; the idle text colour
+ *   was `text-ink-800`, which does not exist in the token set (ink is
+ *   50/100/200/300/400/500/700/900) and so silently inherited the parent colour.
+ * - A matched tile no longer relies on green: it carries a Check glyph and the
+ *   `aria-pressed` state, so the information survives greyscale and colour
+ *   blindness (WCAG 1.4.1).
+ * - Matching and mismatches are announced through a polite live region.
+ * - The shuffle was `sort(() => Math.random() - 0.5)`, which is measurably
+ *   biased toward leaving items near their original index. It is a Fisher-Yates
+ *   now.
  */
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, CheckCircle2 } from 'lucide-react';
+import { shakeX, transitionEase } from '../../utils/motion';
+import { Badge } from '../ui';
+
+/* One state machine, shared by both columns. */
+function tileClasses({ isMatched, isWrong, isSelected }) {
+  if (isMatched) {
+    return 'border-success bg-success-bg text-success-strong cursor-default';
+  }
+  if (isWrong) {
+    return 'border-error bg-error-bg text-error-strong shadow-soft-sm';
+  }
+  if (isSelected) {
+    return 'border-brand-700 bg-brand-50 text-ink-900 shadow-glow-brand';
+  }
+  return 'border-ink-200 bg-surface-card hover:border-brand-600 hover:bg-brand-50 text-ink-900 shadow-soft-sm';
+}
+
+/** Unbiased shuffle — each item is equally likely to land in any slot. */
+function shuffle(list) {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
 
 export default function MatchPairs({
   prompt = 'Match the pairs',
@@ -21,15 +63,15 @@ export default function MatchPairs({
 
   const [matchedIds, setMatchedIds] = useState(new Set());
   const [wrongPair, setWrongPair] = useState(null);
+  const [announcement, setAnnouncement] = useState('');
 
   // Initialize and shuffle columns on mount
   useEffect(() => {
     const leftList = pairs.map((p, i) => ({ id: i, text: p.left }));
     const rightList = pairs.map((p, i) => ({ id: i, text: p.right }));
 
-    // Shuffle both independently
-    setLeftItems([...leftList].sort(() => Math.random() - 0.5));
-    setRightItems([...rightList].sort(() => Math.random() - 0.5));
+    setLeftItems(shuffle(leftList));
+    setRightItems(shuffle(rightList));
     setMatchedIds(new Set());
   }, [pairs]);
 
@@ -37,7 +79,7 @@ export default function MatchPairs({
   useEffect(() => {
     if (selectedLeft !== null && selectedRight !== null) {
       if (selectedLeft === selectedRight) {
-        // Correct match!
+        setAnnouncement('Pair matched.');
         setMatchedIds((prev) => {
           const next = new Set(prev);
           next.add(selectedLeft);
@@ -49,7 +91,7 @@ export default function MatchPairs({
         setSelectedLeft(null);
         setSelectedRight(null);
       } else {
-        // Mismatch!
+        setAnnouncement('No match, try again.');
         setWrongPair({ left: selectedLeft, right: selectedRight });
         const timer = setTimeout(() => {
           setWrongPair(null);
@@ -66,11 +108,15 @@ export default function MatchPairs({
   return (
     <div className="max-w-xl mx-auto w-full">
       <div className="text-center mb-6">
-        <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 bg-brand-50 px-3 py-1 rounded-pill inline-block mb-2">
+        <Badge variant="brand" uppercase size="md" className="mb-2">
           Tap matching pairs
-        </span>
-        <h2 className="font-display font-bold text-2xl text-ink-900">{prompt}</h2>
+        </Badge>
+        <h2 className="font-display font-bold text-display-md text-ink-900">{prompt}</h2>
       </div>
+
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
 
       <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-6">
         {/* Left Column */}
@@ -87,17 +133,14 @@ export default function MatchPairs({
                 disabled={isMatched || disabled}
                 onClick={() => setSelectedLeft(item.id)}
                 whileTap={!isMatched ? { scale: 0.98 } : {}}
-                animate={isWrong ? { x: [-4, 4, -4, 4, 0] } : {}}
-                className={`w-full p-4 rounded-card border-2 text-center font-medium transition-all duration-200 select-none ${
-                  isMatched
-                    ? 'border-green-300 bg-green-50/60 text-green-700 opacity-50 cursor-default line-through'
-                    : isWrong
-                    ? 'border-red-500 bg-red-50 text-red-900 shadow-soft-sm'
-                    : isSelected
-                    ? 'border-brand-600 bg-brand-50 text-brand-900 shadow-glow-brand ring-2 ring-brand-500/20'
-                    : 'border-ink-200 bg-white hover:border-brand-400 hover:bg-brand-50/20 text-ink-800 shadow-soft-sm'
-                }`}
+                animate={isWrong ? { x: shakeX } : {}}
+                transition={{ duration: 0.3, ease: transitionEase }}
+                aria-pressed={isSelected}
+                className={`w-full p-4 min-h-11 rounded-card border-2 text-center font-medium transition-colors duration-200 select-none flex items-center justify-center gap-2 text-body-md ${tileClasses(
+                  { isMatched, isWrong, isSelected },
+                )}`}
               >
+                {isMatched && <Check size={16} strokeWidth={3} aria-hidden="true" />}
                 {item.text}
               </motion.button>
             );
@@ -118,17 +161,14 @@ export default function MatchPairs({
                 disabled={isMatched || disabled}
                 onClick={() => setSelectedRight(item.id)}
                 whileTap={!isMatched ? { scale: 0.98 } : {}}
-                animate={isWrong ? { x: [-4, 4, -4, 4, 0] } : {}}
-                className={`w-full p-4 rounded-card border-2 text-center font-medium transition-all duration-200 select-none ${
-                  isMatched
-                    ? 'border-green-300 bg-green-50/60 text-green-700 opacity-50 cursor-default line-through'
-                    : isWrong
-                    ? 'border-red-500 bg-red-50 text-red-900 shadow-soft-sm'
-                    : isSelected
-                    ? 'border-brand-600 bg-brand-50 text-brand-900 shadow-glow-brand ring-2 ring-brand-500/20'
-                    : 'border-ink-200 bg-white hover:border-brand-400 hover:bg-brand-50/20 text-ink-800 shadow-soft-sm'
-                }`}
+                animate={isWrong ? { x: shakeX } : {}}
+                transition={{ duration: 0.3, ease: transitionEase }}
+                aria-pressed={isSelected}
+                className={`w-full p-4 min-h-11 rounded-card border-2 text-center font-medium transition-colors duration-200 select-none flex items-center justify-center gap-2 text-body-md ${tileClasses(
+                  { isMatched, isWrong, isSelected },
+                )}`}
               >
+                {isMatched && <Check size={16} strokeWidth={3} aria-hidden="true" />}
                 {item.text}
               </motion.button>
             );
@@ -140,10 +180,12 @@ export default function MatchPairs({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-3 bg-green-50 border border-green-200 rounded-card flex items-center justify-center gap-2 text-green-800 font-medium text-sm"
+          transition={{ duration: 0.2, ease: transitionEase }}
+          role="status"
+          className="p-3 bg-success-bg border border-success-border rounded-card flex items-center justify-center gap-2 text-success-strong font-semibold text-body-md"
         >
-          <CheckCircle2 className="w-4 h-4 text-green-600" />
-          All pairs matched correctly!
+          <CheckCircle2 className="w-5 h-5 text-success-strong" aria-hidden="true" />
+          All pairs matched
         </motion.div>
       )}
     </div>
