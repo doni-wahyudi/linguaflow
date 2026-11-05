@@ -33,6 +33,7 @@ function addWarning(scope, message) {
 
 // Track ID uniqueness
 const allLessonIds = new Map(); // id -> { lang, lessonId }
+const allGrammarGuideIds = new Map(); // id -> { lang, lessonId }
 const allLexiconIds = new Map(); // id -> { lang, lemmaId }
 const allVocabIds = new Map(); // id -> { lang, lessonId }
 
@@ -108,20 +109,63 @@ function validateLessons(lang, lessons) {
           } else {
             allVocabIds.set(item.id, { lang: lang.name, lessonId: lessonRef });
           }
+
+          if (allLessonIds.has(item.id)) {
+            const prev = allLessonIds.get(item.id);
+            addError(
+              `Lessons:${lang.name}`,
+              `Lesson vocabulary ID '${item.id}' in ${lessonRef} conflicts with lesson ID in ${prev.lang}`
+            );
+          }
         }
       }
     }
 
-    // 3. Grammar guide requirements: valid object with concept, rules (array >= 2), tip
+    // 3. Grammar guide requirements: valid object with id, title, concept, rules (array >= 2 of schema objects), tip
     if (!lesson.grammarGuide || typeof lesson.grammarGuide !== 'object' || Array.isArray(lesson.grammarGuide)) {
       addError(`Lessons:${lang.name}`, `${lessonRef} is missing 'grammarGuide' object`);
     } else {
       const gg = lesson.grammarGuide;
 
+      // 3a. grammarGuide.id must be a non-empty string and globally unique
+      if (!gg.id || typeof gg.id !== 'string' || !gg.id.trim()) {
+        addError(`Lessons:${lang.name}`, `${lessonRef} grammarGuide is missing valid 'id' string`);
+      } else {
+        if (allGrammarGuideIds.has(gg.id)) {
+          const prev = allGrammarGuideIds.get(gg.id);
+          addError(
+            `Lessons:${lang.name}`,
+            `Duplicate grammarGuide ID '${gg.id}' in ${lessonRef} (already defined in ${prev.lang} ${prev.lessonId})`
+          );
+        } else {
+          allGrammarGuideIds.set(gg.id, { lang: lang.name, lessonId: lessonRef });
+        }
+
+        if (allLessonIds.has(gg.id)) {
+          addError(
+            `Lessons:${lang.name}`,
+            `GrammarGuide ID '${gg.id}' in ${lessonRef} conflicts with lesson ID in ${allLessonIds.get(gg.id).lang}`
+          );
+        }
+        if (allVocabIds.has(gg.id)) {
+          addError(
+            `Lessons:${lang.name}`,
+            `GrammarGuide ID '${gg.id}' in ${lessonRef} conflicts with lesson vocabulary ID in ${allVocabIds.get(gg.id).lang} (${allVocabIds.get(gg.id).lessonId})`
+          );
+        }
+      }
+
+      // 3b. grammarGuide.title must be a non-empty string
+      if (!gg.title || typeof gg.title !== 'string' || !gg.title.trim()) {
+        addError(`Lessons:${lang.name}`, `${lessonRef} grammarGuide is missing valid 'title' string`);
+      }
+
+      // 3c. grammarGuide.concept must be a non-empty string
       if (!gg.concept || typeof gg.concept !== 'string' || !gg.concept.trim()) {
         addError(`Lessons:${lang.name}`, `${lessonRef} grammarGuide is missing valid 'concept' string`);
       }
 
+      // 3d. grammarGuide.rules: array >= 2, each rule is an object with rule, pattern, example, translation
       if (!Array.isArray(gg.rules)) {
         addError(`Lessons:${lang.name}`, `${lessonRef} grammarGuide is missing 'rules' array`);
       } else if (gg.rules.length < 2) {
@@ -130,15 +174,26 @@ function validateLessons(lang, lessons) {
           `${lessonRef} grammarGuide has ${gg.rules.length} rule(s); expected >= 2`
         );
       } else {
-        // Ensure each rule is non-empty
+        const requiredRuleFields = ['rule', 'pattern', 'example', 'translation'];
         for (let r = 0; r < gg.rules.length; r++) {
           const rule = gg.rules[r];
-          if (!rule || (typeof rule === 'string' && !rule.trim())) {
-            addError(`Lessons:${lang.name}`, `${lessonRef} grammarGuide rule #${r + 1} is empty`);
+          if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
+            addError(`Lessons:${lang.name}`, `${lessonRef} grammarGuide rule #${r + 1} is not an object`);
+            continue;
+          }
+
+          for (const field of requiredRuleFields) {
+            if (!rule[field] || typeof rule[field] !== 'string' || !rule[field].trim()) {
+              addError(
+                `Lessons:${lang.name}`,
+                `${lessonRef} grammarGuide rule #${r + 1} is missing or has empty string for field '${field}'`
+              );
+            }
           }
         }
       }
 
+      // 3e. grammarGuide.tip must be a non-empty string
       if (!gg.tip || typeof gg.tip !== 'string' || !gg.tip.trim()) {
         addError(`Lessons:${lang.name}`, `${lessonRef} grammarGuide is missing valid 'tip' string`);
       }
@@ -187,11 +242,25 @@ function validateLexicon(lang, lexicon) {
         allLexiconIds.set(item.id, { lang: lang.name, lemmaId: item.id });
       }
 
-      // Check collision between lexicon IDs and lesson IDs or vocab IDs
+      // Check collision between lexicon IDs and lesson IDs, vocab IDs, or grammarGuide IDs
       if (allLessonIds.has(item.id)) {
         addError(
           `Lexicon:${lang.name}`,
           `Lexicon ID '${item.id}' conflicts with lesson ID in ${allLessonIds.get(item.id).lang}`
+        );
+      }
+      if (allVocabIds.has(item.id)) {
+        const prev = allVocabIds.get(item.id);
+        addError(
+          `Lexicon:${lang.name}`,
+          `Lexicon ID '${item.id}' conflicts with lesson vocabulary ID in ${prev.lang} (${prev.lessonId})`
+        );
+      }
+      if (allGrammarGuideIds.has(item.id)) {
+        const prev = allGrammarGuideIds.get(item.id);
+        addError(
+          `Lexicon:${lang.name}`,
+          `Lexicon ID '${item.id}' conflicts with grammar guide ID in ${prev.lang} (${prev.lessonId})`
         );
       }
     }
@@ -293,6 +362,7 @@ async function run() {
   console.log(`  Lessons checked: ${totalLessonsChecked}`);
   console.log(`  Lexicon items checked: ${totalLexiconChecked}`);
   console.log(`  Unique lesson IDs: ${allLessonIds.size}`);
+  console.log(`  Unique grammar guide IDs: ${allGrammarGuideIds.size}`);
   console.log(`  Unique lexicon IDs: ${allLexiconIds.size}`);
   console.log(`  Errors: ${errors.length}`);
   console.log(`  Warnings: ${warnings.length}`);
