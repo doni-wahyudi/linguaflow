@@ -23,3 +23,7 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Scratch & superpowers
+.superpowers/
+.verify/
+
