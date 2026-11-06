@@ -35,10 +35,12 @@ import {
   Trophy,
   Volume2,
   VolumeX,
+  BookOpen,
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { getLessonById } from '../data/lessons';
 import ExerciseRenderer from '../components/lesson/ExerciseRenderer';
+import GrammarCard from '../components/lesson/GrammarCard';
 import { calculateXP } from '../utils/xp';
 import {
   playCorrect,
@@ -49,7 +51,7 @@ import {
   setSoundEnabled,
 } from '../utils/soundEffects';
 import Confetti from '../components/ui/Confetti';
-import { Badge, Button, Card, ProgressBar } from '../components/ui';
+import { Badge, Button, Card, ProgressBar, Modal } from '../components/ui';
 import { transitionEase } from '../utils/motion';
 
 /* Icon-only header controls come from the kit: <Button size="lg" iconOnly> is a
@@ -71,6 +73,13 @@ export default function LessonPlayer() {
   const [currentCorrect, setCurrentCorrect] = useState(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
+  const [showPreLessonGuide, setShowPreLessonGuide] = useState(Boolean(lesson?.grammarGuide));
+  const [showGrammarModal, setShowGrammarModal] = useState(false);
+
+  // Reset pre-lesson guide when switching lessons
+  useEffect(() => {
+    setShowPreLessonGuide(Boolean(lesson?.grammarGuide));
+  }, [lesson?.id]);
 
   const handleToggleSound = () => {
     const next = !soundOn;
@@ -99,7 +108,11 @@ export default function LessonPlayer() {
 
   const exercises = lesson.exercises || [];
   const currentExercise = exercises[currentIndex];
-  const progressPercent = ((currentIndex) / exercises.length) * 100;
+  const progressPercent = showPreLessonGuide
+    ? 0
+    : exercises.length > 0
+    ? (currentIndex / exercises.length) * 100
+    : 0;
 
   // Exercise answer handler
   const handleAnswer = (isCorrect) => {
@@ -166,6 +179,7 @@ export default function LessonPlayer() {
     setCurrentAnswered(false);
     setCurrentCorrect(null);
     setIsCompleted(false);
+    setShowPreLessonGuide(false);
   };
 
   // ── Finished / Summary View ──────────────────────────────────────────────
@@ -312,12 +326,28 @@ export default function LessonPlayer() {
             size="md"
             color="brand"
             label="Lesson progress"
-            valueText={`Exercise ${currentIndex + 1} of ${exercises.length}`}
+            valueText={
+              showPreLessonGuide
+                ? 'Grammar Guide'
+                : `Exercise ${currentIndex + 1} of ${exercises.length}`
+            }
           />
         </div>
 
-        {/* Right Header Actions: Sound Toggle + Hearts */}
-        <div className="flex items-center gap-3">
+        {/* Right Header Actions: Grammar Rule Peek (if present) + Sound Toggle + Hearts */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {lesson.grammarGuide && (
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={BookOpen}
+              onClick={() => setShowGrammarModal(true)}
+              aria-label="View grammar rule"
+            >
+              Rule
+            </Button>
+          )}
+
           {/* Sound FX Toggle — `tint` when on, neutral outline when off. The two
               states used to be hand-written class strings stacked on a local
               ICON_BTN recipe, which is also what made its idle label ink-500
@@ -354,88 +384,123 @@ export default function LessonPlayer() {
         </div>
       </header>
 
-      {/* ── Main Exercise View ── */}
+      {/* ── Main Exercise / Grammar Guide View ── */}
       <main className="flex-1 flex items-center justify-center px-4 py-8 max-w-3xl mx-auto w-full">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.35, ease: transitionEase }}
-            className="w-full"
-          >
-            <ExerciseRenderer
-              exercise={currentExercise}
-              vocabularyMap={vocabularyMap}
-              langCode={lesson.languageId}
-              onAnswer={handleAnswer}
-              disabled={currentAnswered}
-            />
-          </motion.div>
+          {showPreLessonGuide && lesson.grammarGuide ? (
+            <motion.div
+              key="grammar-guide"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.35, ease: transitionEase }}
+              className="w-full"
+            >
+              <GrammarCard
+                grammarGuide={lesson.grammarGuide}
+                langCode={lesson.languageId}
+                onStart={() => setShowPreLessonGuide(false)}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: transitionEase }}
+              className="w-full"
+            >
+              <ExerciseRenderer
+                exercise={currentExercise}
+                vocabularyMap={vocabularyMap}
+                langCode={lesson.languageId}
+                onAnswer={handleAnswer}
+                disabled={currentAnswered}
+              />
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
-      {/* ── Bottom Feedback Bar ── */}
-      <footer
-        className={`border-t p-4 sm:p-6 transition-colors duration-300 ${
-          !currentAnswered
-            ? 'bg-surface-card border-ink-200'
-            : currentCorrect
-            ? 'bg-success-bg border-success-border'
-            : 'bg-error-bg border-error-border'
-        }`}
-      >
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-          {/* Status Message — announced when the verdict changes. */}
-          <div className="flex items-center gap-3" role="status" aria-live="polite">
-            {currentAnswered ? (
-              currentCorrect ? (
-                <>
-                  <div className="w-11 h-11 rounded-pill bg-surface-card border border-success-border flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-6 h-6 text-success-strong" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-body-lg text-success-strong">
-                      Excellent!
-                    </p>
-                    <p className="text-body-sm text-ink-700">Ready for the next one</p>
-                  </div>
-                </>
+      {/* ── Bottom Feedback Bar (hidden during pre-lesson grammar guide) ── */}
+      {!showPreLessonGuide && (
+        <footer
+          className={`border-t p-4 sm:p-6 transition-colors duration-300 ${
+            !currentAnswered
+              ? 'bg-surface-card border-ink-200'
+              : currentCorrect
+              ? 'bg-success-bg border-success-border'
+              : 'bg-error-bg border-error-border'
+          }`}
+        >
+          <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+            {/* Status Message — announced when the verdict changes. */}
+            <div className="flex items-center gap-3" role="status" aria-live="polite">
+              {currentAnswered ? (
+                currentCorrect ? (
+                  <>
+                    <div className="w-11 h-11 rounded-pill bg-surface-card border border-success-border flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-6 h-6 text-success-strong" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="font-display font-bold text-body-lg text-success-strong">
+                        Excellent!
+                      </p>
+                      <p className="text-body-sm text-ink-700">Ready for the next one</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-11 h-11 rounded-pill bg-surface-card border border-error-border flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-6 h-6 text-error-strong" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <p className="font-display font-bold text-body-lg text-error-strong">
+                        Don't give up!
+                      </p>
+                      <p className="text-body-sm text-ink-700">Review and keep practicing</p>
+                    </div>
+                  </>
+                )
               ) : (
-                <>
-                  <div className="w-11 h-11 rounded-pill bg-surface-card border border-error-border flex items-center justify-center shrink-0">
-                    <AlertCircle className="w-6 h-6 text-error-strong" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="font-display font-bold text-body-lg text-error-strong">
-                      Don't give up!
-                    </p>
-                    <p className="text-body-sm text-ink-700">Review and keep practicing</p>
-                  </div>
-                </>
-              )
-            ) : (
-              <span className="text-body-sm text-ink-500">
-                Exercise {currentIndex + 1} of {exercises.length}
-              </span>
-            )}
-          </div>
+                <span className="text-body-sm text-ink-500">
+                  Exercise {currentIndex + 1} of {exercises.length}
+                </span>
+              )}
+            </div>
 
-          {/* Continue button */}
-          <Button
-            shape="pill"
-            size="lg"
-            variant={currentAnswered && !currentCorrect ? 'danger' : 'primary'}
-            disabled={!currentAnswered}
-            icon={ArrowRight}
-            iconPosition="right"
-            onClick={handleContinue}
-          >
-            {currentIndex + 1 === exercises.length ? 'Finish Lesson' : 'Continue'}
-          </Button>
-        </div>
-      </footer>
+            {/* Continue button */}
+            <Button
+              shape="pill"
+              size="lg"
+              variant={currentAnswered && !currentCorrect ? 'danger' : 'primary'}
+              disabled={!currentAnswered}
+              icon={ArrowRight}
+              iconPosition="right"
+              onClick={handleContinue}
+            >
+              {currentIndex + 1 === exercises.length ? 'Finish Lesson' : 'Continue'}
+            </Button>
+          </div>
+        </footer>
+      )}
+
+      {/* ── In-Flight Grammar Peek Modal ── */}
+      {lesson.grammarGuide && (
+        <Modal
+          isOpen={showGrammarModal}
+          onClose={() => setShowGrammarModal(false)}
+          title="Grammar Micro-Guide"
+          size="lg"
+        >
+          <GrammarCard
+            grammarGuide={lesson.grammarGuide}
+            langCode={lesson.languageId}
+            isModalView
+          />
+        </Modal>
+      )}
     </div>
   );
 }

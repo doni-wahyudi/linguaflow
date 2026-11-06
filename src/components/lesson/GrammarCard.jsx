@@ -106,7 +106,6 @@ export default function GrammarCard({
             {rules.map((r, idx) => (
               <Card
                 key={r.pattern || r.rule || idx}
-                tone="surface"
                 padding="md"
                 className="space-y-3 text-left"
               >
@@ -136,9 +135,8 @@ export default function GrammarCard({
                     )}
                   </div>
                   <AudioControls
-                    text={r.audioText || r.example}
+                    text={r.audioText || r.example.replace(/\s*\([^)]*\)/g, '').trim()}
                     lang={langCode}
-                    langCode={langCode}
                     speech={speech}
                     phraseLabel={r.example}
                   />
