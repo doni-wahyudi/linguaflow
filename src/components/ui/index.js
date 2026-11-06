@@ -16,3 +16,5 @@ export { default as ProgressBar, ProgressRing } from './ProgressBar';
 export { default as SegmentedControl, segmentIds } from './SegmentedControl';
 export { default as Chip } from './Chip';
 export { default as AudioControls } from './AudioControls';
+export { default as MicButton } from './MicButton';
+export { default as LiveAudioVisualizer } from './LiveAudioVisualizer';
