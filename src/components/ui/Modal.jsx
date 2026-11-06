@@ -142,12 +142,20 @@ const Modal = ({
     [onClose],
   );
 
-  /** Lock body scroll and move focus in while open. */
+  /** Lock body scroll, listen for Escape, and move focus in while open. */
   useEffect(() => {
     if (!isOpen) return undefined;
 
     previousFocusRef.current = document.activeElement;
     lockScroll();
+
+    const handleGlobalKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
 
     const timer = setTimeout(() => {
       if (!contentRef.current) return;
@@ -160,10 +168,11 @@ const Modal = ({
     }, 50);
 
     return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
       clearTimeout(timer);
       unlockScroll();
     };
-  }, [isOpen, initialFocus]);
+  }, [isOpen, initialFocus, onClose]);
 
   /** Restore focus to the trigger on close. */
   useEffect(() => {
