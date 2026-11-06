@@ -11,7 +11,7 @@
  *   panels previously carried the same 12-line option-class block twice, with
  *   `emerald-500` in one and a different green in the other; both now render
  *   through <AnswerOptions>, which uses the measured `success-*` / `error-*` tiers.
- * - `text-ink-600` and `text-ink-800` do not exist in the ink scale (50/100/200/
+ * - Ink 600 and 800 tiers do not exist in the ink scale (50/100/200/
  *   300/400/500/700/900), so those labels silently inherited their parent colour.
  *   Every one of them is now a real token.
  * - `shadow-soft-xs` is not a declared shadow either — it rendered nothing.
@@ -192,13 +192,30 @@ function getVocabDistractors(currentWord, allWords, count = 3) {
     (w) => w.level === currentWord.level && w.id !== currentWord.id
   );
   const candidatePool = sameLevel.length >= count ? sameLevel : allWords;
+  const poolLen = candidatePool.length;
+
+  if (poolLen === 0) {
+    const defaultFallbacks = ['To understand', 'Tomorrow morning', 'Important message', 'Good evening'];
+    return defaultFallbacks.slice(0, count);
+  }
 
   // Stride through candidates deterministically using character codes of id
   const idSum = (currentWord.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const startIndex = Math.abs(idSum) % Math.max(1, candidatePool.length);
+  const startIndex = Math.abs(idSum) % poolLen;
 
-  for (let i = 0; i < candidatePool.length && distractors.length < count; i++) {
-    const candidate = candidatePool[(startIndex + i * 3) % candidatePool.length];
+  // Pick a stride coprime to poolLen to guarantee full traversal without skipping
+  // (avoids stride of 3 skipping 2/3 of items when pool length is a multiple of 3)
+  const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+  let stride = 1;
+  for (const testStride of [3, 7, 11, 13, 17, 19, 23, 29, 31, 1]) {
+    if (gcd(testStride, poolLen) === 1) {
+      stride = testStride;
+      break;
+    }
+  }
+
+  for (let i = 0; i < poolLen && distractors.length < count; i++) {
+    const candidate = candidatePool[(startIndex + i * stride) % poolLen];
     if (candidate && candidate.translation) {
       const clean = candidate.translation.trim().toLowerCase();
       if (!used.has(clean)) {
@@ -355,12 +372,14 @@ export default function Practice() {
   };
 
   // ── 2. Speed Drill & Practice Quiz State ──────────────────────────────────
+  const DRILL_SESSION_SIZE = 10;
   const [drillLevel, setDrillLevel] = useState('All');
   const [drillIndex, setDrillIndex] = useState(0);
   const [drillAnswered, setDrillAnswered] = useState(false);
   const [drillSelected, setDrillSelected] = useState(null);
   const [drillScore, setDrillScore] = useState(0);
   const [drillFinished, setDrillFinished] = useState(false);
+  const [drillSessionSeed, setDrillSessionSeed] = useState(0);
 
   // Generate drill questions from lessons and expanded lexicon bank
   const drillQuestions = useMemo(() => {
@@ -430,8 +449,19 @@ export default function Practice() {
       });
     });
 
-    return pool;
-  }, [currentLang, drillLevel, allVocabWords]);
+    if (pool.length <= DRILL_SESSION_SIZE) {
+      return pool;
+    }
+
+    // Chunk to a bite-sized session of DRILL_SESSION_SIZE questions
+    // Shuffle pool pseudo-randomly to give a diverse mix of curriculum exercises & vocabulary
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, DRILL_SESSION_SIZE);
+  }, [currentLang, drillLevel, allVocabWords, drillSessionSeed]);
 
   const currentDrillQ = drillQuestions[drillIndex] || drillQuestions[0];
 
@@ -461,6 +491,7 @@ export default function Practice() {
   };
 
   const handleDrillReset = () => {
+    setDrillSessionSeed((s) => s + 1);
     setDrillIndex(0);
     setDrillAnswered(false);
     setDrillSelected(null);
@@ -588,7 +619,6 @@ export default function Practice() {
         const matchesReading = w.reading && w.reading.toLowerCase().includes(q);
         const matchesExample = w.example && w.example.toLowerCase().includes(q);
         const matchesCategory = w.category && w.category.toLowerCase().includes(q);
-        const matchesLevelTag = w.level && w.level.toLowerCase().includes(q);
         return (
           matchesWord ||
           matchesTrans ||
@@ -596,8 +626,7 @@ export default function Practice() {
           matchesKanji ||
           matchesReading ||
           matchesExample ||
-          matchesCategory ||
-          matchesLevelTag
+          matchesCategory
         );
       }
       return true;
@@ -606,6 +635,7 @@ export default function Practice() {
 
   // Reset session and level state on language change
   useEffect(() => {
+    setDrillSessionSeed((s) => s + 1);
     setDrillIndex(0);
     setDrillAnswered(false);
     setDrillSelected(null);
@@ -904,7 +934,7 @@ export default function Practice() {
                   </span>
                 </p>
                 <Button shape="pill" size="lg" onClick={handleDrillReset}>
-                  Start Another Drill
+                  Practice More
                 </Button>
               </Card>
             )}
@@ -969,12 +999,12 @@ export default function Practice() {
                         Play the clip, then choose what you heard. Turtle mode reads it at 0.65x.
                       </p>
                       <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                        <Button size="md" icon={Volume2} onClick={() => speech?.speak(currentListenQ.audioScript, currentLang)}>
+                        <Button size="lg" icon={Volume2} onClick={() => speech?.speak(currentListenQ.audioScript, currentLang)}>
                           Normal Audio (1x)
                         </Button>
                         <Button
                           variant="outline"
-                          size="md"
+                          size="lg"
                           icon={Turtle}
                           onClick={() => speech?.speakSlow(currentListenQ.audioScript, currentLang)}
                         >
@@ -1078,7 +1108,7 @@ export default function Practice() {
               {availableCategories.length > 2 && (
                 <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-ink-100" role="group" aria-label="Filter vocabulary by category">
                   <span className="text-overline uppercase text-ink-700 mr-1">Category</span>
-                  {availableCategories.slice(0, 10).map((cat) => (
+                  {availableCategories.map((cat) => (
                     <Chip
                       key={cat}
                       size="sm"
@@ -1152,14 +1182,14 @@ export default function Practice() {
                           {item.word}
                         </h3>
                         {item.reading && item.reading !== item.word && (
-                          <p className="text-caption text-ink-600 font-medium mb-1">{item.reading}</p>
+                          <p className="text-caption text-ink-700 font-medium mb-1">{item.reading}</p>
                         )}
                         {item.pronunciation && (
                           <p className="text-body-sm text-ink-500 mb-2">/{item.pronunciation}/</p>
                         )}
                         <p className="text-body-md font-medium text-brand-800">{item.translation}</p>
                         {item.example && (
-                          <p className="text-caption text-ink-600 italic mt-2 line-clamp-2" title={item.example}>
+                          <p className="text-caption text-ink-700 italic mt-2 line-clamp-2" title={item.example}>
                             “{item.example}”
                           </p>
                         )}
