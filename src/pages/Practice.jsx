@@ -38,7 +38,9 @@ import {
   Zap,
   Headphones,
   ArrowRight,
+  ArrowLeft,
   X,
+  Mic,
 } from 'lucide-react';
 import PageWrapper from '../components/layout/PageWrapper';
 import { Flag } from '../components/brand';
@@ -57,7 +59,12 @@ import {
   Input,
   SegmentedControl,
   segmentIds,
+  MicButton,
+  LiveAudioVisualizer,
 } from '../components/ui';
+import PronunciationFeedback from '../components/lesson/PronunciationFeedback';
+import useSpeechRecognition from '../hooks/useSpeechRecognition';
+import { scorePronunciation } from '../utils/pronunciationScorer';
 import { transitionEase } from '../utils/motion';
 
 const practiceIds = segmentIds('practice');
@@ -692,6 +699,140 @@ export default function Practice() {
     });
   }, [allVocabWords, searchQuery, libraryLevel, libraryCategory]);
 
+  // ── 5. Pronunciation Studio (Oral Production & Speech Recognition) ──────────
+  const [speakingLevel, setSpeakingLevel] = useState('All');
+  const [speakingIndex, setSpeakingIndex] = useState(0);
+  const [speakingEvaluation, setSpeakingEvaluation] = useState(null);
+  const [masteredCount, setMasteredCount] = useState(0);
+
+  const {
+    isListening: isSpeakingListening,
+    transcript: speakingTranscript,
+    interimTranscript: speakingInterimTranscript,
+    error: speechRecognitionError,
+    isSupported: isSpeechRecognitionSupported,
+    startListening: startSpeechRecognition,
+    stopListening: stopSpeechRecognition,
+    resetTranscript: resetSpeechTranscript,
+  } = useSpeechRecognition();
+
+  // Curate phrases pool from both lesson speaking exercises and expanded core vocabulary
+  const speakingPhrases = useMemo(() => {
+    const phrases = [];
+    const seen = new Set();
+
+    // 1. Target phrases from lesson speaking exercises
+    const list = lessonsByLanguage[currentLang] || [];
+    list.forEach((lesson) => {
+      if (speakingLevel !== 'All' && !matchesLevel(lesson.level, speakingLevel)) return;
+      if (lesson.exercises) {
+        lesson.exercises.forEach((ex) => {
+          if (ex.type === 'speaking' && ex.targetText && !seen.has(ex.targetText)) {
+            seen.add(ex.targetText);
+            phrases.push({
+              id: ex.id,
+              text: ex.targetText,
+              translation: ex.translation,
+              pronunciation: ex.pronunciation,
+              reading: ex.reading,
+              level: lesson.level,
+              lessonTitle: lesson.title,
+              wordId: ex.wordId,
+            });
+          }
+        });
+      }
+    });
+
+    // 2. High-value sentences and expressions from allVocabWords
+    const matchingVocab = allVocabWords.filter(
+      (w) => speakingLevel === 'All' || matchesLevel(w.level, speakingLevel)
+    );
+
+    matchingVocab.forEach((w) => {
+      if (w.example && !seen.has(w.example)) {
+        seen.add(w.example);
+        phrases.push({
+          id: `spk-ex-${w.id}`,
+          text: w.example,
+          translation: w.exampleTranslation || w.translation,
+          pronunciation: w.pronunciation,
+          reading: w.reading,
+          level: w.level,
+          lessonTitle: w.lessonTitle || 'Core Lexicon',
+          wordId: w.id,
+        });
+      }
+
+      if (w.word && !seen.has(w.word)) {
+        seen.add(w.word);
+        phrases.push({
+          id: `spk-word-${w.id}`,
+          text: w.word,
+          translation: w.translation,
+          pronunciation: w.pronunciation,
+          reading: w.reading,
+          level: w.level,
+          lessonTitle: w.lessonTitle || 'Core Lexicon',
+          wordId: w.id,
+        });
+      }
+    });
+
+    return phrases;
+  }, [currentLang, speakingLevel, allVocabWords]);
+
+  const currentSpeakingPhrase = speakingPhrases[speakingIndex] || speakingPhrases[0];
+
+  // Evaluate spoken phrase when recognition stops
+  useEffect(() => {
+    if (speakingTranscript && !isSpeakingListening && currentSpeakingPhrase) {
+      const result = scorePronunciation(
+        currentSpeakingPhrase.text,
+        speakingTranscript,
+        currentLang,
+        { reading: currentSpeakingPhrase.reading }
+      );
+      setSpeakingEvaluation(result);
+
+      if (result.passed) {
+        playCorrect();
+        xp.addXP(15);
+        streak.recordActivity();
+        if (result.score >= 85) {
+          setMasteredCount((c) => c + 1);
+          if (currentSpeakingPhrase.wordId) {
+            progress.updateWordProgress(currentSpeakingPhrase.wordId, 5);
+          }
+        }
+      } else {
+        playIncorrect();
+      }
+    }
+  }, [speakingTranscript, isSpeakingListening, currentSpeakingPhrase, currentLang]);
+
+  const handleToggleSpeaking = () => {
+    if (isSpeakingListening) {
+      stopSpeechRecognition();
+    } else {
+      setSpeakingEvaluation(null);
+      resetSpeechTranscript();
+      startSpeechRecognition({ lang: currentLang });
+    }
+  };
+
+  const handleNextSpeakingPhrase = () => {
+    setSpeakingEvaluation(null);
+    resetSpeechTranscript();
+    setSpeakingIndex((i) => (i + 1) % (speakingPhrases.length || 1));
+  };
+
+  const handlePrevSpeakingPhrase = () => {
+    setSpeakingEvaluation(null);
+    resetSpeechTranscript();
+    setSpeakingIndex((i) => (i - 1 + (speakingPhrases.length || 1)) % (speakingPhrases.length || 1));
+  };
+
   // Reset session and level state on language change
   useEffect(() => {
     setDrillSessionSeed((s) => s + 1);
@@ -709,17 +850,24 @@ export default function Practice() {
     setIsFlipped(false);
     setSessionFinished(false);
 
+    setSpeakingIndex(0);
+    setSpeakingEvaluation(null);
+    resetSpeechTranscript();
+
     if (drillLevel !== 'All' && !availableLevels.includes(drillLevel)) {
       setDrillLevel('All');
     }
     if (listenLevel !== 'All' && !availableLevels.includes(listenLevel)) {
       setListenLevel('All');
     }
+    if (speakingLevel !== 'All' && !availableLevels.includes(speakingLevel)) {
+      setSpeakingLevel('All');
+    }
     if (libraryLevel !== 'All' && !availableLevels.includes(libraryLevel)) {
       setLibraryLevel('All');
     }
     setLibraryCategory('All');
-  }, [currentLang, availableLevels]);
+  }, [currentLang, availableLevels, resetSpeechTranscript]);
 
   return (
     <PageWrapper>
@@ -761,6 +909,7 @@ export default function Practice() {
               },
               { id: 'quiz', icon: Zap, label: 'Speed Drills' },
               { id: 'listening', icon: Headphones, label: 'Ear Training' },
+              { id: 'speaking', icon: Mic, label: 'Pronunciation Studio' },
               {
                 id: 'words',
                 icon: BookOpen,
@@ -1133,7 +1282,230 @@ export default function Practice() {
           </div>
         )}
 
-        {/* ── TAB 4: Searchable Vocabulary Library ── */}
+        {/* ── TAB 4: Dedicated Pronunciation Studio ── */}
+        {activeTab === 'speaking' && (
+          <div
+            role="tabpanel"
+            id={practiceIds.panelId('speaking')}
+            aria-labelledby={practiceIds.tabId('speaking')}
+            className="space-y-4"
+          >
+            {/* Filter Bar */}
+            <Card padding="sm" className="space-y-3">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                <div>
+                  <h3 className="font-display font-bold text-display-xs text-ink-900">
+                    Pronunciation & Oral Production Studio
+                  </h3>
+                  <p className="text-body-sm text-ink-500">
+                    Practice speaking authentic phrases aloud with instant browser-native phonetic accuracy evaluation.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Badge variant="brand" uppercase size="md">
+                    {speakingPhrases.length} Phrases
+                  </Badge>
+                  {masteredCount > 0 && (
+                    <Badge variant="success" size="md">
+                      {masteredCount} Mastered
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Level Filter Chips */}
+              <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-0.5">
+                <span className="text-caption font-semibold uppercase text-ink-500 shrink-0">
+                  Level:
+                </span>
+                {availableLevels.map((lvl) => (
+                  <Chip
+                    key={lvl}
+                    size="sm"
+                    selected={speakingLevel === lvl}
+                    onClick={() => {
+                      setSpeakingLevel(lvl);
+                      setSpeakingIndex(0);
+                      setSpeakingEvaluation(null);
+                      resetSpeechTranscript();
+                    }}
+                  >
+                    {lvl}
+                  </Chip>
+                ))}
+              </div>
+            </Card>
+
+            {/* Main Interactive Pronunciation Card */}
+            {currentSpeakingPhrase ? (
+              <Card padding="lg" className="max-w-2xl mx-auto space-y-6 text-center">
+                {/* Header: Progress Counter & Level Badge */}
+                <div className="flex items-center justify-between gap-3 text-body-sm text-ink-500 font-medium">
+                  <span className="tabular-nums">
+                    Phrase {speakingIndex + 1} of {speakingPhrases.length}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="brand" uppercase size="sm">
+                      {currentSpeakingPhrase.level || 'All'}
+                    </Badge>
+                    {currentSpeakingPhrase.lessonTitle && (
+                      <Badge variant="quiet" size="sm" className="hidden sm:inline-flex">
+                        {currentSpeakingPhrase.lessonTitle}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Phrase Target Display */}
+                <div className="space-y-2 py-2">
+                  <p className="font-display font-bold text-display-sm sm:text-display-md text-ink-900 leading-relaxed">
+                    {currentSpeakingPhrase.text}
+                  </p>
+                  {(currentSpeakingPhrase.pronunciation || currentSpeakingPhrase.reading) && (
+                    <p className="text-body-md font-mono text-brand-600 font-medium">
+                      /{currentSpeakingPhrase.pronunciation || currentSpeakingPhrase.reading}/
+                    </p>
+                  )}
+                  {currentSpeakingPhrase.translation && (
+                    <p className="text-body-md text-ink-500">
+                      Meaning: <span className="text-ink-700 font-medium">{currentSpeakingPhrase.translation}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Native Model Audio Playback */}
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2 border-t border-ink-100">
+                  <span className="text-caption font-semibold text-ink-500 uppercase tracking-wide">
+                    Listen to Native Model:
+                  </span>
+                  <AudioControls text={currentSpeakingPhrase.text} lang={currentLang} speech={speech} />
+                </div>
+
+                {/* Recording Controls & Visualizer */}
+                <div className="flex flex-col items-center justify-center py-4 space-y-3 bg-surface-50 rounded-card border border-ink-100">
+                  <LiveAudioVisualizer isListening={isSpeakingListening} />
+
+                  <MicButton
+                    isListening={isSpeakingListening}
+                    isProcessing={Boolean(!isSpeakingListening && speakingTranscript && !speakingEvaluation)}
+                    onClick={handleToggleSpeaking}
+                    disabled={!isSpeechRecognitionSupported}
+                    size="lg"
+                  />
+
+                  <p className="text-body-sm font-medium text-ink-700">
+                    {!isSpeechRecognitionSupported
+                      ? 'Speech recognition is not supported in this browser'
+                      : isSpeakingListening
+                      ? 'Listening... tap again or pause to finish'
+                      : speakingEvaluation
+                      ? 'Speech evaluated! Review your score below'
+                      : 'Tap microphone and speak clearly'}
+                  </p>
+
+                  {/* Live Streaming Transcript */}
+                  {(isSpeakingListening || (!speakingEvaluation && speakingTranscript)) && (
+                    <div
+                      className="bg-brand-50 border border-brand-200 rounded-card px-4 py-2 text-body-sm text-brand-900 italic max-w-md w-full"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      &ldquo;{speakingInterimTranscript || speakingTranscript || 'Listening...'}&rdquo;
+                    </div>
+                  )}
+
+                  {/* Speech Recognition Errors */}
+                  {speechRecognitionError && (
+                    <div className="bg-error-bg border border-error-border rounded-card px-4 py-2 text-body-sm text-error max-w-md w-full">
+                      {speechRecognitionError === 'not-allowed'
+                        ? 'Microphone access denied. Please grant microphone permission in your browser.'
+                        : speechRecognitionError === 'no-speech'
+                        ? 'No speech detected. Please speak closer to your microphone.'
+                        : `Speech error: ${speechRecognitionError}. Please try again.`}
+                    </div>
+                  )}
+                </div>
+
+                {/* Evaluation Feedback */}
+                {speakingEvaluation && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-4 pt-2"
+                  >
+                    <PronunciationFeedback
+                      evaluation={speakingEvaluation}
+                      targetText={currentSpeakingPhrase.text}
+                      langCode={currentLang}
+                      speech={speech}
+                    />
+                  </motion.div>
+                )}
+
+                {/* Bottom Navigation CTAs */}
+                <div className="flex items-center justify-between gap-3 pt-4 border-t border-ink-100">
+                  <Button
+                    variant="outline"
+                    shape="pill"
+                    size="md"
+                    icon={ArrowLeft}
+                    onClick={handlePrevSpeakingPhrase}
+                    disabled={speakingPhrases.length <= 1}
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex items-center gap-2">
+                    {speakingEvaluation && (
+                      <Button
+                        variant="outline"
+                        shape="pill"
+                        size="md"
+                        icon={RotateCw}
+                        onClick={() => {
+                          setSpeakingEvaluation(null);
+                          resetSpeechTranscript();
+                        }}
+                      >
+                        Try Again
+                      </Button>
+                    )}
+
+                    <Button
+                      variant="primary"
+                      shape="pill"
+                      size="md"
+                      icon={ArrowRight}
+                      iconPosition="right"
+                      onClick={handleNextSpeakingPhrase}
+                    >
+                      Next Phrase
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              <Card padding="lg" tone="quiet" className="text-center">
+                <div className="w-14 h-14 rounded-pill bg-surface-200 text-ink-700 mx-auto flex items-center justify-center mb-4">
+                  <Mic className="w-7 h-7" aria-hidden="true" />
+                </div>
+                <h3 className="font-display font-bold text-display-xs text-ink-900 mb-1">
+                  No phrases for level {speakingLevel}
+                </h3>
+                <p className="text-body-sm text-ink-500 max-w-sm mx-auto mb-4">
+                  Try switching to another level or choosing “All levels”.
+                </p>
+                <Button variant="outline" shape="pill" size="md" onClick={() => setSpeakingLevel('All')}>
+                  Show all levels
+                </Button>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB 5: Searchable Vocabulary Library ── */}
         {activeTab === 'words' && (
           <div
             role="tabpanel"
