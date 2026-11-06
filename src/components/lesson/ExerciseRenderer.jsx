@@ -10,6 +10,7 @@ import MultipleChoice from './MultipleChoice';
 import FillBlank from './FillBlank';
 import MatchPairs from './MatchPairs';
 import WritingCanvas from '../writing/WritingCanvas';
+import SpeakingExercise from './SpeakingExercise';
 import { Badge, Card } from '../ui';
 
 /* The renderer is the only place that knows an exercise has no matching case, so
@@ -116,6 +117,16 @@ export default function ExerciseRenderer({
           answer={exercise.answer}
           hint={exercise.hint}
           translation={exercise.prompt}
+          onAnswer={onAnswer}
+          disabled={disabled}
+        />
+      );
+
+    case 'speaking':
+      return (
+        <SpeakingExercise
+          exercise={exercise}
+          langCode={langCode}
           onAnswer={onAnswer}
           disabled={disabled}
         />
