@@ -50,11 +50,14 @@ export default function AudioControls({
   className = '',
 }) {
   const phrase = typeof text === 'string' ? text.trim() : '';
-  const canSpeak = Boolean(speech?.speak) && phrase.length > 0;
+  // Strip parenthesized readings/gender markers (e.g. "学生 (がくせい)" -> "学生", "L'eau (f)" -> "L'eau")
+  // so browser Web Speech synthesis does not pronounce brackets or auxiliary notes aloud.
+  const spokenPhrase = phrase.replace(/\s*\([^)]*\)/g, '').trim() || phrase;
+  const canSpeak = Boolean(speech?.speak) && spokenPhrase.length > 0;
 
   const fire = (fn) => (e) => {
     if (stopPropagation) e.stopPropagation();
-    if (canSpeak) fn(phrase);
+    if (canSpeak) fn(spokenPhrase);
   };
 
   return (

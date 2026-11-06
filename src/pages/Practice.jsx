@@ -259,7 +259,13 @@ export default function Practice() {
     const list = lessonsByLanguage[currentLang] || [];
     const map = new Map();
     const wordKeySet = new Set();
-    const normalizeWord = (w) => (w || '').trim().toLowerCase();
+    // Normalize words for deduplication: strip parenthesized furigana/readings and leading articles
+    const normalizeWord = (w) =>
+      (w || '')
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/^(el|la|los|las|le|les|der|die|das|ein|eine)\s+|^l['’]/i, '')
+        .trim()
+        .toLowerCase();
 
     // 1. Vocabulary from curriculum lessons
     list.forEach((lesson) => {
@@ -332,23 +338,39 @@ export default function Practice() {
   }, [currentLang]);
 
   const dueWordIds = useMemo(() => {
-    return progress.getWordsForReview();
+    const due = progress.getWordsForReview() || [];
+    return due.map((wp) => (typeof wp === 'string' ? wp : wp.wordId)).filter(Boolean);
   }, [progress]);
 
-  const reviewWords = useMemo(() => {
+  const fallbackReviewPool = useMemo(() => {
     const dueSet = new Set(dueWordIds);
     const due = allVocabWords.filter((w) => dueSet.has(w.id));
     if (due.length > 0) return due;
 
+    // Daily practice session: prioritize words already encountered, padded up to 15 cards with vocabulary
     const learnedIds = new Set(Object.keys(progress.wordProgress || {}));
     const learned = allVocabWords.filter((w) => learnedIds.has(w.id));
-    return learned.length > 0 ? learned : allVocabWords.slice(0, 15);
+    if (learned.length >= 15) {
+      return learned.slice(0, 15);
+    }
+    const unlearned = allVocabWords.filter((w) => !learnedIds.has(w.id));
+    return [...learned, ...unlearned].slice(0, 15);
   }, [allVocabWords, dueWordIds, progress.wordProgress]);
 
+  const [sessionCards, setSessionCards] = useState([]);
   const [sessionIndex, setSessionIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionFinished, setSessionFinished] = useState(false);
 
+  // Initialize or re-seed session cards when language changes without mutating mid-session
+  useEffect(() => {
+    setSessionCards(fallbackReviewPool);
+    setSessionIndex(0);
+    setIsFlipped(false);
+    setSessionFinished(false);
+  }, [currentLang, allVocabWords]);
+
+  const reviewWords = sessionCards.length > 0 ? sessionCards : fallbackReviewPool;
   const currentWord = reviewWords[sessionIndex];
 
   const handleRate = (quality) => {
@@ -366,6 +388,7 @@ export default function Practice() {
   };
 
   const handleResetSession = () => {
+    setSessionCards(fallbackReviewPool);
     setSessionIndex(0);
     setIsFlipped(false);
     setSessionFinished(false);
@@ -500,10 +523,14 @@ export default function Practice() {
   };
 
   // ── 3. Listening Ear Training State ───────────────────────────────────────
+  const LISTEN_SESSION_SIZE = 10;
   const [listenLevel, setListenLevel] = useState('All');
   const [listenIndex, setListenIndex] = useState(0);
   const [listenAnswered, setListenAnswered] = useState(false);
   const [listenSelected, setListenSelected] = useState(null);
+  const [listenScore, setListenScore] = useState(0);
+  const [listenFinished, setListenFinished] = useState(false);
+  const [listenSessionSeed, setListenSessionSeed] = useState(0);
 
   const listeningExercises = useMemo(() => {
     const audioTasks = [];
@@ -544,7 +571,9 @@ export default function Practice() {
         }
       }
 
-      const audioScript = vocab.example || vocab.word;
+      const rawAudio = vocab.example || vocab.word;
+      // Strip parenthesized readings/gender markers for TTS speech synthesizer
+      const audioScript = (rawAudio || '').replace(/\s*\([^)]*\)/g, '').trim();
       const prompt = vocab.example
         ? `Listen to the audio clip. What does this expression mean?`
         : `Listen to the spoken audio. What is the English translation?`;
@@ -566,8 +595,18 @@ export default function Practice() {
       });
     });
 
-    return audioTasks;
-  }, [currentLang, listenLevel, allVocabWords]);
+    if (audioTasks.length <= LISTEN_SESSION_SIZE) {
+      return audioTasks;
+    }
+
+    // Chunk to a bite-sized session of LISTEN_SESSION_SIZE questions
+    const shuffled = [...audioTasks];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, LISTEN_SESSION_SIZE);
+  }, [currentLang, listenLevel, allVocabWords, listenSessionSeed]);
 
   const currentListenQ = listeningExercises[listenIndex] || listeningExercises[0];
 
@@ -577,12 +616,32 @@ export default function Practice() {
     setListenAnswered(true);
 
     if (idx === currentListenQ.correctIndex) {
+      setListenScore((s) => s + 1);
       playCorrect();
       xp.addXP(15);
       streak.recordActivity();
     } else {
       playIncorrect();
     }
+  };
+
+  const handleListenNext = () => {
+    if (listenIndex + 1 < listeningExercises.length) {
+      setListenIndex((i) => i + 1);
+      setListenAnswered(false);
+      setListenSelected(null);
+    } else {
+      setListenFinished(true);
+    }
+  };
+
+  const handleListenReset = () => {
+    setListenSessionSeed((s) => s + 1);
+    setListenIndex(0);
+    setListenAnswered(false);
+    setListenSelected(null);
+    setListenScore(0);
+    setListenFinished(false);
   };
 
   // ── 4. Vocabulary Library Search & Filtering ──────────────────────────────
@@ -962,9 +1021,7 @@ export default function Practice() {
                       selected={listenLevel === lvl}
                       onClick={() => {
                         setListenLevel(lvl);
-                        setListenIndex(0);
-                        setListenAnswered(false);
-                        setListenSelected(null);
+                        handleListenReset();
                       }}
                     >
                       {lvl === 'All' ? 'All levels' : lvl}
@@ -974,7 +1031,7 @@ export default function Practice() {
               </div>
             </Card>
 
-            {currentListenQ ? (
+            {!listenFinished && currentListenQ ? (
               <Card padding="md" className="sm:p-8">
                 <div className="space-y-6">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-body-sm text-ink-500">
@@ -1028,25 +1085,33 @@ export default function Practice() {
                   {listenAnswered && (
                     <VerdictPanel
                       tone={listenSelected === currentListenQ.correctIndex ? 'success' : 'error'}
-                      onNext={
-                        listenIndex + 1 < listeningExercises.length
-                          ? () => {
-                              setListenIndex((i) => i + 1);
-                              setListenAnswered(false);
-                              setListenSelected(null);
-                            }
-                          : () => {
-                              setListenIndex(0);
-                              setListenAnswered(false);
-                              setListenSelected(null);
-                            }
-                      }
-                      nextLabel={listenIndex + 1 < listeningExercises.length ? 'Next Audio Clip' : 'Restart Ear Training'}
+                      onNext={handleListenNext}
+                      nextLabel={listenIndex + 1 < listeningExercises.length ? 'Next Audio Clip' : 'Complete Session'}
                     >
                       {currentListenQ.explanation}
                     </VerdictPanel>
                   )}
                 </div>
+              </Card>
+            ) : listenFinished ? (
+              /* Session Complete Card */
+              <Card padding="lg" className="max-w-md mx-auto text-center">
+                <div className="w-16 h-16 rounded-pill bg-brand-50 border border-brand-200 text-brand-700 mx-auto flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-8 h-8" aria-hidden="true" />
+                </div>
+                <h2 className="font-display font-bold text-display-sm text-ink-900 mb-2">
+                  Ear Training Complete!
+                </h2>
+                <p className="text-body-sm text-ink-500 mb-2">
+                  You scored <span className="font-bold text-brand-700">{listenScore}</span> out of{' '}
+                  <span className="font-bold">{listeningExercises.length}</span> audio challenges.
+                </p>
+                <p className="text-caption text-ink-500 mb-6">
+                  Native pronunciation recognition saved to your daily progress!
+                </p>
+                <Button shape="pill" size="lg" onClick={handleListenReset}>
+                  Train Another Set
+                </Button>
               </Card>
             ) : (
               /* Empty state */

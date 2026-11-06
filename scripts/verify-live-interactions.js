@@ -488,14 +488,14 @@ async function runTests() {
     results.push({ name: 'Test 4: GrammarCard and Practice AudioControls', status: 'PASS' });
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Test 5: Practice page displays 244-245 words across ES, JA, FR, and DE
+    // Test 5: Practice page displays 230+ unique words across ES, JA, FR, and DE
     // ──────────────────────────────────────────────────────────────────────────
-    console.log('\nTest 5: Practice page displays 244-245 words in Master Vocabulary Library across ES, JA, FR, DE');
+    console.log('\nTest 5: Practice page displays 230+ unique words in Master Vocabulary Library across ES, JA, FR, DE');
     const languages = [
-      { code: 'es', expectedMin: 244, expectedMax: 245 },
-      { code: 'ja', expectedMin: 244, expectedMax: 245 },
-      { code: 'fr', expectedMin: 244, expectedMax: 245 },
-      { code: 'de', expectedMin: 244, expectedMax: 245 },
+      { code: 'es', expectedMin: 230, expectedMax: 245 },
+      { code: 'ja', expectedMin: 230, expectedMax: 245 },
+      { code: 'fr', expectedMin: 230, expectedMax: 245 },
+      { code: 'de', expectedMin: 230, expectedMax: 245 },
     ];
 
     for (const lang of languages) {
@@ -531,7 +531,7 @@ async function runTests() {
         throw new Error(`Word count for ${lang.code} is ${countInfo.total}, expected ${lang.expectedMin}-${lang.expectedMax}`);
       }
     }
-    console.log('  [PASS] All 4 languages display 244-245 words in Master Vocabulary Library');
+    console.log('  [PASS] All 4 languages display 230+ unique words in Master Vocabulary Library');
     results.push({ name: 'Test 5: Master Vocabulary Library count across 4 languages', status: 'PASS' });
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -593,8 +593,83 @@ async function runTests() {
     console.log('  [OK] Drill reset to Question 1 of 10 successfully');
     results.push({ name: 'Test 6: Speed Drills chunking, advancing, and resetting', status: 'PASS' });
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 7: Flashcard SRS gym advances cards smoothly on rating
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 7: Flashcard SRS gym advances cards on rating');
+    await cdp.eval(`document.querySelector('#practice-tab-review').click()`);
+    await cdp.waitFor(`document.body.innerText.includes('Card 1 of')`);
+    const cardTextBefore = await cdp.eval(`
+      (() => {
+        const text = document.body.innerText;
+        const m = text.match(/Card\\s+\\d+\\s+of\\s+\\d+/i);
+        return m ? m[0] : 'unknown';
+      })()
+    `);
+    console.log('  [OK] Flashcard SRS gym mounted:', cardTextBefore);
+
+    // Click Flip Card
+    await cdp.eval(`
+      (() => {
+        const flipBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Flip card'));
+        if (flipBtn) flipBtn.click();
+      })()
+    `);
+    await sleep(200);
+
+    // Click "Good" rating button
+    const rated = await cdp.eval(`
+      (() => {
+        const goodBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Good'));
+        if (goodBtn) {
+          goodBtn.click();
+          return true;
+        }
+        return false;
+      })()
+    `);
+    if (!rated) throw new Error('Rating button (Good) not found in SRS gym');
+    await sleep(200);
+
+    await cdp.waitFor(`document.body.innerText.includes('Card 2 of')`);
+    console.log('  [OK] Successfully rated card and advanced to Card 2 without queue mutation skipping');
+    results.push({ name: 'Test 7: Flashcard SRS gym rating progression', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 8: Ear Training Studio chunks audio tasks to 10 and advances
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 8: Ear Training Studio chunks audio tasks to 10 and advances');
+    await cdp.eval(`document.querySelector('#practice-tab-listening').click()`);
+    await cdp.waitFor(`document.body.innerText.includes('Audio Task 1 of 10')`);
+    console.log('  [OK] Ear Training Studio mounted with 10 chunked audio tasks (Audio Task 1 of 10)');
+
+    // Select first option
+    const listenAnswerClicked = await cdp.eval(`
+      (() => {
+        const optionBtns = Array.from(document.querySelectorAll('div[aria-label*="Answer options"] button'));
+        if (optionBtns.length >= 2) {
+          optionBtns[0].click();
+          return true;
+        }
+        return false;
+      })()
+    `);
+    if (!listenAnswerClicked) throw new Error('Answer options not found in Ear Training');
+
+    await cdp.waitFor(`document.body.innerText.includes('Next Audio Clip')`);
+    await cdp.eval(`
+      (() => {
+        const nextBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Next Audio Clip'));
+        if (nextBtn) nextBtn.click();
+      })()
+    `);
+
+    await cdp.waitFor(`document.body.innerText.includes('Audio Task 2 of 10')`);
+    console.log('  [OK] Advanced to Audio Task 2 of 10');
+    results.push({ name: 'Test 8: Ear Training Studio chunking and progression', status: 'PASS' });
+
     console.log('\n====================================================');
-    console.log('  Verification Summary: ALL 6 TESTS PASSED (0 ERRORS)');
+    console.log('  Verification Summary: ALL 8 TESTS PASSED (0 ERRORS)');
     console.log('====================================================\n');
     for (const r of results) {
       console.log(`  [OK] ${r.name}: ${r.status}`);

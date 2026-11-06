@@ -339,7 +339,7 @@ export default function LessonPlayer() {
           {lesson.grammarGuide && (
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               icon={BookOpen}
               onClick={() => setShowGrammarModal(true)}
               aria-label="View grammar rule"

@@ -3,15 +3,15 @@
  * @description Master lessons registry grouping curriculum by language.
  */
 
-import { spanishLessons } from './spanish';
-import { japaneseLessons } from './japanese';
-import { frenchLessons } from './french';
-import { germanLessons } from './german';
+import { spanishLessons } from './spanish.js';
+import { japaneseLessons } from './japanese.js';
+import { frenchLessons } from './french.js';
+import { germanLessons } from './german.js';
 
-export { spanishLessons } from './spanish';
-export { japaneseLessons } from './japanese';
-export { frenchLessons } from './french';
-export { germanLessons } from './german';
+export { spanishLessons } from './spanish.js';
+export { japaneseLessons } from './japanese.js';
+export { frenchLessons } from './french.js';
+export { germanLessons } from './german.js';
 
 export const lessonsByLanguage = {
   es: spanishLessons,
