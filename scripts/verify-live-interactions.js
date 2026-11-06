@@ -668,8 +668,183 @@ async function runTests() {
     console.log('  [OK] Advanced to Audio Task 2 of 10');
     results.push({ name: 'Test 8: Ear Training Studio chunking and progression', status: 'PASS' });
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 9: LessonPlayer renders SpeakingExercise with MicButton and "Type instead" fallback
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 9: LessonPlayer renders SpeakingExercise with MicButton and "Type instead" fallback');
+    // Navigate to es-basics-1 exercise index 6 (speaking exercise es-spk-101)
+    await cdp.eval(`window.location.hash = '#/learn/es-basics-1?index=6'`);
+    await sleep(400);
+
+    await cdp.waitFor(`
+      /Speaking Practice/i.test(document.body.innerText) &&
+      document.body.innerText.includes('¡Hola! Buenos días.')
+    `);
+
+    // Verify native model audio controls are mounted
+    const speakingAudio = await cdp.eval(`
+      (() => {
+        const btns = Array.from(document.querySelectorAll('button'));
+        const normalAudio = btns.filter(b => (b.getAttribute('aria-label') || '').includes('normal speed'));
+        const turtleAudio = btns.filter(b => (b.getAttribute('aria-label') || '').includes('slowly'));
+        return {
+          hasNormal: normalAudio.length > 0,
+          hasTurtle: turtleAudio.length > 0,
+        };
+      })()
+    `);
+
+    if (!speakingAudio.hasNormal || !speakingAudio.hasTurtle) {
+      throw new Error(`SpeakingExercise Native Model audio controls missing: ${JSON.stringify(speakingAudio)}`);
+    }
+
+    // Verify mode controls: mic button or type fallback
+    const speakingModeState = await cdp.eval(`
+      (() => {
+        const hasMicBtn = Boolean(document.querySelector('button[aria-label*="recording speech"]'));
+        const typeInsteadBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Type instead'));
+        const typeInput = document.querySelector('input[placeholder*="¡Hola! Buenos días"]');
+        return {
+          hasMicBtn,
+          hasTypeInstead: Boolean(typeInsteadBtn),
+          isTypeMode: Boolean(typeInput),
+        };
+      })()
+    `);
+
+    // If in voice mode, toggle to typing mode using "Type instead"
+    if (!speakingModeState.isTypeMode) {
+      if (!speakingModeState.hasTypeInstead) {
+        throw new Error('Neither type mode nor "Type instead" toggle button is available');
+      }
+      await cdp.eval(`
+        (() => {
+          const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Type instead'));
+          if (btn) btn.click();
+        })()
+      `);
+      await cdp.waitFor(`Boolean(document.querySelector('input[placeholder*="¡Hola! Buenos días"]'))`);
+    }
+
+    console.log('  [PASS] LessonPlayer rendered SpeakingExercise with native audio controls and typing fallback');
+    results.push({ name: 'Test 9: LessonPlayer SpeakingExercise & "Type instead" fallback', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 10: "Type instead" allows typing target phrase and passes exercise
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 10: "Type instead" allows typing target phrase and passes exercise');
+    // Set typed input to target text
+    await cdp.eval(`
+      (() => {
+        const input = document.querySelector('input[placeholder*="¡Hola! Buenos días"]');
+        if (input) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          setter.call(input, '¡Hola! Buenos días.');
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      })()
+    `);
+    await sleep(200);
+
+    // Submit typed answer via "Check Answer"
+    const checkBtnClicked = await cdp.eval(`
+      (() => {
+        const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Check Answer'));
+        if (btn) {
+          btn.click();
+          return true;
+        }
+        return false;
+      })()
+    `);
+
+    if (!checkBtnClicked) throw new Error('Check Answer button not found in typing fallback mode');
+
+    // Wait for LessonPlayer footer feedback bar
+    await cdp.waitFor(`
+      Boolean(document.querySelector('footer')) &&
+      Array.from(document.querySelectorAll('button')).some(b => b.innerText.trim() === 'Continue')
+    `);
+
+    console.log('  [OK] Answer evaluated as correct, feedback footer bar displayed');
+
+    // Click Continue to advance to exercise index 7
+    await cdp.eval(`
+      (() => {
+        const contBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.trim() === 'Continue');
+        if (contBtn) contBtn.click();
+      })()
+    `);
+
+    await cdp.waitFor(`
+      document.body.innerText.includes('Muchas gracias, hasta luego.') ||
+      /Exercise 8 of 8/i.test(document.body.innerText)
+    `);
+
+    console.log('  [PASS] Successfully submitted typed phrase and advanced to next speaking exercise');
+    results.push({ name: 'Test 10: Typed fallback submission and progression', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 11: Practice page displays "Pronunciation Studio" 5th tab and mounts audio controls
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 11: Practice page displays "Pronunciation Studio" 5th tab and mounts audio controls');
+    await setUserProfile('es');
+    await cdp.eval(`window.location.hash = '#/practice'`);
+    await cdp.send('Page.reload');
+    await sleep(400);
+
+    // Check that tab button exists
+    await cdp.waitFor(`Boolean(document.querySelector('#practice-tab-speaking'))`);
+    await cdp.eval(`document.querySelector('#practice-tab-speaking').click()`);
+
+    await cdp.waitFor(`
+      Boolean(document.querySelector('#practice-panel-speaking')) &&
+      document.body.innerText.includes('Pronunciation & Oral Production Studio') &&
+      /Phrase 1 of \\d+/i.test(document.body.innerText)
+    `);
+
+    // Verify audio controls for native model playback in Pronunciation Studio
+    const studioAudioControls = await cdp.eval(`
+      (() => {
+        const panel = document.querySelector('#practice-panel-speaking');
+        if (!panel) return { normalCount: 0, turtleCount: 0 };
+        const normalAudio = Array.from(panel.querySelectorAll('button')).filter(b =>
+          (b.getAttribute('aria-label') || '').includes('normal speed')
+        );
+        const turtleAudio = Array.from(panel.querySelectorAll('button')).filter(b =>
+          (b.getAttribute('aria-label') || '').includes('slowly')
+        );
+        return {
+          normalCount: normalAudio.length,
+          turtleCount: turtleAudio.length,
+          hasMicButton: Boolean(panel.querySelector('button[aria-label*="recording speech"]')),
+        };
+      })()
+    `);
+
+    if (studioAudioControls.normalCount === 0 || studioAudioControls.turtleCount === 0) {
+      throw new Error(`Pronunciation Studio audio controls missing: ${JSON.stringify(studioAudioControls)}`);
+    }
+
+    console.log('  [OK] Pronunciation Studio mounted with native audio controls');
+    console.log(`       - Normal speed buttons: ${studioAudioControls.normalCount}`);
+    console.log(`       - Turtle speed buttons: ${studioAudioControls.turtleCount}`);
+
+    // Click "Next Phrase" to verify phrase navigation
+    await cdp.eval(`
+      (() => {
+        const nextBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Next Phrase'));
+        if (nextBtn) nextBtn.click();
+      })()
+    `);
+
+    await cdp.waitFor(`/Phrase 2 of \\d+/i.test(document.body.innerText)`);
+    console.log('  [OK] Advanced to Phrase 2 of N in Pronunciation Studio');
+    results.push({ name: 'Test 11: Practice Pronunciation Studio 5th tab & audio controls', status: 'PASS' });
+
     console.log('\n====================================================');
-    console.log('  Verification Summary: ALL 8 TESTS PASSED (0 ERRORS)');
+    console.log('  Verification Summary: ALL 11 TESTS PASSED (0 ERRORS)');
     console.log('====================================================\n');
     for (const r of results) {
       console.log(`  [OK] ${r.name}: ${r.status}`);

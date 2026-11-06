@@ -22,7 +22,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -60,26 +60,44 @@ import { transitionEase } from '../utils/motion';
 
 export default function LessonPlayer() {
   const { lessonId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, progress, streak, xp } = useUser();
 
   const lesson = useMemo(() => getLessonById(lessonId), [lessonId]);
 
+  const requestedIndex = useMemo(() => {
+    const raw = searchParams.get('index');
+    if (raw !== null) {
+      const parsed = parseInt(raw, 10);
+      return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    }
+    return 0;
+  }, [searchParams]);
+
   // Player state
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(requestedIndex);
   const [hearts, setHearts] = useState(3);
   const [results, setResults] = useState([]); // array of booleans (correct/incorrect per exercise)
   const [currentAnswered, setCurrentAnswered] = useState(false);
   const [currentCorrect, setCurrentCorrect] = useState(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
-  const [showPreLessonGuide, setShowPreLessonGuide] = useState(Boolean(lesson?.grammarGuide));
+  const [showPreLessonGuide, setShowPreLessonGuide] = useState(
+    searchParams.has('index') ? false : Boolean(lesson?.grammarGuide)
+  );
   const [showGrammarModal, setShowGrammarModal] = useState(false);
 
-  // Reset pre-lesson guide when switching lessons
+  // Reset pre-lesson guide and index when switching lessons or query params
   useEffect(() => {
-    setShowPreLessonGuide(Boolean(lesson?.grammarGuide));
-  }, [lesson?.id]);
+    if (searchParams.has('index')) {
+      setShowPreLessonGuide(false);
+      const parsed = parseInt(searchParams.get('index'), 10);
+      if (Number.isFinite(parsed)) setCurrentIndex(parsed);
+    } else {
+      setShowPreLessonGuide(Boolean(lesson?.grammarGuide));
+    }
+  }, [lesson?.id, searchParams]);
 
   const handleToggleSound = () => {
     const next = !soundOn;
