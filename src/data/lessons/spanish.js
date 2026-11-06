@@ -38,6 +38,8 @@ export const spanishLessons = [
       { id: 'es-ex-104', type: 'matchPairs', prompt: 'Match Spanish greetings to their meanings', pairs: [{ left: 'Hola', right: 'Hello' }, { left: 'Adiós', right: 'Goodbye' }, { left: 'Buenas noches', right: 'Good night' }, { left: 'Hasta luego', right: 'See you later' }] },
       { id: 'es-ex-105', type: 'typing', prompt: 'Type the Spanish word for "Goodbye"', answer: 'Adiós', hint: 'Starts with A, ends with s (accent on o)', placeholder: 'Escribe aquí...' },
       { id: 'es-ex-106', type: 'multipleChoice', question: 'How do you say "Good afternoon" in Spanish?', options: ['Buenos días', 'Buenas noches', 'Buenas tardes', 'Hasta luego'], correctIndex: 2, explanation: '"Buenas tardes" is used from lunchtime until sunset.' },
+      { id: 'es-spk-101', type: 'speaking', targetText: "¡Hola! Buenos días.", translation: "Hello! Good morning.", pronunciation: "OH-lah! BWEH-nos DEE-ahs", prompt: "Say hello and wish someone a good morning in Spanish." },
+      { id: 'es-spk-102', type: 'speaking', targetText: "Muchas gracias, hasta luego.", translation: "Thank you very much, see you later.", pronunciation: "MOO-chahs GRAH-syahs, AHS-tah LWEH-goh", prompt: "Say thank you and see you later aloud." },
     ],
   },
 
@@ -72,6 +74,8 @@ export const spanishLessons = [
       { id: 'es-ex-203', type: 'fillBlank', sentence: 'Un café, ___ ___.', answer: 'por favor', hint: 'Polite request expression', translation: 'A coffee, please.' },
       { id: 'es-ex-204', type: 'matchPairs', prompt: 'Match courtesy expressions to their meanings', pairs: [{ left: 'Por favor', right: 'Please' }, { left: 'Gracias', right: 'Thank you' }, { left: 'De nada', right: "You're welcome" }, { left: 'Lo siento', right: "I'm sorry" }] },
       { id: 'es-ex-205', type: 'typing', prompt: 'Type "Thank you" in Spanish', answer: 'Gracias', hint: 'Starts with Gra...', placeholder: 'Escribe aquí...' },
+      { id: 'es-spk-201', type: 'speaking', targetText: "Por favor, ¿me ayuda?", translation: "Please, can you help me?", pronunciation: "pohr fah-BOHR, meh ah-YOO-dah", prompt: "Ask politely for help aloud in Spanish." },
+      { id: 'es-spk-202', type: 'speaking', targetText: "Disculpe, lo siento mucho.", translation: "Excuse me, I am very sorry.", pronunciation: "dees-KOOL-peh, loh SYEHN-toh MOO-choh", prompt: "Offer a polite apology aloud." },
     ],
   },
 
@@ -105,6 +109,8 @@ export const spanishLessons = [
       { id: 'es-ex-302', type: 'fillBlank', sentence: 'Hola, ___ llamo Juan.', answer: 'me', hint: 'Reflexive pronoun for "myself"', translation: 'Hello, my name is Juan.' },
       { id: 'es-ex-303', type: 'matchPairs', prompt: 'Match the phrases', pairs: [{ left: '¿Cómo estás?', right: 'How are you?' }, { left: 'Muy bien', right: 'Very well' }, { left: 'Mucho gusto', right: 'Nice to meet you' }, { left: 'Me llamo', right: 'My name is' }] },
       { id: 'es-ex-304', type: 'typing', prompt: 'Type "Very well" in Spanish', answer: 'Muy bien', hint: 'Two words: M__ b____', placeholder: 'Escribe aquí...' },
+      { id: 'es-spk-301', type: 'speaking', targetText: "Hola, me llamo Carlos. Mucho gusto.", translation: "Hello, my name is Carlos. Nice to meet you.", pronunciation: "OH-lah, meh YAH-moh KAHR-lohs. MOO-choh GOOS-toh", prompt: "Introduce yourself and say nice to meet you." },
+      { id: 'es-spk-302', type: 'speaking', targetText: "Estoy muy bien, ¿y tú de dónde eres?", translation: "I am very well, and where are you from?", pronunciation: "ehs-TOY mooy byehn, ee too deh DOHN-deh EH-rehs", prompt: "Ask someone where they are from." },
     ],
   },
 
@@ -137,6 +143,8 @@ export const spanishLessons = [
       { id: 'es-ex-401', type: 'multipleChoice', question: 'What is "Cuatro" in English?', options: ['Two', 'Three', 'Four', 'Five'], correctIndex: 2, explanation: '"Cuatro" is the number 4.' },
       { id: 'es-ex-402', type: 'matchPairs', prompt: 'Match the numbers to words', pairs: [{ left: 'Uno', right: '1' }, { left: 'Dos', right: '2' }, { left: 'Tres', right: '3' }, { left: 'Cinco', right: '5' }] },
       { id: 'es-ex-403', type: 'typing', prompt: 'Type the Spanish word for the number 2', answer: 'Dos', hint: 'Three letters starting with D', placeholder: 'Número...' },
+      { id: 'es-spk-401', type: 'speaking', targetText: "Uno, dos, tres, cuatro, cinco.", translation: "One, two, three, four, five.", pronunciation: "OO-noh, dohs, trehs, KWAH-troh, SEEN-koh", prompt: "Count from one to five clearly in Spanish." },
+      { id: 'es-spk-402', type: 'speaking', targetText: "Son las diez de la mañana.", translation: "It is ten in the morning.", pronunciation: "sohn lahs dyehs deh lah mah-NYAH-nah", prompt: "State the time aloud in Spanish." },
     ],
   },
 
@@ -169,6 +177,8 @@ export const spanishLessons = [
       { id: 'es-ex-501', type: 'multipleChoice', question: 'How do you ask for "The bill, please"?', options: ['El café, por favor', 'La cuenta, por favor', 'El agua, por favor', 'Buenos días, por favor'], correctIndex: 1, explanation: '"La cuenta, por favor" is used to request the bill.' },
       { id: 'es-ex-502', type: 'fillBlank', sentence: 'Un vaso de ___, por favor.', answer: 'agua', hint: 'The word for water', translation: 'A glass of water, please.' },
       { id: 'es-ex-503', type: 'matchPairs', prompt: 'Match restaurant terms', pairs: [{ left: 'El agua', right: 'Water' }, { left: 'El café', right: 'Coffee' }, { left: 'La cuenta', right: 'The bill' }, { left: 'El pan', right: 'Bread' }] },
+      { id: 'es-spk-501', type: 'speaking', targetText: "Un café con leche y un pan, por favor.", translation: "A coffee with milk and bread, please.", pronunciation: "oon kah-FEH kohn LEH-cheh ee oon pahn, pohr fah-BOHR", prompt: "Order coffee and bread at a café." },
+      { id: 'es-spk-502', type: 'speaking', targetText: "La comida está deliciosa. La cuenta, por favor.", translation: "The food is delicious. The bill, please.", pronunciation: "lah koh-MEE-dah ehs-TAH deh-lee-SYOH-sah. lah KWEHN-tah, pohr fah-BOHR", prompt: "Compliment the food and ask for the bill." },
     ],
   },
 
@@ -202,6 +212,8 @@ export const spanishLessons = [
       { id: 'es-ex-602', type: 'fillBlank', sentence: 'Tengo una reserva en el ___.', answer: 'hotel', hint: 'Lodging establishment', translation: 'I have a reservation at the hotel.' },
       { id: 'es-ex-603', type: 'matchPairs', prompt: 'Match travel vocabulary', pairs: [{ left: 'El billete', right: 'Ticket' }, { left: 'El hotel', right: 'Hotel' }, { left: 'El pasaporte', right: 'Passport' }, { left: 'El aeropuerto', right: 'Airport' }] },
       { id: 'es-ex-604', type: 'typing', prompt: 'Type "Ticket" in Spanish', answer: 'El billete', hint: 'Starts with El b...', placeholder: 'Boleto / billete...' },
+      { id: 'es-spk-601', type: 'speaking', targetText: "Disculpe, ¿dónde está la estación?", translation: "Excuse me, where is the station?", pronunciation: "dees-KOOL-peh, DOHN-deh ehs-TAH lah ehs-tah-SYOHN", prompt: "Ask for directions to the station." },
+      { id: 'es-spk-602', type: 'speaking', targetText: "Siga todo recto y gire a la derecha.", translation: "Continue straight ahead and turn right.", pronunciation: "SEE-gah TOH-doh REHK-toh ee HEE-reh ah lah deh-REH-chah", prompt: "Give street directions aloud in Spanish." },
     ],
   },
 
@@ -234,6 +246,8 @@ export const spanishLessons = [
       { id: 'es-ex-701', type: 'multipleChoice', question: 'What does "A la derecha" mean?', options: ['Straight ahead', 'To the right', 'To the left', 'Behind'], correctIndex: 1, explanation: '"A la derecha" means to the right.' },
       { id: 'es-ex-702', type: 'fillBlank', sentence: 'Siga todo ___.', answer: 'recto', hint: 'Straight ahead', translation: 'Go straight ahead.' },
       { id: 'es-ex-703', type: 'matchPairs', prompt: 'Match direction phrases', pairs: [{ left: 'A la izquierda', right: 'To the left' }, { left: 'A la derecha', right: 'To the right' }, { left: 'Todo recto', right: 'Straight ahead' }, { left: 'Cerca', right: 'Near' }] },
+      { id: 'es-spk-701', type: 'speaking', targetText: "Quisiera un billete de ida y vuelta a Madrid.", translation: "I would like a round-trip ticket to Madrid.", pronunciation: "kee-SYEH-rah oon bee-YEH-teh deh EE-dah ee BWEHL-tah ah mah-DREED", prompt: "Purchase a train ticket in Spanish." },
+      { id: 'es-spk-702', type: 'speaking', targetText: "¿A qué hora sale el próximo tren?", translation: "What time does the next train leave?", pronunciation: "ah keh OH-rah SAH-leh ehl PROHK-see-moh trehn", prompt: "Ask about the train departure schedule." },
     ],
   },
 
@@ -266,6 +280,8 @@ export const spanishLessons = [
       { id: 'es-ex-801', type: 'multipleChoice', question: 'What does "El hermano" mean?', options: ['Father', 'Brother', 'Son', 'Grandfather'], correctIndex: 1, explanation: '"El hermano" is brother.' },
       { id: 'es-ex-802', type: 'fillBlank', sentence: 'Tengo dos ___.', answer: 'hermanos', hint: 'Brothers/siblings', translation: 'I have two brothers.' },
       { id: 'es-ex-803', type: 'matchPairs', prompt: 'Match family members', pairs: [{ left: 'La madre', right: 'Mother' }, { left: 'El padre', right: 'Father' }, { left: 'El abuelo', right: 'Grandfather' }, { left: 'La hermana', right: 'Sister' }] },
+      { id: 'es-spk-801', type: 'speaking', targetText: "Mi madre y mi padre viven en Sevilla.", translation: "My mother and my father live in Seville.", pronunciation: "mee MAH-dreh ee mee PAH-dreh BEE-behn ehn seh-BEE-yah", prompt: "Talk about where your parents live." },
+      { id: 'es-spk-802', type: 'speaking', targetText: "Tengo un hermano mayor y una hermana menor.", translation: "I have an older brother and a younger sister.", pronunciation: "TEHN-goh oon ehr-MAH-noh mah-YOHR ee OO-nah ehr-MAH-nah meh-NOHR", prompt: "Describe your siblings aloud." },
     ],
   },
 
@@ -299,6 +315,8 @@ export const spanishLessons = [
       { id: 'es-ex-902', type: 'fillBlank', sentence: 'Tenemos una ___ importante a las diez.', answer: 'reunión', hint: 'Word for meeting', translation: 'We have an important meeting at ten.' },
       { id: 'es-ex-903', type: 'matchPairs', prompt: 'Match workplace vocabulary', pairs: [{ left: 'La reunión', right: 'Meeting' }, { left: 'El colega', right: 'Colleague' }, { left: 'El proyecto', right: 'Project' }, { left: 'La fecha límite', right: 'Deadline' }] },
       { id: 'es-ex-904', type: 'typing', prompt: 'Type "Project" in Spanish', answer: 'El proyecto', hint: 'Starts with El pro...', placeholder: 'Escribe aquí...' },
+      { id: 'es-spk-901', type: 'speaking', targetText: "Empiezo a trabajar a las nueve de la mañana.", translation: "I start working at nine in the morning.", pronunciation: "ehm-PYEH-soh ah trah-bah-HAHR ah lahs NWEH-beh deh lah mah-NYAH-nah", prompt: "State your morning work schedule." },
+      { id: 'es-spk-902', type: 'speaking', targetText: "Tenemos una reunión importante con el equipo.", translation: "We have an important meeting with the team.", pronunciation: "teh-NEH-mohs OO-nah reh-oo-NYOHN eem-pohr-TAHN-teh kohn ehl eh-KEE-poh", prompt: "Announce a team meeting in Spanish." },
     ],
   },
 
@@ -332,6 +350,8 @@ export const spanishLessons = [
       { id: 'es-ex-1002', type: 'fillBlank', sentence: 'En mi ___, es una excelente propuesta.', answer: 'opinión', hint: 'Word for opinion (accent on o)', translation: 'In my opinion, it is an excellent proposal.' },
       { id: 'es-ex-1003', type: 'matchPairs', prompt: 'Match discourse markers', pairs: [{ left: 'En mi opinión', right: 'In my opinion' }, { left: 'Estoy de acuerdo', right: 'I agree' }, { left: 'Sin embargo', right: 'However' }, { left: 'Por supuesto', right: 'Of course' }] },
       { id: 'es-ex-1004', type: 'typing', prompt: 'Type "Of course" in Spanish', answer: 'Por supuesto', hint: 'Two words: P__ s_______', placeholder: 'Escribe aquí...' },
+      { id: 'es-spk-1001', type: 'speaking', targetText: "En mi opinión, aprender idiomas es fascinante.", translation: "In my opinion, learning languages is fascinating.", pronunciation: "ehn mee oh-pee-NYOHN, ah-prehn-DEHR ee-DYOH-mahs ehs fah-see-NAHN-teh", prompt: "Express your opinion on language learning." },
+      { id: 'es-spk-1002', type: 'speaking', targetText: "Me gusta mucho viajar y conocer nuevas culturas.", translation: "I really like traveling and discovering new cultures.", pronunciation: "meh GOOS-tah MOO-choh byah-HAHR ee koh-noh-SEHR NWEH-bahs kool-TOO-rahs", prompt: "Speak about your passion for travel." },
     ],
   },
 ];

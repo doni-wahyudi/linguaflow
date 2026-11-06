@@ -37,6 +37,8 @@ export const frenchLessons = [
       { id: 'fr-ex-103', type: 'fillBlank', sentence: '___, comment allez-vous ?', answer: 'Bonjour', hint: 'Most common French greeting', translation: 'Hello, how are you?' },
       { id: 'fr-ex-104', type: 'matchPairs', prompt: 'Match French greetings to English', pairs: [{ left: 'Bonjour', right: 'Hello' }, { left: 'Au revoir', right: 'Goodbye' }, { left: 'Bonsoir', right: 'Good evening' }, { left: 'À bientôt', right: 'See you soon' }] },
       { id: 'fr-ex-105', type: 'typing', prompt: 'Type the French word for "Goodbye"', answer: 'Au revoir', hint: 'Two words starting with Au...', placeholder: 'Tapez ici...' },
+      { id: 'fr-spk-101', type: 'speaking', targetText: "Bonjour ! Comment allez-vous ?", translation: "Hello! How are you (formal)?", pronunciation: "bohn-zhoor ! koh-mahn tah-lay-voo ?", prompt: "Greet someone politely in French." },
+      { id: 'fr-spk-102', type: 'speaking', targetText: "Bonne soirée et à bientôt !", translation: "Have a good evening and see you soon!", pronunciation: "buhn swah-ray ay ah byan-toh !", prompt: "Wish someone a good evening and say see you soon." },
     ],
   },
 
@@ -69,6 +71,8 @@ export const frenchLessons = [
       { id: 'fr-ex-201', type: 'multipleChoice', question: 'How do you say "Thank you very much" in French?', options: ['Merci beaucoup', "S'il vous plaît", 'De rien', 'Au revoir'], correctIndex: 0, explanation: '"Merci beaucoup" expresses deep gratitude.' },
       { id: 'fr-ex-202', type: 'matchPairs', prompt: 'Match French politeness phrases', pairs: [{ left: 'Merci', right: 'Thank you' }, { left: "S'il vous plaît", right: 'Please' }, { left: 'De rien', right: "You're welcome" }, { left: 'Pardon', right: 'Excuse me' }] },
       { id: 'fr-ex-203', type: 'typing', prompt: 'Type the French word for "Thank you"', answer: 'Merci', hint: 'Starts with M, 5 letters', placeholder: 'Tapez ici...' },
+      { id: 'fr-spk-201', type: 'speaking', targetText: "S'il vous plaît, pouvez-vous m'aider ?", translation: "Please, can you help me?", pronunciation: "seel voo pleh, poo-vay-voo meh-day ?", prompt: "Ask politely for assistance in French." },
+      { id: 'fr-spk-202', type: 'speaking', targetText: "Merci beaucoup, je vous en prie.", translation: "Thank you very much, you are welcome.", pronunciation: "mehr-see boh-koo, zhuh voo zahn pree", prompt: "Express gratitude and polite courtesy." },
     ],
   },
 
@@ -101,6 +105,8 @@ export const frenchLessons = [
       { id: 'fr-ex-301', type: 'multipleChoice', question: 'What does "Enchanté" mean when introduced to someone?', options: ['Goodbye', 'Pleased / Nice to meet you', 'Good luck', 'Pardon me'], correctIndex: 1, explanation: '"Enchanté" literally means "enchanted" and is the traditional way to say "Nice to meet you".' },
       { id: 'fr-ex-302', type: 'fillBlank', sentence: "Bonjour, je ___ Pierre.", answer: "m'appelle", hint: 'French for "call myself"', translation: 'Hello, my name is Pierre.' },
       { id: 'fr-ex-303', type: 'matchPairs', prompt: 'Match conversational phrases', pairs: [{ left: "Je m'appelle", right: 'My name is' }, { left: 'Ça va ?', right: 'How are you?' }, { left: 'Enchanté', right: 'Nice to meet you' }, { left: 'Oui', right: 'Yes' }] },
+      { id: 'fr-spk-301', type: 'speaking', targetText: "Je m'appelle Thomas. Enchanté de vous rencontrer.", translation: "My name is Thomas. Delighted to meet you.", pronunciation: "zhuh mah-pehl toh-mah. ahn-shahn-tay duh voo rahn-kohn-tray", prompt: "Introduce yourself and say delighted to meet you." },
+      { id: 'fr-spk-302', type: 'speaking', targetText: "Je suis canadien et j'habite à Paris.", translation: "I am Canadian and I live in Paris.", pronunciation: "zhuh swee kah-nah-dyan ay zhah-beet ah pah-ree", prompt: "State your nationality and where you live." },
     ],
   },
 
@@ -133,6 +139,8 @@ export const frenchLessons = [
       { id: 'fr-ex-401', type: 'multipleChoice', question: 'Which is the number "Three" in French?', options: ['Un', 'Deux', 'Trois', 'Quatre'], correctIndex: 2, explanation: '"Trois" is 3 in French.' },
       { id: 'fr-ex-402', type: 'matchPairs', prompt: 'Match French numbers to digits', pairs: [{ left: 'Un', right: '1' }, { left: 'Deux', right: '2' }, { left: 'Trois', right: '3' }, { left: 'Cinq', right: '5' }] },
       { id: 'fr-ex-403', type: 'typing', prompt: 'Type the French word for number 1', answer: 'Un', hint: 'Two letters starting with U', placeholder: 'Tapez ici...' },
+      { id: 'fr-spk-401', type: 'speaking', targetText: "Un, deux, trois, quatre, cinq.", translation: "One, two, three, four, five.", pronunciation: "uhn, duh, trwah, kahtr, sank", prompt: "Count from one to five clearly in French." },
+      { id: 'fr-spk-402', type: 'speaking', targetText: "Il est dix heures du matin.", translation: "It is ten o'clock in the morning.", pronunciation: "eel eh dee zuhr dew mah-tan", prompt: "Say \"It is ten in the morning\" aloud." },
     ],
   },
 
@@ -165,6 +173,8 @@ export const frenchLessons = [
       { id: 'fr-ex-501', type: 'multipleChoice', question: 'How do you ask for "The bill, please" in French?', options: ['Le café, s\'il vous plaît', 'L\'addition, s\'il vous plaît', 'Bonjour monsieur', 'Au revoir merci'], correctIndex: 1, explanation: '"L\'addition, s\'il vous plaît" is the standard phrase to request the check.' },
       { id: 'fr-ex-502', type: 'fillBlank', sentence: "L'___, s'il vous plaît.", answer: 'addition', hint: 'Word for the restaurant check', translation: "The bill, please." },
       { id: 'fr-ex-503', type: 'matchPairs', prompt: 'Match café terms', pairs: [{ left: "L'eau", right: 'Water' }, { left: 'Le café', right: 'Coffee' }, { left: "L'addition", right: 'The bill' }, { left: 'Délicieux', right: 'Delicious' }] },
+      { id: 'fr-spk-501', type: 'speaking', targetText: "Un café au lait et un croissant, s'il vous plaît.", translation: "A coffee with milk and a croissant, please.", pronunciation: "uhn kah-fay oh leh ay uhn krwah-sahn, seel voo pleh", prompt: "Order breakfast at a Parisian café." },
+      { id: 'fr-spk-502', type: 'speaking', targetText: "Le repas était délicieux. L'addition, s'il vous plaît.", translation: "The meal was delicious. The bill, please.", pronunciation: "luh ruh-pah ay-teh day-lee-syuh. lah-dee-syohn, seel voo pleh", prompt: "Compliment the meal and ask for the check." },
     ],
   },
 
@@ -197,6 +207,8 @@ export const frenchLessons = [
       { id: 'fr-ex-601', type: 'multipleChoice', question: 'What does "La gare" mean?', options: ['Airport', 'Train station', 'Hotel', 'Ticket'], correctIndex: 1, explanation: '"La gare" means the train station.' },
       { id: 'fr-ex-602', type: 'fillBlank', sentence: 'Où est la ___ de train ?', answer: 'gare', hint: 'Station word', translation: 'Where is the train station?' },
       { id: 'fr-ex-603', type: 'matchPairs', prompt: 'Match travel words', pairs: [{ left: 'La gare', right: 'Train station' }, { left: 'Le billet', right: 'Ticket' }, { left: "L'hôtel", right: 'Hotel' }, { left: "L'aéroport", right: 'Airport' }] },
+      { id: 'fr-spk-601', type: 'speaking', targetText: "Un billet aller-retour pour Lyon, s'il vous plaît.", translation: "A round-trip ticket to Lyon, please.", pronunciation: "uhn bee-yeh ah-lay ruh-toor poor lee-ohn, seel voo pleh", prompt: "Buy a round-trip train ticket in French." },
+      { id: 'fr-spk-602', type: 'speaking', targetText: "Le train part de quelle voie ?", translation: "Which track does the train depart from?", pronunciation: "luh tran pahr duh kehl vwah ?", prompt: "Ask what track the train leaves from." },
     ],
   },
 
@@ -229,6 +241,8 @@ export const frenchLessons = [
       { id: 'fr-ex-701', type: 'multipleChoice', question: 'What does "À gauche" mean?', options: ['To the left', 'To the right', 'Straight ahead', 'Far'], correctIndex: 0, explanation: '"À gauche" means to the left.' },
       { id: 'fr-ex-702', type: 'fillBlank', sentence: 'Continuez tout ___.', answer: 'droit', hint: 'Straight', translation: 'Continue straight ahead.' },
       { id: 'fr-ex-703', type: 'matchPairs', prompt: 'Match directions', pairs: [{ left: 'À gauche', right: 'To the left' }, { left: 'À droite', right: 'To the right' }, { left: 'Tout droit', right: 'Straight ahead' }, { left: 'Où est... ?', right: 'Where is...?' }] },
+      { id: 'fr-spk-701', type: 'speaking', targetText: "Pardon, où se trouve le musée du Louvre ?", translation: "Excuse me, where is the Louvre Museum located?", pronunciation: "pahr-dohn, oo suh troov luh mew-zay dew loovr ?", prompt: "Ask where the Louvre museum is." },
+      { id: 'fr-spk-702', type: 'speaking', targetText: "Allez tout droit et tournez à gauche.", translation: "Go straight ahead and turn left.", pronunciation: "ah-lay too drwah ay toor-nay ah gohsh", prompt: "Give street directions in French." },
     ],
   },
 
@@ -261,6 +275,8 @@ export const frenchLessons = [
       { id: 'fr-ex-801', type: 'multipleChoice', question: 'How do you say "Sister" in French?', options: ['La mère', 'La sœur', 'La fille', 'Le frère'], correctIndex: 1, explanation: '"La sœur" is sister.' },
       { id: 'fr-ex-802', type: 'fillBlank', sentence: "Mon ___ est médecin.", answer: 'père', hint: 'Father', translation: 'My father is a doctor.' },
       { id: 'fr-ex-803', type: 'matchPairs', prompt: 'Match family vocabulary', pairs: [{ left: 'Le père', right: 'Father' }, { left: 'La mère', right: 'Mother' }, { left: 'Le frère', right: 'Brother' }, { left: 'La sœur', right: 'Sister' }] },
+      { id: 'fr-spk-801', type: 'speaking', targetText: "Mon père et ma mère habitent à Bordeaux.", translation: "My father and my mother live in Bordeaux.", pronunciation: "mohn pehr ay mah mehr ah-beet ah bohr-doh", prompt: "Talk about your parents in French." },
+      { id: 'fr-spk-802', type: 'speaking', targetText: "J'ai un frère aîné et une sœur cadette.", translation: "I have an older brother and a younger sister.", pronunciation: "zhay uhn frehr ay-nay ay ewn suhr kah-deht", prompt: "Describe your brothers and sisters." },
     ],
   },
 
@@ -294,6 +310,8 @@ export const frenchLessons = [
       { id: 'fr-ex-902', type: 'fillBlank', sentence: "Nous avons une ___ à dix heures.", answer: 'réunion', hint: 'Meeting in French', translation: 'We have a meeting at ten o\'clock.' },
       { id: 'fr-ex-903', type: 'matchPairs', prompt: 'Match workplace vocabulary', pairs: [{ left: 'La réunion', right: 'Meeting' }, { left: 'Le collègue', right: 'Colleague' }, { left: 'Le projet', right: 'Project' }, { left: 'La date limite', right: 'Deadline' }] },
       { id: 'fr-ex-904', type: 'typing', prompt: 'Type "Project" in French', answer: 'Le projet', hint: 'Starts with Le pro...', placeholder: 'Tapez ici...' },
+      { id: 'fr-spk-901', type: 'speaking', targetText: "La réunion commence à dix heures précises.", translation: "The meeting starts at ten o'clock sharp.", pronunciation: "lah ray-ew-nyohn koh-mahns ah dee zuhr pray-seez", prompt: "State when the meeting begins." },
+      { id: 'fr-spk-902', type: 'speaking', targetText: "J'ai envoyé le rapport complet par courriel.", translation: "I sent the full report by email.", pronunciation: "zhay ahn-vwah-yay luh rah-pohr kohm-pleh pahr koor-yehl", prompt: "Confirm sending an office report." },
     ],
   },
 
@@ -327,6 +345,8 @@ export const frenchLessons = [
       { id: 'fr-ex-1002', type: 'fillBlank', sentence: "Je suis tout à fait d'___ avec toi.", answer: 'accord', hint: 'Agreement', translation: "I completely agree with you." },
       { id: 'fr-ex-1003', type: 'matchPairs', prompt: 'Match opinion phrases', pairs: [{ left: 'À mon avis', right: 'In my opinion' }, { left: "Je suis d'accord", right: 'I agree' }, { left: 'Cependant', right: 'However' }, { left: 'Bien sûr', right: 'Of course' }] },
       { id: 'fr-ex-1004', type: 'typing', prompt: 'Type "Of course" in French', answer: 'Bien sûr', hint: 'Two words: B___ s__', placeholder: 'Tapez ici...' },
+      { id: 'fr-spk-1001', type: 'speaking', targetText: "À mon avis, voyager enrichit l'esprit.", translation: "In my opinion, traveling enriches the mind.", pronunciation: "ah mohn ah-vee, vwah-yah-zhay ahn-ree-shee leh-spree", prompt: "Share your perspective on travel." },
+      { id: 'fr-spk-1002', type: 'speaking', targetText: "Je trouve que cette langue est magnifique.", translation: "I find that this language is magnificent.", pronunciation: "zhuh troov kuh seht lahng eh mah-nyee-feek", prompt: "Express appreciation for the French language." },
     ],
   },
 ];

@@ -38,6 +38,8 @@ export const germanLessons = [
       { id: 'de-ex-104', type: 'matchPairs', prompt: 'Match German greetings to their English meanings', pairs: [{ left: 'Hallo', right: 'Hello' }, { left: 'Tschüss', right: 'Bye' }, { left: 'Guten Abend', right: 'Good evening' }, { left: 'Auf Wiedersehen', right: 'Goodbye' }] },
       { id: 'de-ex-105', type: 'typing', prompt: 'Type the casual German word for "Bye"', answer: 'Tschüss', hint: 'Starts with Ts...', placeholder: 'Tippe hier...' },
       { id: 'de-ex-106', type: 'multipleChoice', question: 'How do you say formal "Goodbye" in German?', options: ['Guten Morgen', 'Auf Wiedersehen', 'Hallo', 'Tschüss'], correctIndex: 1, explanation: '"Auf Wiedersehen" literally translates to "Until we see each other again".' },
+      { id: 'de-spk-101', type: 'speaking', targetText: "Guten Morgen! Wie geht es Ihnen?", translation: "Good morning! How are you (formal)?", pronunciation: "GOO-ten MOR-gen! vee gayt es EE-nen?", prompt: "Wish someone a good morning politely in German." },
+      { id: 'de-spk-102', type: 'speaking', targetText: "Schönen Abend und auf Wiedersehen!", translation: "Have a nice evening and goodbye!", pronunciation: "SHUR-nen AH-bent oont owf VEE-der-zay-en!", prompt: "Wish someone a nice evening and say goodbye." },
     ],
   },
 
@@ -72,6 +74,8 @@ export const germanLessons = [
       { id: 'de-ex-203', type: 'fillBlank', sentence: 'Einen Kaffee, ___.', answer: 'bitte', hint: 'German word for please', translation: 'A coffee, please.' },
       { id: 'de-ex-204', type: 'matchPairs', prompt: 'Match German courtesies', pairs: [{ left: 'Bitte', right: 'Please' }, { left: 'Danke', right: 'Thank you' }, { left: 'Entschuldigung', right: 'Excuse me' }, { left: 'Ja', right: 'Yes' }] },
       { id: 'de-ex-205', type: 'typing', prompt: 'Type "Thank you" in German', answer: 'Danke', hint: 'Starts with D, 5 letters', placeholder: 'Tippe hier...' },
+      { id: 'de-spk-201', type: 'speaking', targetText: "Können Sie mir bitte helfen?", translation: "Can you please help me (formal)?", pronunciation: "KUR-nen zee meer BIT-teh HEL-fen?", prompt: "Politely request assistance in German." },
+      { id: 'de-spk-202', type: 'speaking', targetText: "Vielen Dank, gern geschehen.", translation: "Many thanks, you are very welcome.", pronunciation: "FEE-len dahnk, gehrn geh-SHAY-en", prompt: "Say thank you and you are welcome." },
     ],
   },
 
@@ -105,6 +109,8 @@ export const germanLessons = [
       { id: 'de-ex-302', type: 'fillBlank', sentence: 'Ich ___ Julia.', answer: 'heiße', hint: 'German verb for "am called"', translation: 'My name is Julia.' },
       { id: 'de-ex-303', type: 'matchPairs', prompt: 'Match conversation phrases', pairs: [{ left: 'Ich heiße', right: 'My name is' }, { left: "Wie geht's?", right: 'How are you?' }, { left: 'Sehr gut', right: 'Very good' }, { left: 'Freut mich', right: 'Nice to meet you' }] },
       { id: 'de-ex-304', type: 'typing', prompt: 'Type "Very good" in German', answer: 'Sehr gut', hint: 'Two words: S___ g__', placeholder: 'Tippe hier...' },
+      { id: 'de-spk-301', type: 'speaking', targetText: "Ich heiße Lukas. Freut mich, Sie kennenzulernen.", translation: "My name is Lukas. Pleased to meet you.", pronunciation: "ikh HY-seh LOO-kas. froyt mikh, zee KEN-nen-tsoo-LEHR-nen", prompt: "Introduce yourself and express pleasure to meet." },
+      { id: 'de-spk-302', type: 'speaking', targetText: "Ich komme aus Deutschland und lebe in Berlin.", translation: "I come from Germany and live in Berlin.", pronunciation: "ikh KOM-meh ows DOYTCH-lahnt oont LAY-beh in behr-LEEN", prompt: "State where you come from and live." },
     ],
   },
 
@@ -137,6 +143,8 @@ export const germanLessons = [
       { id: 'de-ex-401', type: 'multipleChoice', question: 'What is the German number "Drei"?', options: ['One', 'Two', 'Three', 'Four'], correctIndex: 2, explanation: '"Drei" is the number 3.' },
       { id: 'de-ex-402', type: 'matchPairs', prompt: 'Match German numbers to digits', pairs: [{ left: 'Eins', right: '1' }, { left: 'Zwei', right: '2' }, { left: 'Drei', right: '3' }, { left: 'Fünf', right: '5' }] },
       { id: 'de-ex-403', type: 'typing', prompt: 'Type the German word for number 2', answer: 'Zwei', hint: 'Starts with Zw...', placeholder: 'Zahl...' },
+      { id: 'de-spk-401', type: 'speaking', targetText: "Eins, zwei, drei, vier, fünf.", translation: "One, two, three, four, five.", pronunciation: "eyens, tsvy, dry, feer, feunf", prompt: "Count from one to five in German." },
+      { id: 'de-spk-402', type: 'speaking', targetText: "Es ist genau zehn Uhr morgens.", translation: "It is exactly ten o'clock in the morning.", pronunciation: "es ist geh-NOW tsehn oor MOR-gens", prompt: "State the time aloud in German." },
     ],
   },
 
@@ -169,6 +177,8 @@ export const germanLessons = [
       { id: 'de-ex-501', type: 'multipleChoice', question: 'How do you ask for "The bill, please" in German?', options: ['Der Kaffee, bitte', 'Die Rechnung, bitte', 'Das Wasser, bitte', 'Guten Tag, bitte'], correctIndex: 1, explanation: '"Die Rechnung, bitte" is the customary way to ask for the bill.' },
       { id: 'de-ex-502', type: 'fillBlank', sentence: 'Ein Glas ___, bitte.', answer: 'Wasser', hint: 'German word for water (starts with W)', translation: 'A glass of water, please.' },
       { id: 'de-ex-503', type: 'matchPairs', prompt: 'Match café and dining terms', pairs: [{ left: 'Das Wasser', right: 'Water' }, { left: 'Der Kaffee', right: 'Coffee' }, { left: 'Die Rechnung', right: 'The bill' }, { left: 'Lecker', right: 'Delicious' }] },
+      { id: 'de-spk-501', type: 'speaking', targetText: "Einen Kaffee und ein Brötchen, bitte.", translation: "A coffee and a bread roll, please.", pronunciation: "EYE-nen KAF-fay oont eyen BRURT-khen, BIT-teh", prompt: "Order coffee and a roll at a bakery." },
+      { id: 'de-spk-502', type: 'speaking', targetText: "Das Essen war lecker. Die Rechnung, bitte.", translation: "The food was delicious. The check, please.", pronunciation: "dahs ES-sen vahr LEK-ker. dee REKH-noong, BIT-teh", prompt: "Compliment the food and ask for the bill." },
     ],
   },
 
@@ -201,6 +211,8 @@ export const germanLessons = [
       { id: 'de-ex-601', type: 'multipleChoice', question: 'What does "Der Bahnhof" mean?', options: ['Airport', 'Train station', 'Hotel', 'Ticket'], correctIndex: 1, explanation: '"Der Bahnhof" is the train station.' },
       { id: 'de-ex-602', type: 'fillBlank', sentence: 'Wo ist der Haupt___?', answer: 'bahnhof', hint: 'Main station', translation: 'Where is the central station?' },
       { id: 'de-ex-603', type: 'matchPairs', prompt: 'Match travel words', pairs: [{ left: 'Der Bahnhof', right: 'Train station' }, { left: 'Die Fahrkarte', right: 'Ticket' }, { left: 'Das Gleis', right: 'Platform' }, { left: 'Der Flughafen', right: 'Airport' }] },
+      { id: 'de-spk-601', type: 'speaking', targetText: "Eine Fahrkarte hin und zurück nach München, bitte.", translation: "A round-trip ticket to Munich, please.", pronunciation: "EYE-neh FAHR-kahr-teh hin oont tsoo-REUK nahkh MEUN-khen, BIT-teh", prompt: "Buy a round-trip train ticket in German." },
+      { id: 'de-spk-602', type: 'speaking', targetText: "Von welchem Gleis fährt der Zug ab?", translation: "Which track does the train depart from?", pronunciation: "fon VEL-khem glys fairt dehr tsook ahp?", prompt: "Ask about the train platform in German." },
     ],
   },
 
@@ -233,6 +245,8 @@ export const germanLessons = [
       { id: 'de-ex-701', type: 'multipleChoice', question: 'What is the German word for "Straight ahead"?', options: ['Links', 'Rechts', 'Geradeaus', 'Weit'], correctIndex: 2, explanation: '"Geradeaus" means straight ahead.' },
       { id: 'de-ex-702', type: 'fillBlank', sentence: 'Biegen Sie ___ ab.', answer: 'links', hint: 'Opposite of right', translation: 'Turn left.' },
       { id: 'de-ex-703', type: 'matchPairs', prompt: 'Match directions in German', pairs: [{ left: 'Links', right: 'Left' }, { left: 'Rechts', right: 'Right' }, { left: 'Geradeaus', right: 'Straight ahead' }, { left: 'In der Nähe', right: 'Nearby' }] },
+      { id: 'de-spk-701', type: 'speaking', targetText: "Entschuldigung, wo ist der Hauptbahnhof?", translation: "Excuse me, where is the main train station?", pronunciation: "ent-SHOOL-dee-goong, voh ist dehr HOWPT-bahn-hohf?", prompt: "Ask where the main train station is." },
+      { id: 'de-spk-702', type: 'speaking', targetText: "Gehen Sie geradeaus und biegen Sie rechts ab.", translation: "Go straight ahead and turn right.", pronunciation: "GAY-en zee geh-RAH-deh-ows oont BEE-gen zee rekhts ahp", prompt: "Give street directions in German." },
     ],
   },
 
@@ -265,6 +279,8 @@ export const germanLessons = [
       { id: 'de-ex-801', type: 'multipleChoice', question: 'What does "Die Schwester" mean?', options: ['Mother', 'Sister', 'Daughter', 'Grandmother'], correctIndex: 1, explanation: '"Die Schwester" is sister.' },
       { id: 'de-ex-802', type: 'fillBlank', sentence: 'Meine ___ lebt in Berlin.', answer: 'Familie', hint: 'Family', translation: 'My family lives in Berlin.' },
       { id: 'de-ex-803', type: 'matchPairs', prompt: 'Match German family terms', pairs: [{ left: 'Der Vater', right: 'Father' }, { left: 'Die Mutter', right: 'Mother' }, { left: 'Der Bruder', right: 'Brother' }, { left: 'Die Schwester', right: 'Sister' }] },
+      { id: 'de-spk-801', type: 'speaking', targetText: "Mein Vater und meine Mutter wohnen in Hamburg.", translation: "My father and my mother live in Hamburg.", pronunciation: "meyen FAH-ter oont MEYE-neh MOOT-ter VOH-nen in HAHM-boork", prompt: "Talk about your parents in German." },
+      { id: 'de-spk-802', type: 'speaking', targetText: "Ich habe einen älteren Bruder und eine jüngere Schwester.", translation: "I have an older brother and a younger sister.", pronunciation: "ikh HAH-beh EYE-nen EL-teh-ren BROO-der oont EYE-neh YEUNG-eh-reh SHVES-ter", prompt: "Describe your siblings in German." },
     ],
   },
 
@@ -298,6 +314,8 @@ export const germanLessons = [
       { id: 'de-ex-902', type: 'fillBlank', sentence: 'Wir haben heute eine wichtige ___.', answer: 'Besprechung', hint: 'Meeting in German', translation: 'We have an important meeting today.' },
       { id: 'de-ex-903', type: 'matchPairs', prompt: 'Match workplace vocabulary', pairs: [{ left: 'Die Besprechung', right: 'Meeting' }, { left: 'Der Kollege', right: 'Colleague' }, { left: 'Das Projekt', right: 'Project' }, { left: 'Die Frist', right: 'Deadline' }] },
       { id: 'de-ex-904', type: 'typing', prompt: 'Type "Project" in German', answer: 'Das Projekt', hint: 'Starts with Das Pro...', placeholder: 'Tippe hier...' },
+      { id: 'de-spk-901', type: 'speaking', targetText: "Die Teambesprechung beginnt um Punkt zehn Uhr.", translation: "The team meeting starts at ten o'clock sharp.", pronunciation: "dee TEEM-beh-shprekh-oong beh-GINNT oom poonkt tsehn oor", prompt: "State when the meeting begins in German." },
+      { id: 'de-spk-902', type: 'speaking', targetText: "Ich habe den vollständigen Bericht per E-Mail geschickt.", translation: "I sent the complete report by email.", pronunciation: "ikh HAH-beh dehn FOL-shtehn-dee-gen beh-RIKHT pehr EE-mayl geh-SHIKT", prompt: "Confirm sending an office report in German." },
     ],
   },
 
@@ -331,6 +349,8 @@ export const germanLessons = [
       { id: 'de-ex-1002', type: 'fillBlank', sentence: 'Da stimme ich dir voll und ganz ___.', answer: 'zu', hint: 'Separable verb prefix (zustimmen)', translation: 'I completely agree with you on that.' },
       { id: 'de-ex-1003', type: 'matchPairs', prompt: 'Match opinion phrases', pairs: [{ left: 'Meiner Meinung nach', right: 'In my opinion' }, { left: 'Ich stimme zu', right: 'I agree' }, { left: 'Allerdings', right: 'However' }, { left: 'Selbstverständlich', right: 'Of course' }] },
       { id: 'de-ex-1004', type: 'typing', prompt: 'Type "I agree" in German', answer: 'Ich stimme zu', hint: 'Three words: I__ s_____ z_', placeholder: 'Tippe hier...' },
+      { id: 'de-spk-1001', type: 'speaking', targetText: "Meiner Meinung nach ist Sprachenlernen sehr wichtig.", translation: "In my opinion, language learning is very important.", pronunciation: "MEYE-ner MEYE-noong nahkh ist SHPRAH-khen-lehr-nen zehr VIKH-tikh", prompt: "Express your opinion on language learning." },
+      { id: 'de-spk-1002', type: 'speaking', targetText: "Ich reise gern und entdecke neue Kulturen.", translation: "I like traveling and discovering new cultures.", pronunciation: "ikh RYE-zeh gehrn oont ent-DEK-keh NOY-eh kool-TOO-ren", prompt: "Talk about traveling and exploring new cultures." },
     ],
   },
 ];

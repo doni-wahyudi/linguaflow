@@ -38,6 +38,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-104', type: 'matchPairs', prompt: 'Match Japanese greetings with English equivalents', pairs: [{ left: 'こんにちは', right: 'Hello' }, { left: 'さようなら', right: 'Goodbye' }, { left: 'こんばんは', right: 'Good evening' }, { left: 'またね', right: 'See you later' }] },
       { id: 'ja-ex-105', type: 'typing', prompt: 'Type the romaji for "さようなら" (Goodbye)', answer: 'sayounara', hint: 'sa-you-na-ra', placeholder: 'Romaji input...' },
       { id: 'ja-ex-106', type: 'writing', character: 'あ', prompt: 'Practice drawing Hiragana character "あ" (a)', translation: 'Sound "a" as in father', gridType: 'rice' },
+      { id: 'ja-spk-101', type: 'speaking', targetText: "おはようございます。", reading: "おはようございます", translation: "Good morning (polite).", pronunciation: "ohayou gozaimasu", prompt: "Greet someone politely in the morning." },
+      { id: 'ja-spk-102', type: 'speaking', targetText: "こんにちは、お元気ですか。", reading: "こんにちは、おげんきですか。", translation: "Hello, how are you?", pronunciation: "konnichiwa, ogenki desu ka", prompt: "Say hello and ask how someone is doing." },
     ],
   },
 
@@ -71,6 +73,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-202', type: 'fillBlank', sentence: 'これをお___します。', answer: '願い', hint: 'Onegai (request/wish)', translation: 'This one, please.' },
       { id: 'ja-ex-203', type: 'matchPairs', prompt: 'Match courtesy expressions', pairs: [{ left: 'ありがとう', right: 'Thank you' }, { left: 'すみません', right: 'Excuse me' }, { left: 'はい', right: 'Yes' }, { left: 'いいえ', right: 'No' }] },
       { id: 'ja-ex-204', type: 'typing', prompt: 'Type the romaji for "はい" (Yes)', answer: 'hai', hint: 'Three letters starting with h', placeholder: 'hai...' },
+      { id: 'ja-spk-201', type: 'speaking', targetText: "どうもありがとうございます。", reading: "どうもありがとうございます", translation: "Thank you very much.", pronunciation: "doumo arigatou gozaimasu", prompt: "Express polite gratitude in Japanese." },
+      { id: 'ja-spk-202', type: 'speaking', targetText: "すみません、失礼します。", reading: "すみません、しつれいします。", translation: "Excuse me, pardon me.", pronunciation: "sumimasen, shitsurei shimasu", prompt: "Say excuse me politely." },
     ],
   },
 
@@ -102,6 +106,8 @@ export const japaneseLessons = [
     exercises: [
       { id: 'ja-ex-301', type: 'multipleChoice', question: 'When do you say "はじめまして" (Hajimemashite)?', options: ['When saying goodbye', 'When meeting someone for the first time', 'Before eating', 'When going to bed'], correctIndex: 1, explanation: '"Hajimemashite" comes from the verb "hajimeru" (to begin) and is said when meeting someone for the first time.' },
       { id: 'ja-ex-302', type: 'matchPairs', prompt: 'Match introduction terms', pairs: [{ left: 'はじめまして', right: 'Nice to meet you' }, { left: '私の名前は', right: 'My name is' }, { left: '元気ですか？', right: 'How are you?' }, { left: 'はい', right: 'Yes' }] },
+      { id: 'ja-spk-301', type: 'speaking', targetText: "初めまして、田中です。どうぞよろしく。", reading: "はじめまして、たなかです。どうぞよろしく。", translation: "Nice to meet you, I am Tanaka. Pleased to meet you.", pronunciation: "hajimemashite, tanaka desu. douzo yoroshiku", prompt: "Introduce yourself for the first time." },
+      { id: 'ja-spk-302', type: 'speaking', targetText: "私は学生です。アメリカから来ました。", reading: "わたしはがくせいです。アメリカからきました。", translation: "I am a student. I came from America.", pronunciation: "watashi wa gakusei desu. amerika kara kimashita", prompt: "State your occupation and background." },
     ],
   },
 
@@ -134,6 +140,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-401', type: 'multipleChoice', question: 'What is the reading for kanji 三 ?', options: ['Ichi', 'Ni', 'San', 'Yon'], correctIndex: 2, explanation: '三 is read as "San" (Three).' },
       { id: 'ja-ex-402', type: 'matchPairs', prompt: 'Match Kanji to numbers', pairs: [{ left: '一', right: '1' }, { left: '二', right: '2' }, { left: '三', right: '3' }, { left: '五', right: '5' }] },
       { id: 'ja-ex-403', type: 'typing', prompt: 'Type the romaji for kanji 一 (1)', answer: 'ichi', hint: 'i-chi', placeholder: 'ichi...' },
+      { id: 'ja-spk-401', type: 'speaking', targetText: "一、二、三、四、五。", reading: "いち、に、さん、よん、ご。", translation: "One, two, three, four, five.", pronunciation: "ichi, ni, san, yon, go", prompt: "Count from one to five in Japanese." },
+      { id: 'ja-spk-402', type: 'speaking', targetText: "今は十時です。", reading: "いまはじゅうじです。", translation: "It is ten o'clock now.", pronunciation: "ima wa juuji desu", prompt: "Tell the time aloud in Japanese." },
     ],
   },
 
@@ -167,6 +175,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-502', type: 'fillBlank', sentence: 'お___をお願いします。', answer: '会計', hint: 'The word for bill/check (kaikei)', translation: 'The bill, please.' },
       { id: 'ja-ex-503', type: 'matchPairs', prompt: 'Match restaurant terms', pairs: [{ left: 'お水', right: 'Water' }, { left: 'お茶', right: 'Green tea' }, { left: '美味しい', right: 'Delicious' }, { left: 'お会計', right: 'The bill' }] },
       { id: 'ja-ex-504', type: 'typing', prompt: 'Type romaji for "美味しい" (Delicious)', answer: 'oishii', hint: 'oi-shii', placeholder: 'oishii...' },
+      { id: 'ja-spk-501', type: 'speaking', targetText: "お水を一杯お願いします。", reading: "おみずをいっぱいおねがいします。", translation: "One glass of water, please.", pronunciation: "omizu o ippai onegaishimasu", prompt: "Order water at a restaurant." },
+      { id: 'ja-spk-502', type: 'speaking', targetText: "ごちそうさまでした。お会計をお願いします。", reading: "ごちそうさまでした。おかいけいをおねがいします。", translation: "Thank you for the meal. The check, please.", pronunciation: "gochisousama deshita. okaikei o onegaishimasu", prompt: "Thank the chef and ask for the bill." },
     ],
   },
 
@@ -199,6 +209,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-601', type: 'multipleChoice', question: 'What is the Japanese word for "Train Station"?', options: ['ホテル', '空港', '駅 (えき)', '切符'], correctIndex: 2, explanation: '駅 (Eki) means train station.' },
       { id: 'ja-ex-602', type: 'fillBlank', sentence: '東京___はどこですか？', answer: '駅', hint: 'Station kanji', translation: 'Where is Tokyo Station?' },
       { id: 'ja-ex-603', type: 'matchPairs', prompt: 'Match travel terms', pairs: [{ left: '駅', right: 'Station' }, { left: '切符', right: 'Ticket' }, { left: '空港', right: 'Airport' }, { left: '新幹線', right: 'Bullet train' }] },
+      { id: 'ja-spk-601', type: 'speaking', targetText: "東京行きの切符を一枚ください。", reading: "とうきょうゆきのきっぷをいちまいください。", translation: "One ticket to Tokyo, please.", pronunciation: "toukyou yuki no kippu o ichimai kudasai", prompt: "Buy a train ticket to Tokyo." },
+      { id: 'ja-spk-602', type: 'speaking', targetText: "新幹線は何番線から出ますか。", reading: "しんかんせんはなんばんせんからでますか。", translation: "Which track does the Shinkansen depart from?", pronunciation: "shinkansen wa nanbansen kara demasu ka", prompt: "Ask which platform the bullet train departs from." },
     ],
   },
 
@@ -231,6 +243,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-701', type: 'multipleChoice', question: 'What does "右 (みぎ)" mean?', options: ['Left', 'Right', 'Straight', 'Near'], correctIndex: 1, explanation: '右 (Migi) is Right.' },
       { id: 'ja-ex-702', type: 'fillBlank', sentence: 'トイレは___ですか？', answer: 'どこ', hint: 'Question word for "Where"', translation: 'Where is the restroom?' },
       { id: 'ja-ex-703', type: 'matchPairs', prompt: 'Match direction words', pairs: [{ left: '右', right: 'Right' }, { left: '左', right: 'Left' }, { left: 'まっすぐ', right: 'Straight ahead' }, { left: 'どこですか？', right: 'Where is it?' }] },
+      { id: 'ja-spk-701', type: 'speaking', targetText: "すみません、駅はどこですか。", reading: "すみません、えきはどこですか。", translation: "Excuse me, where is the station?", pronunciation: "sumimasen, eki wa doko desu ka", prompt: "Ask where the station is located." },
+      { id: 'ja-spk-702', type: 'speaking', targetText: "まっすぐ行って、右に曲がってください。", reading: "まっすぐいって、みぎにまがってください。", translation: "Go straight and turn right.", pronunciation: "massugu itte, migi ni magatte kudasai", prompt: "Give street directions in Japanese." },
     ],
   },
 
@@ -263,6 +277,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-801', type: 'multipleChoice', question: 'How do you refer to your own mother in Japanese?', options: ['お母さん (okaasan)', '母 (haha)', '姉 (ane)', '妹 (imouto)'], correctIndex: 1, explanation: 'In Japanese humble speech, you refer to your own mother as 母 (Haha) when speaking to others.' },
       { id: 'ja-ex-802', type: 'matchPairs', prompt: 'Match family vocabulary', pairs: [{ left: '家族', right: 'Family' }, { left: '友達', right: 'Friend' }, { left: '父', right: 'Father' }, { left: '母', right: 'Mother' }] },
       { id: 'ja-ex-803', type: 'typing', prompt: 'Type romaji for "友達" (Friend)', answer: 'tomodachi', hint: 'to-mo-da-chi', placeholder: 'tomodachi...' },
+      { id: 'ja-spk-801', type: 'speaking', targetText: "私の父と母は京都に住んでいます。", reading: "わたしのちちはははきょうとにすんでいます。", translation: "My father and mother live in Kyoto.", pronunciation: "watashi no chichi to haha wa kyouto ni sundeimasu", prompt: "Talk about where your parents live." },
+      { id: 'ja-spk-802', type: 'speaking', targetText: "兄と妹が一人ずついます。", reading: "あにといもうとがひとりずついます。", translation: "I have one older brother and one younger sister.", pronunciation: "ani to imouto ga hitori zutsu imasu", prompt: "Describe your siblings in Japanese." },
     ],
   },
 
@@ -296,6 +312,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-902', type: 'fillBlank', sentence: '午後から大切な___があります。', answer: '会議', hint: 'Kanji for meeting (kaigi)', translation: 'There is an important meeting this afternoon.' },
       { id: 'ja-ex-903', type: 'matchPairs', prompt: 'Match business Japanese terms', pairs: [{ left: '会議', right: 'Meeting' }, { left: '同僚', right: 'Colleague' }, { left: '締切', right: 'Deadline' }, { left: '書類', right: 'Document' }] },
       { id: 'ja-ex-904', type: 'typing', prompt: 'Type romaji for "締切" (Deadline)', answer: 'shimekiri', hint: 'shi-me-ki-ri', placeholder: 'shimekiri...' },
+      { id: 'ja-spk-901', type: 'speaking', targetText: "本日の会議の資料を確認しました。", reading: "ほんじつのかいぎのしりょうをかくにんしました。", translation: "I confirmed the materials for today's meeting.", pronunciation: "honjitsu no kaigi no shiryou o kakunin shimashita", prompt: "Report on meeting preparation at work." },
+      { id: 'ja-spk-902', type: 'speaking', targetText: "お疲れ様でした。明日もよろしくお願いします。", reading: "おつかれさまでした。あしたもよろしくおねがいします。", translation: "Thank you for your hard work today. See you tomorrow.", pronunciation: "otsukaresama deshita. ashita mo yoroshiku onegaishimasu", prompt: "Exchange polite closing greetings at work." },
     ],
   },
 
@@ -329,6 +347,8 @@ export const japaneseLessons = [
       { id: 'ja-ex-1002', type: 'fillBlank', sentence: 'それは素晴らしいと___。', answer: '思います', hint: 'Omoimasu (I think)', translation: 'I think that is wonderful.' },
       { id: 'ja-ex-1003', type: 'matchPairs', prompt: 'Match discourse phrases', pairs: [{ left: '確かに', right: 'Indeed / Certainly' }, { left: '例えば', right: 'For example' }, { left: '実は', right: 'Actually' }, { left: '賛成', right: 'Agreement' }] },
       { id: 'ja-ex-1004', type: 'typing', prompt: 'Type romaji for "実は" (Actually)', answer: 'jitsu wa', hint: 'ji-tsu wa', placeholder: 'jitsu wa...' },
+      { id: 'ja-spk-1001', type: 'speaking', targetText: "日本語の勉強はとても面白いと思います。", reading: "にほんごのべんきょうはとてもおもしろいとおもいます。", translation: "I think studying Japanese is very interesting.", pronunciation: "nihongo no benkyou wa totemo omoshiroi to omoimasu", prompt: "Share your perspective on studying Japanese." },
+      { id: 'ja-spk-1002', type: 'speaking', targetText: "日本を旅行して新しい文化を学びたいです。", reading: "にほんをりょこうしてあたらしいぶんかをまなびたいです。", translation: "I want to travel in Japan and learn about new culture.", pronunciation: "nihon o ryokou shite atarashii bunka o manabitai desu", prompt: "Express your wish to travel and learn culture." },
     ],
   },
 ];

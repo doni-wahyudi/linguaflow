@@ -36,6 +36,9 @@ const allLessonIds = new Map(); // id -> { lang, lessonId }
 const allGrammarGuideIds = new Map(); // id -> { lang, lessonId }
 const allLexiconIds = new Map(); // id -> { lang, lemmaId }
 const allVocabIds = new Map(); // id -> { lang, lessonId }
+const allExerciseIds = new Map(); // id -> { lang, lessonId }
+
+let totalSpeakingExercises = 0;
 
 /**
  * Validates an array of lessons for a language.
@@ -196,6 +199,53 @@ function validateLessons(lang, lessons) {
       // 3e. grammarGuide.tip must be a non-empty string
       if (!gg.tip || typeof gg.tip !== 'string' || !gg.tip.trim()) {
         addError(`Lessons:${lang.name}`, `${lessonRef} grammarGuide is missing valid 'tip' string`);
+      }
+    }
+
+    // 4. Exercises requirements: array with >= 2 speaking exercises conforming to schema
+    if (!Array.isArray(lesson.exercises)) {
+      addError(`Lessons:${lang.name}`, `${lessonRef} is missing 'exercises' array`);
+    } else {
+      let speakingCount = 0;
+      for (let e = 0; e < lesson.exercises.length; e++) {
+        const ex = lesson.exercises[e];
+        const exRef = ex && ex.id ? ex.id : `${lessonRef} exercise #${e}`;
+        if (!ex || typeof ex !== 'object') {
+          addError(`Lessons:${lang.name}`, `${lessonRef} exercise #${e} is not an object`);
+          continue;
+        }
+
+        if (ex.id) {
+          if (allExerciseIds.has(ex.id)) {
+            const prev = allExerciseIds.get(ex.id);
+            addError(
+              `Lessons:${lang.name}`,
+              `Duplicate exercise ID '${ex.id}' in ${lessonRef} (already defined in ${prev.lang} ${prev.lessonId})`
+            );
+          } else {
+            allExerciseIds.set(ex.id, { lang: lang.name, lessonId: lessonRef });
+          }
+        } else {
+          addError(`Lessons:${lang.name}`, `${exRef} is missing 'id' string`);
+        }
+
+        if (ex.type === 'speaking') {
+          speakingCount++;
+          totalSpeakingExercises++;
+          if (!ex.targetText || typeof ex.targetText !== 'string' || !ex.targetText.trim()) {
+            addError(`Lessons:${lang.name}`, `Speaking exercise '${exRef}' is missing valid 'targetText' string`);
+          }
+          if (!ex.translation || typeof ex.translation !== 'string' || !ex.translation.trim()) {
+            addError(`Lessons:${lang.name}`, `Speaking exercise '${exRef}' is missing valid 'translation' string`);
+          }
+        }
+      }
+
+      if (speakingCount < 2) {
+        addError(
+          `Lessons:${lang.name}`,
+          `${lessonRef} has ${speakingCount} speaking exercise(s); expected >= 2`
+        );
       }
     }
   }
@@ -360,6 +410,7 @@ async function run() {
   console.log('\n----------------------------------------------------');
   console.log(`Summary:`);
   console.log(`  Lessons checked: ${totalLessonsChecked}`);
+  console.log(`  Speaking exercises: ${totalSpeakingExercises}`);
   console.log(`  Lexicon items checked: ${totalLexiconChecked}`);
   console.log(`  Unique lesson IDs: ${allLessonIds.size}`);
   console.log(`  Unique grammar guide IDs: ${allGrammarGuideIds.size}`);
