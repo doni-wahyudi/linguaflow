@@ -11,7 +11,7 @@
  * 6. Speed Drills chunk questions properly (10 items) and allow advancing and resetting.
  */
 
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -19,14 +19,103 @@ import path from 'node:path';
 const PREVIEW_PORT = 4174;
 const CDP_PORT = 9224;
 const BASE_URL = `http://localhost:${PREVIEW_PORT}/linguaflow/`;
-const EDGE_PATH = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 
 let viteProc = null;
-let edgeProc = null;
-let edgeTmpDir = null;
+let browserProc = null;
+let browserTmpDir = null;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Cross-platform discovery for a Chromium-based browser executable.
+ * Checks environment overrides, then standard paths on win32, darwin, and linux.
+ * @returns {string|null} Full path to the executable, or null if not found.
+ */
+function findBrowserExecutable() {
+  // 1. Explicit environment variables
+  const envVars = ['CHROME_PATH', 'BROWSER_PATH', 'EDGE_PATH'];
+  for (const varName of envVars) {
+    const p = process.env[varName];
+    if (p && fs.existsSync(p)) {
+      return p;
+    }
+  }
+
+  const platform = process.platform;
+
+  // 2. Windows discovery
+  if (platform === 'win32') {
+    const progFiles86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+    const progFiles = process.env.ProgramFiles || 'C:\\Program Files';
+    const localAppData =
+      process.env.LOCALAPPDATA || (os.homedir() ? path.join(os.homedir(), 'AppData', 'Local') : '');
+
+    const candidates = [
+      path.join(progFiles86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      path.join(progFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      path.join(progFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      path.join(progFiles86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      localAppData ? path.join(localAppData, 'Microsoft', 'Edge', 'Application', 'msedge.exe') : null,
+      localAppData ? path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe') : null,
+    ].filter(Boolean);
+
+    for (const c of candidates) {
+      if (fs.existsSync(c)) {
+        return c;
+      }
+    }
+  }
+
+  // 3. macOS discovery
+  if (platform === 'darwin') {
+    const home = os.homedir();
+    const candidates = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+      path.join(home, 'Applications', 'Google Chrome.app', 'Contents', 'MacOS', 'Google Chrome'),
+      path.join(home, 'Applications', 'Microsoft Edge.app', 'Contents', 'MacOS', 'Microsoft Edge'),
+    ];
+
+    for (const c of candidates) {
+      if (fs.existsSync(c)) {
+        return c;
+      }
+    }
+  }
+
+  // 4. Linux discovery
+  if (platform === 'linux') {
+    const standardPaths = [
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/microsoft-edge',
+      '/usr/bin/microsoft-edge-stable',
+      '/snap/bin/chromium',
+      '/snap/bin/google-chrome',
+    ];
+
+    for (const c of standardPaths) {
+      if (fs.existsSync(c)) {
+        return c;
+      }
+    }
+
+    const bins = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge'];
+    for (const bin of bins) {
+      try {
+        const out = execSync(`which ${bin} 2>/dev/null`, { encoding: 'utf8' }).trim();
+        if (out && fs.existsSync(out)) {
+          return out;
+        }
+      } catch {}
+    }
+  }
+
+  return null;
 }
 
 async function startVitePreview() {
@@ -58,15 +147,16 @@ async function startVitePreview() {
   throw new Error('Vite preview server failed to start within timeout');
 }
 
-async function startEdgeBrowser() {
-  console.log(`-> Starting Headless Edge on CDP port ${CDP_PORT}...`);
-  edgeTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'linguaflow-e2e-'));
-  edgeProc = spawn(
-    EDGE_PATH,
+async function startBrowser(browserPath) {
+  console.log(`-> Starting Headless Browser (${path.basename(browserPath)}) on CDP port ${CDP_PORT}...`);
+  console.log(`   Executable: ${browserPath}`);
+  browserTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'linguaflow-e2e-'));
+  browserProc = spawn(
+    browserPath,
     [
       '--headless=new',
       `--remote-debugging-port=${CDP_PORT}`,
-      `--user-data-dir=${edgeTmpDir}`,
+      `--user-data-dir=${browserTmpDir}`,
       '--disable-gpu',
       '--no-first-run',
       '--no-default-browser-check',
@@ -90,11 +180,11 @@ async function startEdgeBrowser() {
   }
 
   if (!targets || targets.length === 0) {
-    throw new Error('Could not establish CDP connection to Edge browser');
+    throw new Error('Could not establish CDP connection to browser');
   }
 
   const pageTarget = targets.find((t) => t.type === 'page') || targets[0];
-  console.log('   [OK] Headless Edge attached:', pageTarget.webSocketDebuggerUrl);
+  console.log('   [OK] Headless browser attached:', pageTarget.webSocketDebuggerUrl);
 
   const ws = new WebSocket(pageTarget.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
@@ -197,12 +287,23 @@ async function startEdgeBrowser() {
 }
 
 async function runTests() {
+  const browserPath = findBrowserExecutable();
+  if (!browserPath) {
+    console.warn('\n====================================================');
+    console.warn('  [SKIPPED] Live Interaction Tests');
+    console.warn('====================================================');
+    console.warn('  No compatible Chromium browser (Chrome/Edge/Chromium) was found.');
+    console.warn('  Set CHROME_PATH, BROWSER_PATH, or EDGE_PATH to run these tests.');
+    console.warn('  Skipping gracefully with exit code 0.\n');
+    return;
+  }
+
   let cdp;
   const results = [];
 
   try {
     await startVitePreview();
-    cdp = await startEdgeBrowser();
+    cdp = await startBrowser(browserPath);
 
     console.log('\n====================================================');
     console.log('  LinguaFlow End-to-End Live Interaction Suite');
@@ -506,11 +607,11 @@ async function runTests() {
     if (cdp?.ws) {
       try { cdp.ws.close(); } catch {}
     }
-    if (edgeProc) {
-      try { edgeProc.kill('SIGKILL'); } catch {}
+    if (browserProc) {
+      try { browserProc.kill('SIGKILL'); } catch {}
     }
-    if (edgeTmpDir) {
-      try { fs.rmSync(edgeTmpDir, { recursive: true, force: true }); } catch {}
+    if (browserTmpDir) {
+      try { fs.rmSync(browserTmpDir, { recursive: true, force: true }); } catch {}
     }
     if (viteProc) {
       try { viteProc.kill('SIGTERM'); } catch {}

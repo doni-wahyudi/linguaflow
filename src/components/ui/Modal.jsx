@@ -104,58 +104,69 @@ const Modal = ({
 }) => {
   const contentRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   const titleId = useId();
   const descId = useId();
 
   /** Focus trap — keep Tab cycling inside the modal, Escape dismisses. */
-  const handleKeyDown = useCallback(
-    (e) => {
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onCloseRef.current?.();
+      return;
+    }
+
+    if (e.key !== 'Tab' || !contentRef.current) return;
+
+    const focusable = Array.from(contentRef.current.querySelectorAll(FOCUSABLE)).filter(
+      (el) => el.offsetParent !== null || el === document.activeElement,
+    );
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    } else if (!contentRef.current.contains(document.activeElement)) {
+      /* Something outside grabbed focus (a late re-render, a click landing on
+         the backdrop layer): pull it back instead of letting Tab escape. */
+      e.preventDefault();
+      first.focus();
+    }
+  }, []);
+
+  /** Window-level Escape listener while open. */
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleGlobalKeyDown = (e) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
-        return;
+        onCloseRef.current?.();
       }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
 
-      if (e.key !== 'Tab' || !contentRef.current) return;
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [isOpen]);
 
-      const focusable = Array.from(contentRef.current.querySelectorAll(FOCUSABLE)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement,
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      } else if (!contentRef.current.contains(document.activeElement)) {
-        /* Something outside grabbed focus (a late re-render, a click landing on
-           the backdrop layer): pull it back instead of letting Tab escape. */
-        e.preventDefault();
-        first.focus();
-      }
-    },
-    [onClose],
-  );
-
-  /** Lock body scroll, listen for Escape, and move focus in while open. */
+  /** Lock body scroll and move initial focus in while open. */
   useEffect(() => {
     if (!isOpen) return undefined;
 
     previousFocusRef.current = document.activeElement;
     lockScroll();
-
-    const handleGlobalKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
 
     const timer = setTimeout(() => {
       if (!contentRef.current) return;
@@ -168,11 +179,10 @@ const Modal = ({
     }, 50);
 
     return () => {
-      window.removeEventListener('keydown', handleGlobalKeyDown);
       clearTimeout(timer);
       unlockScroll();
     };
-  }, [isOpen, initialFocus, onClose]);
+  }, [isOpen, initialFocus]);
 
   /** Restore focus to the trigger on close. */
   useEffect(() => {
@@ -199,7 +209,7 @@ const Modal = ({
             animate="visible"
             exit="exit"
             transition={{ duration: 0.2 }}
-            onClick={dismissOnBackdrop ? onClose : undefined}
+            onClick={dismissOnBackdrop ? () => onCloseRef.current?.() : undefined}
             aria-hidden="true"
           />
 
@@ -240,7 +250,7 @@ const Modal = ({
                 {showClose && (
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={() => onCloseRef.current?.()}
                     className={[
                       '-mr-2 -mt-1 flex items-center justify-center w-9 h-9 rounded-pill shrink-0',
                       'text-ink-500 hover:bg-ink-100 hover:text-ink-900',
