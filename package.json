@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test:curriculum": "node scripts/verify-curriculum.js",
+    "test:pronunciation": "node scripts/verify-pronunciation.js",
     "test:interactions": "node scripts/verify-live-interactions.js",
     "dev": "vite",
     "build": "vite build",
