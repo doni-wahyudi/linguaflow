@@ -22,7 +22,7 @@
  *   alone is not an accessible name for touch or screen-reader users.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Repeat,
@@ -44,6 +44,7 @@ import PageWrapper from '../components/layout/PageWrapper';
 import { Flag } from '../components/brand';
 import { useUser } from '../context/UserContext';
 import { lessonsByLanguage } from '../data/lessons';
+import { getLexiconByLanguage } from '../data/lexicon';
 import { getExamsByLanguage } from '../data/exams';
 import languages from '../data/languages';
 import { playCorrect, playIncorrect } from '../utils/soundEffects';
@@ -150,6 +151,76 @@ function VerdictPanel({ tone = 'info', children, onNext, nextLabel }) {
   );
 }
 
+/**
+ * Checks whether an item's level matches a selected filter level,
+ * taking into account CEFR <-> JLPT cross-framework equivalencies.
+ */
+function matchesLevel(itemLevel, filterLevel) {
+  if (!filterLevel || filterLevel === 'All') return true;
+  if (!itemLevel) return false;
+  if (itemLevel === filterLevel) return true;
+
+  const equivalents = {
+    A1: 'N5',
+    N5: 'A1',
+    A2: 'N4',
+    N4: 'A2',
+    B1: 'N3',
+    N3: 'B1',
+  };
+
+  if (equivalents[filterLevel] === itemLevel) return true;
+  if (
+    filterLevel.includes('/') &&
+    filterLevel.split('/').some((l) => l.trim() === itemLevel)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Generates 3 distinct distractor translation strings for multiple-choice questions.
+ */
+function getVocabDistractors(currentWord, allWords, count = 3) {
+  const targetTrans = (currentWord.translation || '').trim().toLowerCase();
+  const distractors = [];
+  const used = new Set([targetTrans]);
+
+  // Try same level first for closer distractors
+  const sameLevel = allWords.filter(
+    (w) => w.level === currentWord.level && w.id !== currentWord.id
+  );
+  const candidatePool = sameLevel.length >= count ? sameLevel : allWords;
+
+  // Stride through candidates deterministically using character codes of id
+  const idSum = (currentWord.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const startIndex = Math.abs(idSum) % Math.max(1, candidatePool.length);
+
+  for (let i = 0; i < candidatePool.length && distractors.length < count; i++) {
+    const candidate = candidatePool[(startIndex + i * 3) % candidatePool.length];
+    if (candidate && candidate.translation) {
+      const clean = candidate.translation.trim().toLowerCase();
+      if (!used.has(clean)) {
+        used.add(clean);
+        distractors.push(candidate.translation);
+      }
+    }
+  }
+
+  // Safety fallbacks if candidate pool is small
+  const defaultFallbacks = ['To understand', 'Tomorrow morning', 'Important message', 'Good evening'];
+  for (const fb of defaultFallbacks) {
+    if (distractors.length >= count) break;
+    if (!used.has(fb.toLowerCase())) {
+      used.add(fb.toLowerCase());
+      distractors.push(fb);
+    }
+  }
+
+  return distractors;
+}
+
 export default function Practice() {
   const { user, progress, speech, streak, xp } = useUser();
   const currentLang = user.selectedLanguage || 'es';
@@ -159,19 +230,87 @@ export default function Practice() {
   const [activeTab, setActiveTab] = useState('review'); // 'review' | 'quiz' | 'listening' | 'words'
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Level choices adapted for current language framework (CEFR vs JLPT)
+  const availableLevels = useMemo(() => {
+    return currentLang === 'ja'
+      ? ['All', 'N5', 'N4', 'N3']
+      : ['All', 'A1', 'A2', 'B1'];
+  }, [currentLang]);
+
   // ── 1. Vocabulary Pool & SRS ──────────────────────────────────────────────
   const allVocabWords = useMemo(() => {
     const list = lessonsByLanguage[currentLang] || [];
     const map = new Map();
+    const wordKeySet = new Set();
+    const normalizeWord = (w) => (w || '').trim().toLowerCase();
+
+    // 1. Vocabulary from curriculum lessons
     list.forEach((lesson) => {
       if (lesson.vocabulary) {
         lesson.vocabulary.forEach((v) => {
           if (!map.has(v.id)) {
-            map.set(v.id, { ...v, category: lesson.categoryId, lessonTitle: lesson.title, level: lesson.level });
+            const entry = {
+              ...v,
+              category: lesson.categoryId || 'general',
+              lessonTitle: lesson.title,
+              level: lesson.level || (currentLang === 'ja' ? 'N5' : 'A1'),
+            };
+            map.set(v.id, entry);
+            if (v.word) {
+              wordKeySet.add(normalizeWord(v.word));
+            }
           }
         });
       }
     });
+
+    // 2. Vocabulary from expanded core lexicon
+    const lexiconList = getLexiconByLanguage(currentLang) || [];
+    lexiconList.forEach((item) => {
+      const norm = normalizeWord(item.word);
+      if (map.has(item.id)) {
+        return;
+      }
+      if (norm && wordKeySet.has(norm)) {
+        // Merge missing fields into existing lesson entry so entries remain unique
+        for (const [existingId, existingEntry] of map.entries()) {
+          if (normalizeWord(existingEntry.word) === norm) {
+            map.set(existingId, {
+              ...item,
+              ...existingEntry,
+              exampleTranslation: existingEntry.exampleTranslation || item.exampleTranslation,
+              gender: existingEntry.gender || item.gender,
+              article: existingEntry.article || item.article,
+              kanji: existingEntry.kanji || item.kanji,
+              reading: existingEntry.reading || item.reading,
+            });
+            break;
+          }
+        }
+        return;
+      }
+
+      // Add unique lexicon entry formatted as specified
+      map.set(item.id, {
+        id: item.id,
+        word: item.word,
+        translation: item.translation,
+        pronunciation: item.pronunciation,
+        example: item.example,
+        exampleTranslation: item.exampleTranslation,
+        category: item.category || 'general',
+        lessonTitle: 'Core Lexicon',
+        level: item.level || (currentLang === 'ja' ? 'N5' : 'A1'),
+        gender: item.gender,
+        article: item.article,
+        kanji: item.kanji,
+        reading: item.reading,
+      });
+      if (norm) {
+        wordKeySet.add(norm);
+      }
+    });
+
     return Array.from(map.values());
   }, [currentLang]);
 
@@ -186,7 +325,7 @@ export default function Practice() {
 
     const learnedIds = new Set(Object.keys(progress.wordProgress || {}));
     const learned = allVocabWords.filter((w) => learnedIds.has(w.id));
-    return learned.length > 0 ? learned : allVocabWords.slice(0, 10);
+    return learned.length > 0 ? learned : allVocabWords.slice(0, 15);
   }, [allVocabWords, dueWordIds, progress.wordProgress]);
 
   const [sessionIndex, setSessionIndex] = useState(0);
@@ -223,13 +362,14 @@ export default function Practice() {
   const [drillScore, setDrillScore] = useState(0);
   const [drillFinished, setDrillFinished] = useState(false);
 
-  // Generate drill questions from lessons
+  // Generate drill questions from lessons and expanded lexicon bank
   const drillQuestions = useMemo(() => {
     const list = lessonsByLanguage[currentLang] || [];
     const pool = [];
 
+    // 1. Multiple-choice questions from curriculum lessons
     list.forEach((lesson) => {
-      if (drillLevel !== 'All' && lesson.level !== drillLevel) return;
+      if (drillLevel !== 'All' && !matchesLevel(lesson.level, drillLevel)) return;
 
       if (lesson.exercises) {
         lesson.exercises.forEach((ex) => {
@@ -248,8 +388,50 @@ export default function Practice() {
       }
     });
 
-    return pool.slice(0, 10);
-  }, [currentLang, drillLevel]);
+    // 2. Vocabulary drill questions generated from expanded allVocabWords pool
+    const matchingVocab = allVocabWords.filter(
+      (w) => drillLevel === 'All' || matchesLevel(w.level, drillLevel)
+    );
+
+    matchingVocab.forEach((vocab, idx) => {
+      const distractors = getVocabDistractors(vocab, allVocabWords, 3);
+      const correctIndex = (idx + pool.length) % 4;
+      const options = [];
+      let dIdx = 0;
+      for (let pos = 0; pos < 4; pos++) {
+        if (pos === correctIndex) {
+          options.push(vocab.translation);
+        } else {
+          options.push(distractors[dIdx++] || 'Other');
+        }
+      }
+
+      const qWord =
+        vocab.reading && vocab.reading !== vocab.word
+          ? `${vocab.word} (${vocab.reading})`
+          : vocab.word;
+
+      let explanation = `“${vocab.word}” translates to “${vocab.translation}”.`;
+      if (vocab.example) {
+        explanation += ` Example: “${vocab.example}”`;
+        if (vocab.exampleTranslation) {
+          explanation += ` (${vocab.exampleTranslation})`;
+        }
+      }
+
+      pool.push({
+        id: `drill-vocab-${vocab.id}`,
+        question: `What does “${qWord}” mean?`,
+        options,
+        correctIndex,
+        explanation,
+        lessonTitle: vocab.lessonTitle || 'Core Lexicon',
+        level: vocab.level,
+      });
+    });
+
+    return pool;
+  }, [currentLang, drillLevel, allVocabWords]);
 
   const currentDrillQ = drillQuestions[drillIndex] || drillQuestions[0];
 
@@ -287,29 +469,75 @@ export default function Practice() {
   };
 
   // ── 3. Listening Ear Training State ───────────────────────────────────────
+  const [listenLevel, setListenLevel] = useState('All');
+  const [listenIndex, setListenIndex] = useState(0);
+  const [listenAnswered, setListenAnswered] = useState(false);
+  const [listenSelected, setListenSelected] = useState(null);
+
   const listeningExercises = useMemo(() => {
-    const exams = getExamsByLanguage(currentLang);
     const audioTasks = [];
 
+    // 1. Official exam listening sections
+    const exams = getExamsByLanguage(currentLang);
     exams.forEach((exam) => {
-      const listeningSec = exam.sections.find((s) => s.id === 'listening');
-      if (listeningSec) {
+      if (listenLevel !== 'All' && !matchesLevel(exam.level, listenLevel)) return;
+      const listeningSec = exam.sections?.find((s) => s.id === 'listening');
+      if (listeningSec && listeningSec.questions) {
         listeningSec.questions.forEach((q) => {
-          audioTasks.push({
-            ...q,
-            level: exam.level,
-            examTitle: exam.title,
-          });
+          if (q.audioScript && q.options && q.options.length >= 2) {
+            audioTasks.push({
+              ...q,
+              level: exam.level,
+              examTitle: exam.title,
+            });
+          }
         });
       }
     });
 
-    return audioTasks;
-  }, [currentLang]);
+    // 2. Ear training audio tasks from expanded lexicon pool
+    const matchingVocab = allVocabWords.filter(
+      (w) => listenLevel === 'All' || matchesLevel(w.level, listenLevel)
+    );
 
-  const [listenIndex, setListenIndex] = useState(0);
-  const [listenAnswered, setListenAnswered] = useState(false);
-  const [listenSelected, setListenSelected] = useState(null);
+    matchingVocab.forEach((vocab, idx) => {
+      const distractors = getVocabDistractors(vocab, allVocabWords, 3);
+      const correctIndex = idx % 4;
+      const options = [];
+      let dIdx = 0;
+      for (let pos = 0; pos < 4; pos++) {
+        if (pos === correctIndex) {
+          options.push(vocab.translation);
+        } else {
+          options.push(distractors[dIdx++] || 'Other');
+        }
+      }
+
+      const audioScript = vocab.example || vocab.word;
+      const prompt = vocab.example
+        ? `Listen to the audio clip. What does this expression mean?`
+        : `Listen to the spoken audio. What is the English translation?`;
+
+      let explanation = `Audio text: “${audioScript}”. Translation: “${vocab.translation}”.`;
+      if (vocab.example && vocab.exampleTranslation) {
+        explanation += ` Sentence: “${vocab.exampleTranslation}”`;
+      }
+
+      audioTasks.push({
+        id: `listen-vocab-${vocab.id}`,
+        prompt,
+        audioScript,
+        options,
+        correctIndex,
+        explanation,
+        level: vocab.level,
+        examTitle: vocab.lessonTitle || 'Core Lexicon Audio',
+      });
+    });
+
+    return audioTasks;
+  }, [currentLang, listenLevel, allVocabWords]);
+
   const currentListenQ = listeningExercises[listenIndex] || listeningExercises[0];
 
   const handleListenAnswer = (idx) => {
@@ -326,17 +554,83 @@ export default function Practice() {
     }
   };
 
-  // ── 4. Vocabulary Library Search ──────────────────────────────────────────
+  // ── 4. Vocabulary Library Search & Filtering ──────────────────────────────
+  const [libraryLevel, setLibraryLevel] = useState('All');
+  const [libraryCategory, setLibraryCategory] = useState('All');
+
+  const availableCategories = useMemo(() => {
+    const cats = new Set();
+    allVocabWords.forEach((w) => {
+      if (w.category) {
+        cats.add(w.category);
+      }
+    });
+    return ['All', ...Array.from(cats).sort()];
+  }, [allVocabWords]);
+
   const filteredWords = useMemo(() => {
-    if (!searchQuery.trim()) return allVocabWords;
-    const q = searchQuery.toLowerCase();
-    return allVocabWords.filter(
-      (w) =>
-        w.word.toLowerCase().includes(q) ||
-        w.translation.toLowerCase().includes(q) ||
-        (w.pronunciation && w.pronunciation.toLowerCase().includes(q))
-    );
-  }, [allVocabWords, searchQuery]);
+    const q = searchQuery.toLowerCase().trim();
+    return allVocabWords.filter((w) => {
+      // Level filter
+      if (libraryLevel !== 'All' && !matchesLevel(w.level, libraryLevel)) {
+        return false;
+      }
+      // Category filter
+      if (libraryCategory !== 'All' && w.category !== libraryCategory) {
+        return false;
+      }
+      // Search query filter
+      if (q) {
+        const matchesWord = w.word && w.word.toLowerCase().includes(q);
+        const matchesTrans = w.translation && w.translation.toLowerCase().includes(q);
+        const matchesPron = w.pronunciation && w.pronunciation.toLowerCase().includes(q);
+        const matchesKanji = w.kanji && w.kanji.toLowerCase().includes(q);
+        const matchesReading = w.reading && w.reading.toLowerCase().includes(q);
+        const matchesExample = w.example && w.example.toLowerCase().includes(q);
+        const matchesCategory = w.category && w.category.toLowerCase().includes(q);
+        const matchesLevelTag = w.level && w.level.toLowerCase().includes(q);
+        return (
+          matchesWord ||
+          matchesTrans ||
+          matchesPron ||
+          matchesKanji ||
+          matchesReading ||
+          matchesExample ||
+          matchesCategory ||
+          matchesLevelTag
+        );
+      }
+      return true;
+    });
+  }, [allVocabWords, searchQuery, libraryLevel, libraryCategory]);
+
+  // Reset session and level state on language change
+  useEffect(() => {
+    setDrillIndex(0);
+    setDrillAnswered(false);
+    setDrillSelected(null);
+    setDrillScore(0);
+    setDrillFinished(false);
+
+    setListenIndex(0);
+    setListenAnswered(false);
+    setListenSelected(null);
+
+    setSessionIndex(0);
+    setIsFlipped(false);
+    setSessionFinished(false);
+
+    if (drillLevel !== 'All' && !availableLevels.includes(drillLevel)) {
+      setDrillLevel('All');
+    }
+    if (listenLevel !== 'All' && !availableLevels.includes(listenLevel)) {
+      setListenLevel('All');
+    }
+    if (libraryLevel !== 'All' && !availableLevels.includes(libraryLevel)) {
+      setLibraryLevel('All');
+    }
+    setLibraryCategory('All');
+  }, [currentLang, availableLevels]);
 
   return (
     <PageWrapper>
@@ -436,15 +730,25 @@ export default function Practice() {
                         <h2 className="font-display font-bold text-display-md text-ink-900 mb-2">
                           {isFlipped ? currentWord.translation : currentWord.word}
                         </h2>
+                        {!isFlipped && currentWord.reading && currentWord.reading !== currentWord.word && (
+                          <p className="text-body-sm text-ink-700 font-medium mb-1">
+                            {currentWord.reading}
+                          </p>
+                        )}
                         {!isFlipped && currentWord.pronunciation && (
                           <p className="text-body-sm text-ink-500 font-medium">
                             /{currentWord.pronunciation}/
                           </p>
                         )}
                         {isFlipped && currentWord.example && (
-                          <p className="mt-3 mx-auto max-w-xs p-2.5 rounded-button border border-brand-200 bg-brand-50 text-body-sm text-ink-700 italic">
-                            "{currentWord.example}"
-                          </p>
+                          <div className="mt-3 mx-auto max-w-sm p-3 rounded-button border border-brand-200 bg-brand-50 text-body-sm text-ink-700 italic">
+                            <p>"{currentWord.example}"</p>
+                            {currentWord.exampleTranslation && (
+                              <p className="text-caption text-ink-500 not-italic mt-1">
+                                "{currentWord.exampleTranslation}"
+                              </p>
+                            )}
+                          </div>
                         )}
                       </motion.div>
                     </AnimatePresence>
@@ -525,7 +829,7 @@ export default function Practice() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <span className="text-overline uppercase text-ink-700">Target level</span>
                 <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter drills by level">
-                  {['All', 'A1', 'A2', 'B1'].map((lvl) => (
+                  {availableLevels.map((lvl) => (
                     <Chip
                       key={lvl}
                       size="sm"
@@ -615,6 +919,31 @@ export default function Practice() {
             aria-labelledby={practiceIds.tabId('listening')}
             className="max-w-2xl mx-auto space-y-6"
           >
+            {/* Level Filter Bar */}
+            <Card padding="sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-overline uppercase text-ink-700">Target level</span>
+                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter ear training by level">
+                  {availableLevels.map((lvl) => (
+                    <Chip
+                      key={lvl}
+                      size="sm"
+                      tone="card"
+                      selected={listenLevel === lvl}
+                      onClick={() => {
+                        setListenLevel(lvl);
+                        setListenIndex(0);
+                        setListenAnswered(false);
+                        setListenSelected(null);
+                      }}
+                    >
+                      {lvl === 'All' ? 'All levels' : lvl}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
             {currentListenQ ? (
               <Card padding="md" className="sm:p-8">
                 <div className="space-y-6">
@@ -676,9 +1005,13 @@ export default function Practice() {
                               setListenAnswered(false);
                               setListenSelected(null);
                             }
-                          : undefined
+                          : () => {
+                              setListenIndex(0);
+                              setListenAnswered(false);
+                              setListenSelected(null);
+                            }
                       }
-                      nextLabel="Next Audio Clip"
+                      nextLabel={listenIndex + 1 < listeningExercises.length ? 'Next Audio Clip' : 'Restart Ear Training'}
                     >
                       {currentListenQ.explanation}
                     </VerdictPanel>
@@ -686,18 +1019,20 @@ export default function Practice() {
                 </div>
               </Card>
             ) : (
-              /* Empty state — the page had no way to say "nothing here". */
+              /* Empty state */
               <Card padding="lg" tone="quiet" className="text-center">
                 <div className="w-14 h-14 rounded-pill bg-surface-200 text-ink-700 mx-auto flex items-center justify-center mb-4">
                   <Headphones className="w-7 h-7" aria-hidden="true" />
                 </div>
                 <h3 className="font-display font-bold text-display-xs text-ink-900 mb-1">
-                  No listening exercises yet
+                  No listening exercises for level {listenLevel}
                 </h3>
-                <p className="text-body-sm text-ink-500 max-w-sm mx-auto">
-                  Ear training pulls its clips from the listening sections of the official mock exams. Start a{' '}
-                  {currentLang === 'ja' ? 'JLPT' : 'CEFR'} mock exam to unlock them here.
+                <p className="text-body-sm text-ink-500 max-w-sm mx-auto mb-4">
+                  Try switching to another level or choosing “All levels”.
                 </p>
+                <Button variant="outline" shape="pill" size="md" onClick={() => setListenLevel('All')}>
+                  Show all levels
+                </Button>
               </Card>
             )}
           </div>
@@ -711,21 +1046,59 @@ export default function Practice() {
             aria-labelledby={practiceIds.tabId('words')}
             className="space-y-4"
           >
-            <Input
-              srOnlyLabel="Search the vocabulary library"
-              type="search"
-              icon={Search}
-              placeholder="Search word or translation..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              size="lg"
-              className="max-w-md"
-            />
+            <Card padding="sm" className="space-y-3">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                <Input
+                  srOnlyLabel="Search the vocabulary library"
+                  type="search"
+                  icon={Search}
+                  placeholder="Search word, translation, kanji..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  size="md"
+                  className="max-w-md flex-1"
+                />
+
+                <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter vocabulary by level">
+                  <span className="text-overline uppercase text-ink-700 mr-1">Level</span>
+                  {availableLevels.map((lvl) => (
+                    <Chip
+                      key={lvl}
+                      size="sm"
+                      tone="card"
+                      selected={libraryLevel === lvl}
+                      onClick={() => setLibraryLevel(lvl)}
+                    >
+                      {lvl === 'All' ? 'All' : lvl}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+
+              {availableCategories.length > 2 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-ink-100" role="group" aria-label="Filter vocabulary by category">
+                  <span className="text-overline uppercase text-ink-700 mr-1">Category</span>
+                  {availableCategories.slice(0, 10).map((cat) => (
+                    <Chip
+                      key={cat}
+                      size="sm"
+                      tone="quiet"
+                      selected={libraryCategory === cat}
+                      onClick={() => setLibraryCategory(cat)}
+                    >
+                      {cat === 'All' ? 'All categories' : cat}
+                    </Chip>
+                  ))}
+                </div>
+              )}
+            </Card>
 
             <p className="text-body-sm text-ink-500" role="status" aria-live="polite">
               Showing <span className="tabular-nums font-semibold text-ink-700">{filteredWords.length}</span> of{' '}
               <span className="tabular-nums font-semibold text-ink-700">{allVocabWords.length}</span> words
-              {searchQuery.trim() ? ` for “${searchQuery.trim()}”` : ''}.
+              {searchQuery.trim() ? ` matching “${searchQuery.trim()}”` : ''}
+              {libraryLevel !== 'All' ? ` at level ${libraryLevel}` : ''}
+              {libraryCategory !== 'All' ? ` in ${libraryCategory}` : ''}.
             </p>
 
             {filteredWords.length === 0 ? (
@@ -734,13 +1107,22 @@ export default function Practice() {
                   <Search className="w-7 h-7" aria-hidden="true" />
                 </div>
                 <h3 className="font-display font-bold text-display-xs text-ink-900 mb-1">
-                  No matches for “{searchQuery.trim()}”
+                  No matching words found
                 </h3>
                 <p className="text-body-sm text-ink-500 mb-4">
-                  Try a shorter word, or the translation instead of the term.
+                  Try adjusting your search query, level badge, or category filter.
                 </p>
-                <Button variant="outline" shape="pill" size="md" onClick={() => setSearchQuery('')}>
-                  Clear search
+                <Button
+                  variant="outline"
+                  shape="pill"
+                  size="md"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setLibraryLevel('All');
+                    setLibraryCategory('All');
+                  }}
+                >
+                  Reset filters
                 </Button>
               </Card>
             ) : (
@@ -753,7 +1135,12 @@ export default function Practice() {
                     <Card key={item.id} padding="sm" className="flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <Badge variant="outline">{item.level}</Badge>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge variant="outline">{item.level}</Badge>
+                            {item.category && item.category !== 'general' && (
+                              <Badge variant="quiet">{item.category}</Badge>
+                            )}
+                          </div>
                           <AudioControls
                             text={item.word}
                             lang={currentLang}
@@ -764,11 +1151,19 @@ export default function Practice() {
                         <h3 className="font-display font-bold text-display-xs text-ink-900 mb-0.5">
                           {item.word}
                         </h3>
+                        {item.reading && item.reading !== item.word && (
+                          <p className="text-caption text-ink-600 font-medium mb-1">{item.reading}</p>
+                        )}
                         {item.pronunciation && (
                           <p className="text-body-sm text-ink-500 mb-2">/{item.pronunciation}/</p>
                         )}
                         <p className="text-body-md font-medium text-brand-800">{item.translation}</p>
-                        <p className="text-caption text-ink-500 mt-2">
+                        {item.example && (
+                          <p className="text-caption text-ink-600 italic mt-2 line-clamp-2" title={item.example}>
+                            “{item.example}”
+                          </p>
+                        )}
+                        <p className="text-caption text-ink-400 mt-2">
                           from {item.lessonTitle}
                         </p>
                       </div>
