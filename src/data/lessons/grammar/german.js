@@ -4,6 +4,29 @@
  */
 
 export const germanGrammar = {
+  'de-foundations-1': {
+    id: 'de-grammar-foundations-1',
+    title: 'German Umlauts, Eszett (ß) & Consonants',
+    subtitle: 'Vowel Transformations and Precise Pronunciation',
+    readTimeMinutes: 1,
+    concept: 'German pronunciation is highly regular and phonetic once its special characters are learned. The three umlauts (Ä, Ö, Ü) shift vowel positions, the Eszett (ß) represents a sharp unvoiced double-s, and letter combinations like CH, SP, and ST follow predictable phonetic patterns.',
+    rules: [
+      {
+        rule: 'The Three German Umlauts (Ä, Ö, Ü)',
+        pattern: 'Ä (/ɛː/), Ö (/øː/), Ü (/yː/)',
+        example: 'Äpfel (apples), schön (beautiful), über (over)',
+        translation: 'Umlauts modify tongue and lip shape while voicing vowels.',
+      },
+      {
+        rule: 'The Eszett (ß) Sharp-S Rule',
+        pattern: 'Used after long vowels and diphthongs to denote /s/',
+        example: 'Straße (street), weiß (white), groß (large)',
+        translation: 'Unlike standard "s" which is voiced /z/, "ß" is always a sharp /s/.',
+      },
+    ],
+    tip: 'German "W" is always pronounced like English "V" (Wasser = "vah-ser"), and German "V" is usually pronounced like English "F" (Vater = "fah-ter")!',
+  },
+
   'de-basics-1': {
     id: 'de-grammar-basics-1',
     title: 'Verb Conjugation (Sein & Heißen) and V2 Word Order',

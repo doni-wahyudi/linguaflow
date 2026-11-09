@@ -6,6 +6,100 @@
 import { japaneseGrammar } from './grammar/japanese.js';
 
 export const japaneseLessons = [
+  // ── JLPT N5 — Foundations: Lesson 1 ──────────────────────────────────────────
+  {
+    id: 'ja-foundations-1',
+    categoryId: 'foundations',
+    languageId: 'ja',
+    level: 'N5',
+    title: 'Hiragana Syllables & The 50-Sound Chart',
+    description: 'Master the fundamental 46 Hiragana characters, vowel purity, and stroke order.',
+    order: 1,
+    xpReward: 50,
+    grammarGuide: japaneseGrammar['ja-foundations-1'],
+    vocabulary: [
+      { id: 'ja-w-f01', word: 'あさ', translation: 'Morning', pronunciation: 'Asa', example: 'あさが来ました。', exampleTranslation: 'Morning has come.' },
+      { id: 'ja-w-f02', word: 'いぬ', translation: 'Dog', pronunciation: 'Inu', example: 'かわいらしいいぬです。', exampleTranslation: 'It is a cute dog.' },
+      { id: 'ja-w-f03', word: 'うみ', translation: 'Sea / Ocean', pronunciation: 'Umi', example: '青いうみが見えます。', exampleTranslation: 'I can see the blue sea.' },
+      { id: 'ja-w-f04', word: 'えき', translation: 'Train station', pronunciation: 'Eki', example: 'えきへ行きましょう。', exampleTranslation: 'Let us go to the station.' },
+      { id: 'ja-w-f05', word: 'おちゃ', translation: 'Green tea', pronunciation: 'Ocha', example: 'あたたかいおちゃをどうぞ。', exampleTranslation: 'Please have some warm green tea.' },
+      { id: 'ja-w-f06', word: 'かさ', translation: 'Umbrella', pronunciation: 'Kasa', example: 'あめなのでかさをさします。', exampleTranslation: 'It is raining so I open an umbrella.' },
+      { id: 'ja-w-f07', word: 'き', translation: 'Tree', pronunciation: 'Ki', example: '大きなきがあります。', exampleTranslation: 'There is a large tree.' },
+      { id: 'ja-w-f08', word: 'くるま', translation: 'Car', pronunciation: 'Kuruma', example: 'あかいくるまです。', exampleTranslation: 'It is a red car.' },
+      { id: 'ja-w-f09', word: 'さくら', translation: 'Cherry blossom', pronunciation: 'Sakura', example: 'さくらがさきました。', exampleTranslation: 'The cherry blossoms bloomed.' },
+      { id: 'ja-w-f10', word: 'すし', translation: 'Sushi', pronunciation: 'Sushi', example: 'おいしいすしをたべます。', exampleTranslation: 'I eat delicious sushi.' },
+    ],
+    exercises: [
+      { id: 'ja-f1-ex-1', type: 'flashcard', wordId: 'ja-w-f01', word: 'あさ', translation: 'Morning', pronunciation: 'Asa', example: 'あさが来ました。', exampleTranslation: 'Morning has come.' },
+      { id: 'ja-f1-ex-2', type: 'multipleChoice', question: 'Which Hiragana character represents the vowel sound "a" as in father?', options: ['あ', 'い', 'う', 'え'], correctIndex: 0, explanation: '"あ" (a) is the first character in the Japanese 50-sound chart.' },
+      { id: 'ja-f1-ex-3', type: 'writing', character: 'あ', prompt: 'Practice writing Hiragana character "あ" (a)', translation: 'Sound "a" as in father', strokeCount: 3, gridType: 'rice' },
+      { id: 'ja-f1-ex-4', type: 'scramble', prompt: 'Assemble the sentence meaning "I eat sushi":', targetSentence: 'すしをたべます。', translation: 'I eat sushi.', tokens: ['すし', 'を', 'たべます'], distractors: ['のみます', 'は'], explanation: 'Object (すし) + Object marker (を) + Verb (たべます).' },
+      {
+        id: 'ja-f1-ex-5',
+        type: 'dialogue',
+        scenario: 'Morning Greetings at School',
+        context: 'Your classmate greets you outside the classroom door.',
+        turns: [
+          { speaker: 'Classmate', isUser: false, text: 'おはよう！今日もいい天気だね。', translation: 'Good morning! Nice weather today too, right?' },
+          { speaker: 'You', isUser: true, prompt: 'Return the cheerful morning greeting.', options: [
+            { text: 'おはよう！そうだね。', translation: 'Morning! Yes it is.', isCorrect: true, feedback: 'Natural and friendly peer greeting!' },
+            { text: 'おやすみなさい。', translation: 'Good night.', isCorrect: false, feedback: 'It is morning, not bedtime.' }
+          ] },
+          { speaker: 'Classmate', isUser: false, text: '教室に入ろう！', translation: 'Let us go into the classroom!' }
+        ]
+      },
+      { id: 'ja-f1-spk-1', type: 'speaking', targetText: 'おはようございます、あさですね。', reading: 'おはようございます、あさですね。', translation: "Good morning, it is morning, isn't it?", pronunciation: 'ohayou gozaimasu, asa desu ne', prompt: 'Say good morning and comment on the morning.' },
+      { id: 'ja-f1-spk-2', type: 'speaking', targetText: 'おいしいおちゃをのみます。', reading: 'おいしいおちゃをのみます。', translation: 'I drink delicious green tea.', pronunciation: 'oishii ocha o nomimasu', prompt: 'Practice saying you drink green tea.' },
+    ],
+  },
+
+  // ── JLPT N5 — Foundations: Lesson 2 ──────────────────────────────────────────
+  {
+    id: 'ja-foundations-2',
+    categoryId: 'foundations',
+    languageId: 'ja',
+    level: 'N5',
+    title: 'Katakana Loanwords & First Essential Kanji',
+    description: 'Master angular Katakana loanwords and your first essential N5 Kanji logographs.',
+    order: 2,
+    xpReward: 50,
+    grammarGuide: japaneseGrammar['ja-foundations-2'],
+    vocabulary: [
+      { id: 'ja-w-f11', word: 'コーヒー', translation: 'Coffee', pronunciation: 'Koohii', example: 'あたたかいコーヒーをください。', exampleTranslation: 'Hot coffee please.' },
+      { id: 'ja-w-f12', word: 'パン', translation: 'Bread', pronunciation: 'Pan', example: 'あさごはんにパンをたべます。', exampleTranslation: 'I eat bread for breakfast.' },
+      { id: 'ja-w-f13', word: 'テレビ', translation: 'Television', pronunciation: 'Terebi', example: 'いえでテレビをみます。', exampleTranslation: 'I watch TV at home.' },
+      { id: 'ja-w-f14', word: 'ホテル', translation: 'Hotel', pronunciation: 'Hoteru', example: 'えきのちかくのホテルです。', exampleTranslation: 'It is a hotel near the station.' },
+      { id: 'ja-w-f15', word: '日', translation: 'Sun / Day', pronunciation: 'Hi / Nichi', example: '日曜日ですね。', exampleTranslation: 'It is Sunday, right.' },
+      { id: 'ja-w-f16', word: '月', translation: 'Moon / Month', pronunciation: 'Tsuki / Gatsu', example: 'きれいな月です。', exampleTranslation: 'It is a beautiful moon.' },
+      { id: 'ja-w-f17', word: '一', translation: 'One', pronunciation: 'Ichi', example: '一つください。', exampleTranslation: 'One please.' },
+      { id: 'ja-w-f18', word: '二', translation: 'Two', pronunciation: 'Ni', example: '二時です。', exampleTranslation: 'It is 2 o\'clock.' },
+      { id: 'ja-w-f19', word: '三', translation: 'Three', pronunciation: 'San', example: '三人います。', exampleTranslation: 'There are three people.' },
+      { id: 'ja-w-f20', word: '人', translation: 'Person / People', pronunciation: 'Hito / Jin', example: 'あの人は日本人です。', exampleTranslation: 'That person is Japanese.' },
+    ],
+    exercises: [
+      { id: 'ja-f2-ex-1', type: 'flashcard', wordId: 'ja-w-f11', word: 'コーヒー', translation: 'Coffee', pronunciation: 'Koohii', example: 'あたたかいコーヒーをください。', exampleTranslation: 'Hot coffee please.' },
+      { id: 'ja-f2-ex-2', type: 'multipleChoice', question: 'What does the horizontal dash "ー" in "コーヒー" indicate?', options: ['A silent syllable', 'A lengthened vowel sound', 'A punctuation mark', 'A consonant stop'], correctIndex: 1, explanation: 'The chōonpu (ー) extends the vowel sound by one beat in Katakana.' },
+      { id: 'ja-f2-ex-3', type: 'writing', character: '日', prompt: 'Practice writing N5 Kanji "日" (Sun/Day)', translation: 'Sun / Day (4 strokes)', strokeCount: 4, gridType: 'rice' },
+      { id: 'ja-f2-ex-4', type: 'scramble', prompt: 'Construct the sentence meaning "I drink coffee":', targetSentence: 'コーヒーをのみます。', translation: 'I drink coffee.', tokens: ['コーヒー', 'を', 'のみます'], distractors: ['パン', 'が'], explanation: 'Loanword (コーヒー) + Particle (を) + Verb (のみます).' },
+      {
+        id: 'ja-f2-ex-5',
+        type: 'dialogue',
+        scenario: 'Ordering at a Café',
+        context: 'The café server welcomes you at the register.',
+        turns: [
+          { speaker: 'Server', isUser: false, text: 'いらっしゃいませ！ご注文はお決まりですか？', translation: 'Welcome! Have you decided on your order?' },
+          { speaker: 'You', isUser: true, prompt: 'Politely order a hot coffee.', options: [
+            { text: 'コーヒーをおねがいします。', translation: 'Coffee, please.', isCorrect: true, feedback: 'Polite and clear café order!' },
+            { text: 'さようなら。', translation: 'Goodbye.', isCorrect: false, feedback: 'You are placing an order, not leaving.' }
+          ] },
+          { speaker: 'Server', isUser: false, text: 'かしこまりました。少々お待ちください。', translation: 'Certainly! Please wait a moment.' }
+        ]
+      },
+      { id: 'ja-f2-spk-1', type: 'speaking', targetText: 'コーヒーをください。', reading: 'コーヒーをください。', translation: 'Coffee please.', pronunciation: 'koohii o kudasai', prompt: 'Order a coffee in Japanese.' },
+      { id: 'ja-f2-spk-2', type: 'speaking', targetText: '今日は日曜日です。', reading: 'きょうはにちようびです。', translation: 'Today is Sunday.', pronunciation: 'kyou wa nichiyoubi desu', prompt: 'State that today is Sunday.' },
+    ],
+  },
+
   // ── JLPT N5 — Basics: Lesson 1 ────────────────────────────────────────────
   {
     id: 'ja-basics-1',
@@ -38,6 +132,21 @@ export const japaneseLessons = [
       { id: 'ja-ex-104', type: 'matchPairs', prompt: 'Match Japanese greetings with English equivalents', pairs: [{ left: 'こんにちは', right: 'Hello' }, { left: 'さようなら', right: 'Goodbye' }, { left: 'こんばんは', right: 'Good evening' }, { left: 'またね', right: 'See you later' }] },
       { id: 'ja-ex-105', type: 'typing', prompt: 'Type the romaji for "さようなら" (Goodbye)', answer: 'sayounara', hint: 'sa-you-na-ra', placeholder: 'Romaji input...' },
       { id: 'ja-ex-106', type: 'writing', character: 'あ', prompt: 'Practice drawing Hiragana character "あ" (a)', translation: 'Sound "a" as in father', gridType: 'rice' },
+      { id: 'ja-scramble-101', type: 'scramble', prompt: 'Assemble the greeting meaning "Good morning!":', targetSentence: 'おはようございます。', translation: 'Good morning.', tokens: ['おはよう', 'ございます'], distractors: ['こんばんは'], explanation: 'Formal polite morning greeting.' },
+      {
+        id: 'ja-dlg-101',
+        type: 'dialogue',
+        scenario: 'Casual Greeting on Campus',
+        context: 'You see your friend Ken after classes.',
+        turns: [
+          { speaker: 'Ken', isUser: false, text: 'あ、こんにちは！今日も元気？', translation: 'Ah, hello! Doing well today too?' },
+          { speaker: 'You', isUser: true, prompt: 'Say hello and affirm you are energetic.', options: [
+            { text: 'こんにちは！元気だよ。', translation: 'Hello! I am energetic.', isCorrect: true, feedback: 'Friendly and conversational response!' },
+            { text: 'さようなら。', translation: 'Goodbye.', isCorrect: false, feedback: 'Ken just greeted you, do not say goodbye immediately.' }
+          ] },
+          { speaker: 'Ken', isUser: false, text: 'よかった！また後でね。', translation: 'Glad to hear that! See you later.' }
+        ]
+      },
       { id: 'ja-spk-101', type: 'speaking', targetText: "おはようございます。", reading: "おはようございます", translation: "Good morning (polite).", pronunciation: "ohayou gozaimasu", prompt: "Greet someone politely in the morning." },
       { id: 'ja-spk-102', type: 'speaking', targetText: "こんにちは、お元気ですか。", reading: "こんにちは、おげんきですか。", translation: "Hello, how are you?", pronunciation: "konnichiwa, ogenki desu ka", prompt: "Say hello and ask how someone is doing." },
     ],

@@ -4,6 +4,29 @@
  */
 
 export const spanishGrammar = {
+  'es-foundations-1': {
+    id: 'es-grammar-foundations-1',
+    title: 'Spanish Orthography, Accents & Vowel Clarity',
+    subtitle: 'The 5 Pure Vowels and Stress Rules',
+    readTimeMinutes: 1,
+    concept: 'Spanish is one of the most phonetic languages in the world: almost every letter corresponds to a single, consistent sound. The five vowels (A, E, I, O, U) are pure and unwavering. Spoken stress follows strict rules based on ending letters, and any exception is marked with a written accent mark (tilde).',
+    rules: [
+      {
+        rule: 'The Five Pure Spanish Vowels',
+        pattern: 'A (/a/), E (/e/), I (/i/), O (/o/), U (/u/)',
+        example: 'amigo (/aˈmiɣo/), café (/kaˈfe/), luna (/ˈluna/)',
+        translation: 'Spanish vowels never glide into extra sounds at the end.',
+      },
+      {
+        rule: 'Natural Stress vs. Written Accents (La Tilde)',
+        pattern: 'Vowel/N/S ending -> penult; other consonants -> final syllable',
+        example: 'casa (CA-sa) vs. hablar (ha-BLAR) vs. música (MÚ-si-ca)',
+        translation: 'A written accent always overrides the default syllable stress.',
+      },
+    ],
+    tip: 'The letter H in Spanish is 100% silent in all contexts! Never pronounce the H in "hola" or "hablar".',
+  },
+
   'es-basics-1': {
     id: 'es-grammar-basics-1',
     title: 'Subject Pronouns & Word Order',

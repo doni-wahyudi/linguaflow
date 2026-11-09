@@ -4,6 +4,52 @@
  */
 
 export const japaneseGrammar = {
+  'ja-foundations-1': {
+    id: 'ja-grammar-foundations-1',
+    title: 'Hiragana Syllabary & 50-Sound (Gojūon) Grid',
+    subtitle: 'The Core Phonetic Building Blocks of Japanese',
+    readTimeMinutes: 1,
+    concept: 'Japanese is written using three scripts: Hiragana (native words and grammatical particles), Katakana (loanwords and foreign names), and Kanji (logographic characters carrying semantic meaning). Hiragana has 46 fundamental syllables organized into 5 pure vowels (a, i, u, e, o) across consonant rows (k, s, t, n, h, m, y, r, w).',
+    rules: [
+      {
+        rule: 'The Five Pure Vowels (a, i, u, e, o)',
+        pattern: 'あ (/a/), い (/i/), う (/u/), え (/e/), お (/o/)',
+        example: 'あい (ai) = love / いえ (ie) = house / うえ (ue) = above',
+        translation: 'Japanese vowels are short, crisp, and never glide into diphthongs.',
+      },
+      {
+        rule: 'Dakuten (゛) and Handakuten (゜) Voicing',
+        pattern: 'Adding two dots (dakuten) voices k->g, s->z, t->d, h->b; a small circle (handakuten) turns h->p',
+        example: 'か (ka) -> が (ga), さ (sa) -> ざ (za), は (ha) -> ば (ba) / ぱ (pa)',
+        translation: 'Voicing turns voiceless consonants into voiced counterparts.',
+      },
+    ],
+    tip: 'Memorize the vowel order: A, I, U, E, O! Every consonant row follows this exact vowel sequence (ka, ki, ku, ke, ko).',
+  },
+
+  'ja-foundations-2': {
+    id: 'ja-grammar-foundations-2',
+    title: 'Katakana Loanwords & Kanji Reading Systems',
+    subtitle: 'Angular Script and Onyomi vs. Kunyomi',
+    readTimeMinutes: 1,
+    concept: 'Katakana shares the exact same 46 sounds as Hiragana but uses sharp, angular strokes for foreign loanwords, onomatopoeia, and technical terms. Kanji characters have two reading systems: Onyomi (historical Chinese-derived readings used in compound words) and Kunyomi (native Japanese readings used when the kanji stands alone).',
+    rules: [
+      {
+        rule: 'Katakana Long Vowel Chōonpu (ー)',
+        pattern: '[Katakana] + ー (extends preceding vowel by one mora)',
+        example: 'コーヒー (kōhī - coffee) / ケーキ (kēki - cake)',
+        translation: 'The horizontal dash ー doubles the length of the vowel sound.',
+      },
+      {
+        rule: 'Onyomi vs. Kunyomi Dual Readings',
+        pattern: 'Kanji compound: Onyomi / Kanji + okurigana: Kunyomi',
+        example: '日: Onyomi "NICHI" (日曜日 - nichiyoubi), Kunyomi "hi" (日 - sun/day)',
+        translation: 'Compounds usually adopt Onyomi; single kanji with kana endings adopt Kunyomi.',
+      },
+    ],
+    tip: 'When you see a horizontal dash ー in Japanese, remember it is exclusive to Katakana loanwords to represent long vowels!',
+  },
+
   'ja-basics-1': {
     id: 'ja-grammar-basics-1',
     title: 'Topic Particle は (wa) & Copula です (desu)',

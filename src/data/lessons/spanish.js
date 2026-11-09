@@ -6,6 +6,52 @@
 import { spanishGrammar } from './grammar/spanish.js';
 
 export const spanishLessons = [
+  // ── CEFR Pre-A1 — Foundations: Lesson 1 ──────────────────────────────────────
+  {
+    id: 'es-foundations-1',
+    categoryId: 'foundations',
+    languageId: 'es',
+    level: 'A1',
+    title: 'Spanish Alphabet & Phonics Foundations',
+    description: 'Learn the Spanish alphabet, pure vowel sounds, rolling rr, and written accents.',
+    order: 1,
+    xpReward: 50,
+    grammarGuide: spanishGrammar['es-foundations-1'],
+    vocabulary: [
+      { id: 'es-w-f01', word: 'Amigo', translation: 'Friend', pronunciation: 'ah-MEE-goh', example: 'Él es mi mejor amigo.', exampleTranslation: 'He is my best friend.' },
+      { id: 'es-w-f02', word: 'Café', translation: 'Coffee / Café', pronunciation: 'kah-FEH', example: 'Me gusta el café caliente.', exampleTranslation: 'I like hot coffee.' },
+      { id: 'es-w-f03', word: 'Perro', translation: 'Dog', pronunciation: 'PEH-rroh', example: 'El perro corre en el parque.', exampleTranslation: 'The dog runs in the park.' },
+      { id: 'es-w-f04', word: 'Niño', translation: 'Boy / Child', pronunciation: 'NEE-nyoh', example: 'El niño juega con la pelota.', exampleTranslation: 'The boy plays with the ball.' },
+      { id: 'es-w-f05', word: 'Casa', translation: 'House / Home', pronunciation: 'KAH-sah', example: 'Mi casa es grande y luminosa.', exampleTranslation: 'My house is large and bright.' },
+      { id: 'es-w-f06', word: 'Música', translation: 'Music', pronunciation: 'MOO-see-kah', example: 'Escuchamos música latina.', exampleTranslation: 'We listen to Latin music.' },
+      { id: 'es-w-f07', word: 'Noche', translation: 'Night', pronunciation: 'NOH-cheh', example: 'La noche es tranquila y fresca.', exampleTranslation: 'The night is calm and fresh.' },
+      { id: 'es-w-f08', word: 'Sol', translation: 'Sun', pronunciation: 'SOHL', example: 'El sol brilla en el cielo.', exampleTranslation: 'The sun shines in the sky.' },
+      { id: 'es-w-f09', word: 'Hablar', translation: 'To speak', pronunciation: 'ah-BLAHR', example: 'Quiero hablar español bien.', exampleTranslation: 'I want to speak Spanish well.' },
+      { id: 'es-w-f10', word: 'Gracias', translation: 'Thank you', pronunciation: 'GRAH-syahs', example: 'Muchas gracias por tu ayuda.', exampleTranslation: 'Thank you very much for your help.' },
+    ],
+    exercises: [
+      { id: 'es-f1-ex-1', type: 'flashcard', wordId: 'es-w-f01', word: 'Amigo', translation: 'Friend', pronunciation: 'ah-MEE-goh', example: 'Él es mi mejor amigo.', exampleTranslation: 'He is my best friend.' },
+      { id: 'es-f1-ex-2', type: 'multipleChoice', question: 'How is the letter "H" pronounced in Spanish?', options: ['Like English "H" in hat', 'Always completely silent', 'Like a guttural throat sound', 'Like English "W"'], correctIndex: 1, explanation: 'In Spanish, the letter H is always 100% silent (e.g. "hola" sounds like "oh-lah").' },
+      { id: 'es-f1-ex-3', type: 'scramble', prompt: 'Construct the sentence meaning "I speak Spanish":', targetSentence: 'Hablo español con amigos.', translation: 'I speak Spanish with friends.', tokens: ['Hablo', 'español', 'con', 'amigos'], distractors: ['como', 'en'], explanation: 'Verb (Hablo) + Direct object (español) + Prepositional phrase (con amigos).' },
+      {
+        id: 'es-f1-ex-4',
+        type: 'dialogue',
+        scenario: 'First Meeting in Madrid',
+        context: 'A Spanish student introduces themselves to you in the university library.',
+        turns: [
+          { speaker: 'Mateo', isUser: false, text: '¡Hola! ¿Cómo te llamas?', translation: 'Hello! What is your name?' },
+          { speaker: 'You', isUser: true, prompt: 'Greet Mateo and state your name pleasantly.', options: [
+            { text: '¡Hola! Me llamo Alex, mucho gusto.', translation: 'Hello! My name is Alex, nice to meet you.', isCorrect: true, feedback: 'Polite and natural self-introduction!' },
+            { text: 'Buenas noches, hasta mañana.', translation: 'Good night, see you tomorrow.', isCorrect: false, feedback: 'You are introducing yourself, not saying good night.' }
+          ] },
+          { speaker: 'Mateo', isUser: false, text: '¡Mucho gusto, Alex! Bienvenido a Madrid.', translation: 'Nice to meet you, Alex! Welcome to Madrid.' }
+        ]
+      },
+      { id: 'es-f1-spk-1', type: 'speaking', targetText: 'Hola, mucho gusto en conocerte.', reading: 'Hola, mucho gusto en conocerte.', translation: 'Hello, very nice to meet you.', pronunciation: 'oh-lah, moo-choh goos-toh ehn koh-noh-sehr-teh', prompt: 'Say hello and express pleasure in meeting someone.' },
+      { id: 'es-f1-spk-2', type: 'speaking', targetText: 'Hablo un poco de español.', reading: 'Hablo un poco de español.', translation: 'I speak a little bit of Spanish.', pronunciation: 'ah-bloh oon poh-koh deh ehs-pah-nyohl', prompt: 'State that you speak a little Spanish.' },
+    ],
+  },
+
   // ── CEFR A1 — Basics: Lesson 1 ────────────────────────────────────────────
   {
     id: 'es-basics-1',
@@ -38,6 +84,21 @@ export const spanishLessons = [
       { id: 'es-ex-104', type: 'matchPairs', prompt: 'Match Spanish greetings to their meanings', pairs: [{ left: 'Hola', right: 'Hello' }, { left: 'Adiós', right: 'Goodbye' }, { left: 'Buenas noches', right: 'Good night' }, { left: 'Hasta luego', right: 'See you later' }] },
       { id: 'es-ex-105', type: 'typing', prompt: 'Type the Spanish word for "Goodbye"', answer: 'Adiós', hint: 'Starts with A, ends with s (accent on o)', placeholder: 'Escribe aquí...' },
       { id: 'es-ex-106', type: 'multipleChoice', question: 'How do you say "Good afternoon" in Spanish?', options: ['Buenos días', 'Buenas noches', 'Buenas tardes', 'Hasta luego'], correctIndex: 2, explanation: '"Buenas tardes" is used from lunchtime until sunset.' },
+      { id: 'es-scramble-101', type: 'scramble', prompt: 'Assemble the polite morning greeting:', targetSentence: 'Buenos días señor López.', translation: 'Good morning Mr. Lopez.', tokens: ['Buenos', 'días', 'señor', 'López'], distractors: ['tardes', 'noche'], explanation: 'Greeting formula: Buenos días + title + name.' },
+      {
+        id: 'es-dlg-101',
+        type: 'dialogue',
+        scenario: 'Afternoon Greeting at a Café',
+        context: 'You encounter your Spanish colleague at the café entrance.',
+        turns: [
+          { speaker: 'Lucía', isUser: false, text: '¡Hola! Buenas tardes, ¿cómo estás?', translation: 'Hello! Good afternoon, how are you?' },
+          { speaker: 'You', isUser: true, prompt: 'Greet Lucía warmly and say you are doing well.', options: [
+            { text: '¡Buenas tardes! Muy bien, gracias.', translation: 'Good afternoon! Very well, thank you.', isCorrect: true, feedback: 'Natural, cheerful response!' },
+            { text: 'Adiós, hasta mañana.', translation: 'Goodbye, see you tomorrow.', isCorrect: false, feedback: 'You just arrived, do not say goodbye immediately.' }
+          ] },
+          { speaker: 'Lucía', isUser: false, text: '¡Me alegro mucho! Vamos a tomar un café.', translation: 'I am so glad! Let us have a coffee.' }
+        ]
+      },
       { id: 'es-spk-101', type: 'speaking', targetText: "¡Hola! Buenos días.", translation: "Hello! Good morning.", pronunciation: "OH-lah! BWEH-nos DEE-ahs", prompt: "Say hello and wish someone a good morning in Spanish." },
       { id: 'es-spk-102', type: 'speaking', targetText: "Muchas gracias, hasta luego.", translation: "Thank you very much, see you later.", pronunciation: "MOO-chahs GRAH-syahs, AHS-tah LWEH-goh", prompt: "Say thank you and see you later aloud." },
     ],

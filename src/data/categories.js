@@ -10,6 +10,17 @@
 
 export const categories = [
   {
+    id: 'foundations',
+    name: 'Writing Systems & Phonics',
+    icon: 'writing',
+    description: 'Master native alphabets, kana syllabaries, stroke order, and pronunciation rules.',
+    order: 0,
+    unlockAfter: null, // Unlocked by default
+    cefrLevel: 'Pre-A1',
+    jlptLevel: 'Pre-N5',
+    tierLabel: 'Foundational Literacy',
+  },
+  {
     id: 'basics',
     name: 'Basics & Essentials',
     icon: 'basics',

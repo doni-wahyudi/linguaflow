@@ -6,6 +6,52 @@
 import { germanGrammar } from './grammar/german.js';
 
 export const germanLessons = [
+  // ── CEFR Pre-A1 — Foundations: Lesson 1 ──────────────────────────────────────
+  {
+    id: 'de-foundations-1',
+    categoryId: 'foundations',
+    languageId: 'de',
+    level: 'A1',
+    title: 'German Alphabet, Umlauts & Consonants',
+    description: 'Master the German alphabet, umlauts (Ä, Ö, Ü), sharp S (ß), and distinctive consonant sounds.',
+    order: 1,
+    xpReward: 50,
+    grammarGuide: germanGrammar['de-foundations-1'],
+    vocabulary: [
+      { id: 'de-w-f01', word: 'Apfel', translation: 'Apple', pronunciation: 'AHP-fel', example: 'Der Apfel ist rot und süß.', exampleTranslation: 'The apple is red and sweet.' },
+      { id: 'de-w-f02', word: 'Äpfel', translation: 'Apples', pronunciation: 'EHP-fel', example: 'Zwei Äpfel, bitte.', exampleTranslation: 'Two apples, please.' },
+      { id: 'de-w-f03', word: 'Schön', translation: 'Beautiful / Nice', pronunciation: 'SHURN', example: 'Das Wetter ist heute sehr schön.', exampleTranslation: 'The weather is very nice today.' },
+      { id: 'de-w-f04', word: 'Über', translation: 'Over / About', pronunciation: 'OO-ber (rounded)', example: 'Wir sprechen über Deutschland.', exampleTranslation: 'We are speaking about Germany.' },
+      { id: 'de-w-f05', word: 'Straße', translation: 'Street', pronunciation: 'SHTRAH-seh', example: 'Die Straße ist sehr lang.', exampleTranslation: 'The street is very long.' },
+      { id: 'de-w-f06', word: 'Wasser', translation: 'Water', pronunciation: 'VAHS-ser', example: 'Ein Glas Wasser, bitte.', exampleTranslation: 'A glass of water, please.' },
+      { id: 'de-w-f07', word: 'Vogel', translation: 'Bird', pronunciation: 'FOH-gel', example: 'Der Vogel singt im Baum.', exampleTranslation: 'The bird sings in the tree.' },
+      { id: 'de-w-f08', word: 'Buch', translation: 'Book', pronunciation: 'BOOKH', example: 'Ich lese ein gutes Buch.', exampleTranslation: 'I am reading a good book.' },
+      { id: 'de-w-f09', word: 'Ich', translation: 'I', pronunciation: 'IKH', example: 'Ich lerne gerne Deutsch.', exampleTranslation: 'I gladly learn German.' },
+      { id: 'de-w-f10', word: 'Guten Tag', translation: 'Good day / Hello', pronunciation: 'GOO-ten TAHK', example: 'Guten Tag, Herr Weber!', exampleTranslation: 'Good day, Mr. Weber!' },
+    ],
+    exercises: [
+      { id: 'de-f1-ex-1', type: 'flashcard', wordId: 'de-w-f03', word: 'Schön', translation: 'Beautiful / Nice', pronunciation: 'SHURN', example: 'Das Wetter ist heute sehr schön.', exampleTranslation: 'The weather is very nice today.' },
+      { id: 'de-f1-ex-2', type: 'multipleChoice', question: 'In German, how is the letter "W" pronounced?', options: ['Like English "W" in "water"', 'Like English "V" in "voice"', 'It is always silent', 'Like English "H" in "house"'], correctIndex: 1, explanation: 'German "W" is always pronounced like English "V" (e.g. Wasser is pronounced "vah-ser").' },
+      { id: 'de-f1-ex-3', type: 'scramble', prompt: 'Construct the German sentence meaning "A glass of water, please":', targetSentence: 'Ein Glas Wasser, bitte.', translation: 'A glass of water, please.', tokens: ['Ein', 'Glas', 'Wasser,', 'bitte.'], distractors: ['Kaffee', 'sehr'], explanation: 'Indefinite article + Noun + Noun + courtesy particle.' },
+      {
+        id: 'de-f1-ex-4',
+        type: 'dialogue',
+        scenario: 'Ordering at a Café in Berlin',
+        context: 'You walk into a café in Berlin Mitte to order a drink.',
+        turns: [
+          { speaker: 'Barista', isUser: false, text: 'Guten Tag! Was darf es sein?', translation: 'Good day! What can I get for you?' },
+          { speaker: 'You', isUser: true, prompt: 'Greet politely and order a water.', options: [
+            { text: 'Guten Tag! Ein Glas Wasser, bitte.', translation: 'Good day! A glass of water, please.', isCorrect: true, feedback: 'Polite and clear German order!' },
+            { text: 'Gute Nacht, bis morgen.', translation: 'Good night, see you tomorrow.', isCorrect: false, feedback: 'You are ordering in a cafe, not going to bed.' }
+          ] },
+          { speaker: 'Barista', isUser: false, text: 'Kommt sofort! Macht zwei Euro, bitte.', translation: 'Coming right up! That is two euros, please.' }
+        ]
+      },
+      { id: 'de-f1-spk-1', type: 'speaking', targetText: 'Guten Tag! Ein Glas Wasser, bitte.', reading: 'Guten Tag! Ein Glas Wasser, bitte.', translation: 'Good day! A glass of water, please.', pronunciation: 'GOO-ten TAHK! ine glahs VAHS-ser, BIT-teh', prompt: 'Order a glass of water politely in German.' },
+      { id: 'de-f1-spk-2', type: 'speaking', targetText: 'Vielen Dank und einen schönen Tag!', reading: 'Vielen Dank und einen schönen Tag!', translation: 'Many thanks and have a nice day!', pronunciation: 'FEE-len dahnk oont EYE-nen SHUR-nen tahk', prompt: 'Say thank you and wish someone a nice day.' },
+    ],
+  },
+
   // ── CEFR A1 — Basics: Lesson 1 ────────────────────────────────────────────
   {
     id: 'de-basics-1',
@@ -38,6 +84,21 @@ export const germanLessons = [
       { id: 'de-ex-104', type: 'matchPairs', prompt: 'Match German greetings to their English meanings', pairs: [{ left: 'Hallo', right: 'Hello' }, { left: 'Tschüss', right: 'Bye' }, { left: 'Guten Abend', right: 'Good evening' }, { left: 'Auf Wiedersehen', right: 'Goodbye' }] },
       { id: 'de-ex-105', type: 'typing', prompt: 'Type the casual German word for "Bye"', answer: 'Tschüss', hint: 'Starts with Ts...', placeholder: 'Tippe hier...' },
       { id: 'de-ex-106', type: 'multipleChoice', question: 'How do you say formal "Goodbye" in German?', options: ['Guten Morgen', 'Auf Wiedersehen', 'Hallo', 'Tschüss'], correctIndex: 1, explanation: '"Auf Wiedersehen" literally translates to "Until we see each other again".' },
+      { id: 'de-scramble-101', type: 'scramble', prompt: 'Arrange the German greeting sentence:', targetSentence: 'Guten Tag, wie geht es Ihnen?', translation: 'Good day, how are you (formal)?', tokens: ['Guten', 'Tag,', 'wie', 'geht', 'es', 'Ihnen?'], distractors: ['Morgen', 'du'], explanation: 'Formal German greeting and inquiry.' },
+      {
+        id: 'de-dlg-101',
+        type: 'dialogue',
+        scenario: 'Greeting in a Berlin Bookstore',
+        context: 'You enter a bookstore in Berlin and are greeted by the clerk.',
+        turns: [
+          { speaker: 'Clerk', isUser: false, text: 'Guten Morgen! Kann ich Ihnen helfen?', translation: 'Good morning! Can I help you?' },
+          { speaker: 'You', isUser: true, prompt: 'Greet politely and say you are just browsing.', options: [
+            { text: 'Guten Morgen! Ich schaue mich nur um, danke.', translation: 'Good morning! I am just looking around, thank you.', isCorrect: true, feedback: 'Polite and authentic everyday German phrase!' },
+            { text: 'Gute Nacht, bis morgen.', translation: 'Good night, see you tomorrow.', isCorrect: false, feedback: 'It is morning time in a shop, not bedtime.' }
+          ] },
+          { speaker: 'Clerk', isUser: false, text: 'Sehr gerne. Sagen Sie Bescheid, wenn Sie Fragen haben.', translation: 'Very gladly. Let me know if you have questions.' }
+        ]
+      },
       { id: 'de-spk-101', type: 'speaking', targetText: "Guten Morgen! Wie geht es Ihnen?", translation: "Good morning! How are you (formal)?", pronunciation: "GOO-ten MOR-gen! vee gayt es EE-nen?", prompt: "Wish someone a good morning politely in German." },
       { id: 'de-spk-102', type: 'speaking', targetText: "Schönen Abend und auf Wiedersehen!", translation: "Have a nice evening and goodbye!", pronunciation: "SHUR-nen AH-bent oont owf VEE-der-zay-en!", prompt: "Wish someone a nice evening and say goodbye." },
     ],

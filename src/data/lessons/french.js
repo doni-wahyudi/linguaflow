@@ -6,6 +6,52 @@
 import { frenchGrammar } from './grammar/french.js';
 
 export const frenchLessons = [
+  // ── CEFR Pre-A1 — Foundations: Lesson 1 ──────────────────────────────────────
+  {
+    id: 'fr-foundations-1',
+    categoryId: 'foundations',
+    languageId: 'fr',
+    level: 'A1',
+    title: 'French Orthography, Nasals & Accents',
+    description: 'Master French pronunciation secrets: silent endings, nasal vowels, liaisons, and accents.',
+    order: 1,
+    xpReward: 50,
+    grammarGuide: frenchGrammar['fr-foundations-1'],
+    vocabulary: [
+      { id: 'fr-w-f01', word: 'Ami', translation: 'Friend', pronunciation: 'ah-MEE', example: 'C\'est mon meilleur ami.', exampleTranslation: 'He is my best friend.' },
+      { id: 'fr-w-f02', word: 'Café', translation: 'Coffee / Café', pronunciation: 'kah-FAY', example: 'Un café noir, s\'il vous plaît.', exampleTranslation: 'A black coffee, please.' },
+      { id: 'fr-w-f03', word: 'Été', translation: 'Summer', pronunciation: 'ay-TAY', example: 'L\'été à Paris est magnifique.', exampleTranslation: 'Summer in Paris is magnificent.' },
+      { id: 'fr-w-f04', word: 'Fête', translation: 'Party / Celebration', pronunciation: 'FET', example: 'C\'est une grande fête.', exampleTranslation: 'It is a big celebration.' },
+      { id: 'fr-w-f05', word: 'Français', translation: 'French', pronunciation: 'frahn-SAY', example: 'Nous parlons français ensemble.', exampleTranslation: 'We speak French together.' },
+      { id: 'fr-w-f06', word: 'Nuit', translation: 'Night', pronunciation: 'NWEE', example: 'La nuit est étoilée.', exampleTranslation: 'The night is starry.' },
+      { id: 'fr-w-f07', word: 'Monde', translation: 'World', pronunciation: 'MOHND', example: 'Voyager autour du monde.', exampleTranslation: 'To travel around the world.' },
+      { id: 'fr-w-f08', word: 'Soleil', translation: 'Sun', pronunciation: 'soh-LAY', example: 'Le soleil brille le matin.', exampleTranslation: 'The sun shines in the morning.' },
+      { id: 'fr-w-f09', word: 'Merci', translation: 'Thank you', pronunciation: 'mair-SEE', example: 'Merci beaucoup pour tout.', exampleTranslation: 'Thank you very much for everything.' },
+      { id: 'fr-w-f10', word: 'Bonjour', translation: 'Hello / Good morning', pronunciation: 'bohn-ZHOOR', example: 'Bonjour tout le monde !', exampleTranslation: 'Hello everyone!' },
+    ],
+    exercises: [
+      { id: 'fr-f1-ex-1', type: 'flashcard', wordId: 'fr-w-f01', word: 'Ami', translation: 'Friend', pronunciation: 'ah-MEE', example: 'C\'est mon meilleur ami.', exampleTranslation: 'He is my best friend.' },
+      { id: 'fr-f1-ex-2', type: 'multipleChoice', question: 'In French words like "chat" and "Paris", are the final consonants usually pronounced?', options: ['Yes, always clearly pronounced', 'No, final d, p, s, t, x, z are generally silent', 'Only in questions', 'Only when whispered'], correctIndex: 1, explanation: 'In French, final consonants (d, p, s, t, x, z) are generally silent unless followed by a vowel through liaison.' },
+      { id: 'fr-f1-ex-3', type: 'scramble', prompt: 'Construct the sentence meaning "We speak French":', targetSentence: 'Nous parlons français ensemble.', translation: 'We speak French together.', tokens: ['Nous', 'parlons', 'français', 'ensemble'], distractors: ['suis', 'le'], explanation: 'Subject pronoun (Nous) + Conjugated verb (parlons) + Object (français) + Adverb (ensemble).' },
+      {
+        id: 'fr-f1-ex-4',
+        type: 'dialogue',
+        scenario: 'Meeting a Friend at a Parisian Bakery',
+        context: 'You meet your French friend Camille outside a boulangerie.',
+        turns: [
+          { speaker: 'Camille', isUser: false, text: 'Bonjour ! Comment ça va aujourd\'hui ?', translation: 'Hello! How are things today?' },
+          { speaker: 'You', isUser: true, prompt: 'Say hello and reply that you are doing very well.', options: [
+            { text: 'Bonjour Camille ! Ça va très bien, merci.', translation: 'Hello Camille! Things are going very well, thanks.', isCorrect: true, feedback: 'Polite and friendly everyday reply!' },
+            { text: 'Bonne nuit, dors bien.', translation: 'Good night, sleep well.', isCorrect: false, feedback: 'It is daytime, do not wish good night.' }
+          ] },
+          { speaker: 'Camille', isUser: false, text: 'Parfait ! Prenons un croissant ensemble.', translation: 'Perfect! Let\'s have a croissant together.' }
+        ]
+      },
+      { id: 'fr-f1-spk-1', type: 'speaking', targetText: 'Bonjour, enchanté de faire votre connaissance.', reading: 'Bonjour, enchanté de faire votre connaissance.', translation: 'Hello, delighted to make your acquaintance.', pronunciation: 'bohn-zhoor, ahn-shahn-tay duh fair vohtr koh-neh-sahns', prompt: 'Introduce yourself politely in French.' },
+      { id: 'fr-f1-spk-2', type: 'speaking', targetText: 'Merci beaucoup et bonne journée.', reading: 'Merci beaucoup et bonne journée.', translation: 'Thank you very much and have a nice day.', pronunciation: 'mair-see boh-koo ay buhn zhoor-nay', prompt: 'Say thank you and have a nice day.' },
+    ],
+  },
+
   // ── CEFR A1 — Basics: Lesson 1 ────────────────────────────────────────────
   {
     id: 'fr-basics-1',
@@ -37,6 +83,21 @@ export const frenchLessons = [
       { id: 'fr-ex-103', type: 'fillBlank', sentence: '___, comment allez-vous ?', answer: 'Bonjour', hint: 'Most common French greeting', translation: 'Hello, how are you?' },
       { id: 'fr-ex-104', type: 'matchPairs', prompt: 'Match French greetings to English', pairs: [{ left: 'Bonjour', right: 'Hello' }, { left: 'Au revoir', right: 'Goodbye' }, { left: 'Bonsoir', right: 'Good evening' }, { left: 'À bientôt', right: 'See you soon' }] },
       { id: 'fr-ex-105', type: 'typing', prompt: 'Type the French word for "Goodbye"', answer: 'Au revoir', hint: 'Two words starting with Au...', placeholder: 'Tapez ici...' },
+      { id: 'fr-scramble-101', type: 'scramble', prompt: 'Assemble the formal greeting:', targetSentence: 'Bonjour comment allez-vous ?', translation: 'Hello how are you?', tokens: ['Bonjour', 'comment', 'allez-vous', '?'], distractors: ['bonne', 'soir'], explanation: 'Formal French greeting structure.' },
+      {
+        id: 'fr-dlg-101',
+        type: 'dialogue',
+        scenario: 'Casual Greeting on Boulevard Saint-Germain',
+        context: 'You bump into your classmate Antoine on the boulevard.',
+        turns: [
+          { speaker: 'Antoine', isUser: false, text: 'Salut ! Ça va bien aujourd\'hui ?', translation: 'Hi! Are things going well today?' },
+          { speaker: 'You', isUser: true, prompt: 'Greet Antoine casually and say everything is fine.', options: [
+            { text: 'Salut Antoine ! Ça va très bien, et toi ?', translation: 'Hi Antoine! Going very well, and you?', isCorrect: true, feedback: 'Natural peer conversation in French!' },
+            { text: 'Au revoir et bonne nuit.', translation: 'Goodbye and good night.', isCorrect: false, feedback: 'You just met, do not leave immediately.' }
+          ] },
+          { speaker: 'Antoine', isUser: false, text: 'Super ! Allons boire un café.', translation: 'Great! Let\'s go grab a coffee.' }
+        ]
+      },
       { id: 'fr-spk-101', type: 'speaking', targetText: "Bonjour ! Comment allez-vous ?", translation: "Hello! How are you (formal)?", pronunciation: "bohn-zhoor ! koh-mahn tah-lay-voo ?", prompt: "Greet someone politely in French." },
       { id: 'fr-spk-102', type: 'speaking', targetText: "Bonne soirée et à bientôt !", translation: "Have a good evening and see you soon!", pronunciation: "buhn swah-ray ay ah byan-toh !", prompt: "Wish someone a good evening and say see you soon." },
     ],

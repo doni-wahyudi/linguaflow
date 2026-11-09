@@ -4,6 +4,29 @@
  */
 
 export const frenchGrammar = {
+  'fr-foundations-1': {
+    id: 'fr-grammar-foundations-1',
+    title: 'French Phonetics, Silent Consonants & Liaisons',
+    subtitle: 'The Melody and Orthography of Spoken French',
+    readTimeMinutes: 1,
+    concept: 'French writing has a rich history that creates distinct orthographic patterns. Most final consonants (d, p, s, t, x, z) are silent, vowels followed by n or m produce nasal resonance, and liaisons connect final letters into subsequent vowels for smooth vocal flow.',
+    rules: [
+      {
+        rule: 'Silent Final Consonants (D, P, S, T, X, Z)',
+        pattern: 'Consonants at the end of words remain unpronounced',
+        example: 'chat (/ʃa/ - cat), vous (/vu/ - you), grand (/ɡʁɑ̃/ - tall)',
+        translation: 'The final consonant is dropped unless linked through liaison.',
+      },
+      {
+        rule: 'Liaison with Following Vowel',
+        pattern: '[Silent consonant] + [Vowel sound] -> consonant links',
+        example: 'vous avez (/vu.za.ve/), un grand ami (/œ̃.ɡʁɑ̃.ta.mi/)',
+        translation: 'Final "s" sounds like /z/; final "d" sounds like /t/.',
+      },
+    ],
+    tip: 'Remember the acronym CaReFuL (C, R, F, L): these consonants at word ends are usually PRONOUNCED, while others are silent!',
+  },
+
   'fr-basics-1': {
     id: 'fr-grammar-basics-1',
     title: 'Subject Pronouns & Present Tense of Être',
