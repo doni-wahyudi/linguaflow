@@ -17,6 +17,7 @@ import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LayoutDashboard, BookOpen, Repeat, Award, PenTool, User } from 'lucide-react';
 import { spring } from '../../utils/motion';
+import { useAuth } from '../../context/AuthContext';
 
 const tabs = [
   { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -33,6 +34,8 @@ const tabs = [
  * @returns {JSX.Element}
  */
 const MobileNav = () => {
+  const { user } = useAuth();
+
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-50 md:hidden bg-surface-card border-t border-ink-200 safe-bottom"
@@ -46,17 +49,22 @@ const MobileNav = () => {
             <NavLink
               key={tab.to}
               to={tab.to}
-              className="flex-1 flex flex-col items-center justify-center gap-1 text-caption font-semibold transition-colors duration-150"
+              className="relative flex-1 flex flex-col items-center justify-center gap-1 text-caption font-semibold transition-colors duration-150"
             >
               {({ isActive }) => (
                 <>
-                  <motion.div
-                    animate={isActive ? { scale: 1.12 } : { scale: 1 }}
-                    transition={spring.pop}
-                    className={isActive ? 'text-brand-700' : 'text-ink-500'}
-                  >
-                    <TabIcon size={20} strokeWidth={isActive ? 2.4 : 2} aria-hidden="true" />
-                  </motion.div>
+                  <div className="relative">
+                    <motion.div
+                      animate={isActive ? { scale: 1.12 } : { scale: 1 }}
+                      transition={spring.pop}
+                      className={isActive ? 'text-brand-700' : 'text-ink-500'}
+                    >
+                      <TabIcon size={20} strokeWidth={isActive ? 2.4 : 2} aria-hidden="true" />
+                    </motion.div>
+                    {tab.to === '/profile' && user && (
+                      <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-pill bg-brand-500 border border-surface-card" />
+                    )}
+                  </div>
                   <span className={isActive ? 'text-brand-700' : 'text-ink-500'}>{tab.label}</span>
                 </>
               )}

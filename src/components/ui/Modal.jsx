@@ -197,9 +197,14 @@ const Modal = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div
+        <motion.div
+          key="modal-portal"
           className="fixed inset-0 z-modal flex items-center justify-center p-4"
           onKeyDown={handleKeyDown}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
         >
           {/* Backdrop — §5.6 rgba(0,0,0,0.4) + 4px blur. */}
           <motion.div
@@ -274,7 +279,7 @@ const Modal = ({
               <div className="flex flex-wrap items-center justify-end gap-3 px-8 pb-8">{footer}</div>
             )}
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

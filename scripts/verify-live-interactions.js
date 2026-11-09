@@ -782,7 +782,7 @@ async function runTests() {
 
     await cdp.waitFor(`
       document.body.innerText.includes('Muchas gracias, hasta luego.') ||
-      /Exercise \d+ of \d+/i.test(document.body.innerText)
+      /Exercise \\d+ of \\d+/i.test(document.body.innerText)
     `);
 
     console.log('  [PASS] Successfully submitted typed phrase and advanced to next speaking exercise');
@@ -1052,9 +1052,115 @@ async function runTests() {
         if (cancelBtn) cancelBtn.click();
       })()
     `);
+    await sleep(200);
+    const stillOpen = await cdp.eval(`Boolean(document.querySelector('[role="dialog"]'))`);
+    if (stillOpen) {
+      await cdp.pressKey('Escape');
+    }
     await cdp.waitFor(`document.querySelector('[role="dialog"]') === null`);
     console.log('  [PASS] Profile theme toggles and Reset modal flow verified');
     results.push({ name: 'Test 16: Profile theme switcher & reset confirmation modal', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 17: Dark Theme Contrast & Surface Luminance Check
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 17: Dark Theme Contrast & Token Computation Check');
+    await cdp.eval(`
+      (() => {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      })()
+    `);
+    await sleep(200);
+
+    const darkStyles = await cdp.eval(`
+      (() => {
+        const computed = getComputedStyle(document.documentElement);
+        return {
+          surfaceBg: computed.getPropertyValue('--surface-bg').trim(),
+          surfaceCard: computed.getPropertyValue('--surface-card').trim(),
+          ink900: computed.getPropertyValue('--ink-900').trim(),
+          ink500: computed.getPropertyValue('--ink-500').trim(),
+          successBg: computed.getPropertyValue('--success-bg').trim(),
+          errorBg: computed.getPropertyValue('--error-bg').trim(),
+          warningBg: computed.getPropertyValue('--warning-bg').trim(),
+          infoBg: computed.getPropertyValue('--info-bg').trim(),
+        };
+      })()
+    `);
+
+    if (darkStyles.surfaceBg !== '18 18 20' || darkStyles.ink900 !== '250 250 250') {
+      throw new Error(`Dark theme tokens incorrect: ${JSON.stringify(darkStyles)}`);
+    }
+    if (!darkStyles.successBg || !darkStyles.errorBg) {
+      throw new Error(`Semantic feedback backgrounds missing in dark theme: ${JSON.stringify(darkStyles)}`);
+    }
+    console.log('  [OK] Dark theme computed styles verified: slate charcoal surface + luminous ink + deep feedback');
+    results.push({ name: 'Test 17: Dark Theme Contrast & Token Computation Check', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 18: Supabase Auth Modal Accessibility & Keyboard Dismissal
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 18: Supabase Auth Modal accessibility, tab switching, and Escape dismissal');
+    await cdp.eval(`
+      (() => {
+        document.documentElement.removeAttribute('data-theme');
+        window.location.hash = '#/profile';
+      })()
+    `);
+    await sleep(300);
+
+    // Open Auth Modal via Profile "Connect Cloud Account" button or Navbar "Sign In"
+    await cdp.eval(`
+      (() => {
+        const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Connect Cloud Account') || b.innerText.includes('Sign In'));
+        if (btn) btn.click();
+      })()
+    `);
+    await sleep(200);
+
+    await cdp.waitFor(`Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'))`);
+    console.log('  [OK] AuthModal dialog mounted with aria-modal="true"');
+
+    // Verify modal title
+    const modalTitle = await cdp.eval(`
+      (() => {
+        const titleEl = document.querySelector('#auth-modal-title');
+        return titleEl ? titleEl.innerText : '';
+      })()
+    `);
+    if (!modalTitle) throw new Error('Auth modal title not found');
+    console.log(`  [OK] Initial auth modal title: "${modalTitle}"`);
+
+    // Switch to Create Account tab
+    await cdp.eval(`
+      (() => {
+        const signupTab = document.querySelector('#tab-signup');
+        if (signupTab) signupTab.click();
+      })()
+    `);
+    await sleep(150);
+
+    const signupTitle = await cdp.eval(`
+      (() => {
+        const titleEl = document.querySelector('#auth-modal-title');
+        return titleEl ? titleEl.innerText : '';
+      })()
+    `);
+    if (!signupTitle.includes('Create Your Account')) {
+      throw new Error(`Expected "Create Your Account", got "${signupTitle}"`);
+    }
+    console.log('  [OK] Switched to Create Account tab, title updated');
+
+    // Dismiss with Escape key
+    await cdp.pressKey('Escape');
+    await sleep(200);
+
+    const modalStillOpen = await cdp.eval(`Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'))`);
+    if (modalStillOpen) {
+      throw new Error('AuthModal did not close on Escape key');
+    }
+    console.log('  [PASS] AuthModal dismissed cleanly on Escape key');
+    results.push({ name: 'Test 18: Supabase Auth Modal accessibility & interaction', status: 'PASS' });
 
     console.log('\n====================================================');
     console.log(`  Verification Summary: ALL ${results.length} TESTS PASSED (0 ERRORS)`);

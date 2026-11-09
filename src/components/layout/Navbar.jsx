@@ -22,9 +22,14 @@ import {
   Repeat,
   PenTool,
   Award,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { Logo } from '../brand';
 import { transitionEase } from '../../utils/motion';
+import { useAuth } from '../../context/AuthContext';
+import AuthModal from '../auth/AuthModal';
+import Button from '../ui/Button';
 
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -65,7 +70,9 @@ const overlayVariants = {
  * @returns {JSX.Element}
  */
 const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
+  const { user, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const sidebarRef = useRef(null);
   const triggerRef = useRef(null);
 
@@ -120,8 +127,9 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
         : 'text-ink-500 hover:text-ink-900 hover:bg-ink-100',
     ].join(' ');
 
-  const initials = userName
-    ? userName
+  const effectiveName = userName || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
+  const initials = effectiveName
+    ? effectiveName
         .split(' ')
         .map((w) => w[0])
         .join('')
@@ -190,24 +198,49 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
               <span className="sr-only">day streak</span>
             </div>
 
-            {/* Avatar */}
-            <NavLink
-              to="/profile"
-              className="flex items-center justify-center w-9 h-9 rounded-pill bg-brand-100 text-brand-700 font-semibold text-caption overflow-hidden transition-shadow hover:shadow-glow-brand"
-              aria-label="Profile"
-            >
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={userName || 'Profile'}
-                  className="w-full h-full object-cover"
-                />
-              ) : initials ? (
-                initials
-              ) : (
-                <User size={16} />
-              )}
-            </NavLink>
+            {/* User Avatar / Auth */}
+            {user ? (
+              <div className="flex items-center gap-2">
+                <NavLink
+                  to="/profile"
+                  className="flex items-center justify-center w-9 h-9 rounded-pill bg-brand-100 text-brand-700 font-semibold text-caption overflow-hidden transition-shadow hover:shadow-glow-brand"
+                  aria-label="Profile"
+                  title={user.email}
+                >
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={effectiveName || 'Profile'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : initials ? (
+                    initials
+                  ) : (
+                    <User size={16} />
+                  )}
+                </NavLink>
+                <button
+                  type="button"
+                  onClick={() => signOut()}
+                  className="hidden lg:flex items-center gap-1 text-caption font-semibold text-ink-500 hover:text-error transition-colors px-2 py-1.5 rounded-button hover:bg-surface-100"
+                  title="Sign out of account"
+                  aria-label="Sign out"
+                >
+                  <LogOut size={14} />
+                  <span>Exit</span>
+                </button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                icon={LogIn}
+                onClick={() => setAuthModalOpen(true)}
+                className="hidden sm:inline-flex"
+              >
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -276,10 +309,55 @@ const Navbar = ({ xp = 0, streak = 0, avatarUrl, userName = '' }) => {
                   );
                 })}
               </div>
+
+              {/* Mobile Drawer Auth Footer */}
+              <div className="mt-auto p-4 border-t border-ink-200 bg-surface-50">
+                {user ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="w-9 h-9 rounded-pill bg-brand-100 text-brand-700 font-semibold text-caption flex items-center justify-center shrink-0">
+                        {initials || <User size={16} />}
+                      </div>
+                      <div className="truncate">
+                        <p className="text-body-sm font-semibold text-ink-900 truncate">
+                          {effectiveName || 'Learner'}
+                        </p>
+                        <p className="text-caption text-ink-500 truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileOpen(false);
+                        signOut();
+                      }}
+                      className="p-2 text-ink-500 hover:text-error transition-colors rounded-button hover:bg-surface-100"
+                      aria-label="Sign out"
+                    >
+                      <LogOut size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    icon={LogIn}
+                    onClick={() => {
+                      setMobileOpen(false);
+                      setAuthModalOpen(true);
+                    }}
+                    className="w-full justify-center"
+                  >
+                    Sign In / Register
+                  </Button>
+                )}
+              </div>
             </motion.nav>
           </>
         )}
       </AnimatePresence>
+
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </>
   );
 };

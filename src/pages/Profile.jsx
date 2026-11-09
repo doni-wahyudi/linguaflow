@@ -22,11 +22,18 @@ import {
   Download,
   Trash2,
   AlertTriangle,
+  Cloud,
+  RefreshCw,
+  LogIn,
+  LogOut,
+  Check,
 } from 'lucide-react';
 import PageWrapper from '../components/layout/PageWrapper';
 import { Flag, SemanticIcon } from '../components/brand';
 import { Card, Badge, ProgressBar, Button, Input, Modal } from '../components/ui';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
+import AuthModal from '../components/auth/AuthModal';
 import languages from '../data/languages';
 import { getLevel, getNextLevel, getLevelProgress } from '../utils/xp';
 import { isSoundEnabled, setSoundEnabled, playCorrect } from '../utils/soundEffects';
@@ -41,7 +48,10 @@ import { isSoundEnabled, setSoundEnabled, playCorrect } from '../utils/soundEffe
  */
 
 export default function Profile() {
-  const { user, updateUser, progress, streak, xp } = useUser();
+  const { user, updateUser, progress, streak, xp, syncStatus, lastSyncedAt, syncNow } = useUser();
+  const { user: authUser, signOut, isConfigured } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [syncingManual, setSyncingManual] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(user.name || '');
 
@@ -451,6 +461,79 @@ export default function Profile() {
           </Card>
         </div>
 
+        {/* ── Cloud Account & Synchronization ── */}
+        <Card padding="md">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="font-display font-semibold text-display-sm text-ink-900 flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-brand-700" aria-hidden="true" /> Cloud Account & Synchronization
+              </h2>
+              <p className="text-body-sm text-ink-500 mt-1">
+                {authUser
+                  ? 'Your learning data is actively protected and synchronized with your Supabase cloud profile.'
+                  : 'You are currently learning in offline guest mode. Data persists locally on this device.'}
+              </p>
+            </div>
+            <Badge variant={authUser ? 'success' : 'subtle'} size="md">
+              {authUser ? 'Connected to Cloud' : 'Guest Offline Mode'}
+            </Badge>
+          </div>
+
+          {authUser ? (
+            <div className="p-4 rounded-card border border-ink-200 bg-surface-50 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-body-sm font-semibold text-ink-900">{authUser.email}</p>
+                  <p className="text-caption text-ink-500">
+                    {lastSyncedAt
+                      ? `Last synced: ${new Date(lastSyncedAt).toLocaleTimeString()}`
+                      : 'Sync status: Connected'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={RefreshCw}
+                    loading={syncingManual || syncStatus === 'syncing'}
+                    onClick={async () => {
+                      setSyncingManual(true);
+                      await syncNow();
+                      setSyncingManual(false);
+                    }}
+                  >
+                    Sync Now
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={LogOut}
+                    onClick={() => signOut()}
+                  >
+                    Sign Out
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-card border border-ink-200 bg-surface-50">
+              <p className="text-body-sm text-ink-700">
+                Create a free account or sign in to safeguard your streak, XP, and lesson progress across desktop and mobile.
+              </p>
+              <Button
+                variant="primary"
+                size="md"
+                icon={LogIn}
+                onClick={() => setAuthModalOpen(true)}
+                className="shrink-0"
+              >
+                Connect Cloud Account
+              </Button>
+            </div>
+          )}
+        </Card>
+
         {/* ── Data Management & Backup ── */}
         <Card padding="md">
           <h2 className="font-display font-semibold text-display-sm text-ink-900 mb-2 flex items-center gap-2">
@@ -557,6 +640,12 @@ export default function Profile() {
           </div>
         </div>
       </Modal>
+
+      {/* Cloud Authentication Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
     </PageWrapper>
   );
 }
