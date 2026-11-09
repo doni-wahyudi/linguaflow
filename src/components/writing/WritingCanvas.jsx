@@ -5,8 +5,8 @@
  * quadratic curve stroke smoothing, Rice Grid & Notebook guidelines, and ghost tracing overlay.
  */
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   RotateCcw,
   Eye,
@@ -18,8 +18,14 @@ import {
   Trash2,
   Sparkles,
   Download,
+  ListOrdered,
+  Play,
+  Pause,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button, Badge } from '../ui';
+import { getStrokeData } from '../../data/characters/strokeData.js';
 
 const COLORS = [
   { name: 'Ink Black', value: '#1C1917' },
@@ -89,11 +95,14 @@ export default function WritingCanvas({
   targetCharacter = '',
   gridType = 'rice', // 'rice' (4-quadrant Asian grid) | 'lined' (notebook lines) | 'none'
   expectedStrokes = null, // target stroke count for verification
+  activeStroke = null, // externally synchronized active stroke (1-indexed)
+  onSelectStroke, // callback when a stroke anchor or scrubber is picked
   onComplete,
   className = '',
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const svgOverlayRef = useRef(null);
 
   // Drawing state
   const [isDrawing, setIsDrawing] = useState(false);
@@ -107,6 +116,23 @@ export default function WritingCanvas({
   const [showGhost, setShowGhost] = useState(true);
   const [activeGrid, setActiveGrid] = useState(gridType);
   const [evaluated, setEvaluated] = useState(false);
+
+  // Stroke Order (筆順) state
+  const [showStrokeGuide, setShowStrokeGuide] = useState(true);
+  const [internalActiveStroke, setInternalActiveStroke] = useState(1);
+  const [isPlayingAnimation, setIsPlayingAnimation] = useState(false);
+  const [tracerProgress, setTracerProgress] = useState(0); // 0 to 1
+  const [tracerPos, setTracerPos] = useState(null);
+
+  // Synchronize internal active stroke with external activeStroke prop
+  const currentActiveStrokeOrder = activeStroke || internalActiveStroke;
+
+  // Retrieve stroke guidance metadata
+  const strokeData = useMemo(() => {
+    return targetCharacter ? getStrokeData(targetCharacter) : null;
+  }, [targetCharacter]);
+
+  const targetStrokeCount = expectedStrokes || strokeData?.strokeCount || null;
 
   // Canvas dimensions
   const [canvasDim, setCanvasDim] = useState({ width: 440, height: 440 });
@@ -134,7 +160,66 @@ export default function WritingCanvas({
   useEffect(() => {
     setStrokes([]);
     setEvaluated(false);
+    setInternalActiveStroke(1);
+    setIsPlayingAnimation(false);
+    setTracerProgress(0);
   }, [targetCharacter]);
+
+  // Handle active stroke selection (updates internal state and notifies parent)
+  const handleSelectStrokeOrder = useCallback((order) => {
+    setInternalActiveStroke(order);
+    if (onSelectStroke) {
+      onSelectStroke(order);
+    }
+  }, [onSelectStroke]);
+
+  // Animation tracer loop
+  useEffect(() => {
+    if (!isPlayingAnimation || !strokeData?.strokes?.length) {
+      setTracerProgress(0);
+      return;
+    }
+
+    let startTime = null;
+    let animFrame = null;
+    const strokeDuration = 1200; // ms per stroke
+
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / strokeDuration, 1);
+      setTracerProgress(progress);
+
+      const strokeIdx = currentActiveStrokeOrder - 1;
+      const activePathEl = svgOverlayRef.current?.querySelector(`path[data-stroke-order="${currentActiveStrokeOrder}"]`);
+      if (activePathEl && activePathEl.getTotalLength) {
+        const totalLen = activePathEl.getTotalLength();
+        const pt = activePathEl.getPointAtLength(progress * totalLen);
+        setTracerPos({ x: pt.x, y: pt.y });
+      } else {
+        const currentStrokeMeta = strokeData.strokes[strokeIdx] || strokeData.strokes[0];
+        if (currentStrokeMeta) {
+          const x = currentStrokeMeta.startPoint.x + (currentStrokeMeta.endPoint.x - currentStrokeMeta.startPoint.x) * progress;
+          const y = currentStrokeMeta.startPoint.y + (currentStrokeMeta.endPoint.y - currentStrokeMeta.startPoint.y) * progress;
+          setTracerPos({ x, y });
+        }
+      }
+
+      if (progress < 1) {
+        animFrame = requestAnimationFrame(animate);
+      } else {
+        const nextOrder = currentActiveStrokeOrder >= strokeData.strokeCount ? 1 : currentActiveStrokeOrder + 1;
+        handleSelectStrokeOrder(nextOrder);
+        startTime = null;
+        animFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    animFrame = requestAnimationFrame(animate);
+    return () => {
+      if (animFrame) cancelAnimationFrame(animFrame);
+    };
+  }, [isPlayingAnimation, currentActiveStrokeOrder, strokeData, handleSelectStrokeOrder]);
 
   // Redraw canvas whenever strokes, dim, or grid change
   const redrawCanvas = useCallback(() => {
@@ -460,8 +545,21 @@ export default function WritingCanvas({
           ))}
         </div>
 
-        {/* Utilities: Grid, Ghost Tracing, Undo, Clear */}
+        {/* Utilities: Stroke Order Guide, Grid, Ghost, Export, Undo, Clear */}
         <div className="flex items-center gap-1">
+          {/* Stroke Order (筆順) Toggle */}
+          <button
+            type="button"
+            data-testid="toggle-stroke-guide"
+            onClick={() => setShowStrokeGuide((v) => !v)}
+            aria-pressed={showStrokeGuide}
+            aria-label={showStrokeGuide ? 'Hide stroke order guidance' : 'Show stroke order guidance'}
+            title="Stroke Order & Direction Guidance (筆順)"
+            className={showStrokeGuide ? TOOL_ON : TOOL_IDLE}
+          >
+            <ListOrdered size={18} aria-hidden="true" />
+          </button>
+
           {/* Ghost Tracing Toggle */}
           <button
             type="button"
@@ -522,6 +620,64 @@ export default function WritingCanvas({
         </div>
       </div>
 
+      {/* ── Stroke Order Sub-Bar: Step Scrubber & Animation Tracer ── */}
+      {showStrokeGuide && strokeData && strokeData.strokes && strokeData.strokes.length > 0 && (
+        <div
+          data-testid="stroke-scrubber-bar"
+          className="w-full bg-brand-50/60 border-x border-ink-200 px-3 py-2 flex items-center justify-between gap-2 text-caption border-t border-brand-100"
+        >
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-brand-900 text-[12px] flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-brand-600 animate-pulse" />
+              筆順: Stroke {currentActiveStrokeOrder} of {strokeData.strokeCount}
+            </span>
+            <span className="text-ink-500 font-mono text-[11px] hidden sm:inline">
+              ({strokeData.strokes[currentActiveStrokeOrder - 1]?.direction?.replace(/-/g, ' ')})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Prev Stroke */}
+            <button
+              type="button"
+              data-testid="prev-stroke-btn"
+              disabled={currentActiveStrokeOrder <= 1}
+              onClick={() => handleSelectStrokeOrder(Math.max(1, currentActiveStrokeOrder - 1))}
+              className="p-1 rounded hover:bg-brand-100 text-brand-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Previous stroke"
+              title="Previous stroke"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {/* Play / Pause Animation */}
+            <button
+              type="button"
+              data-testid="play-stroke-animation-btn"
+              onClick={() => setIsPlayingAnimation((v) => !v)}
+              className="px-2 py-0.5 rounded bg-brand-600 text-white hover:bg-brand-700 font-semibold text-[11px] inline-flex items-center gap-1 shadow-soft-2xs transition-colors"
+              aria-label={isPlayingAnimation ? 'Pause stroke replay' : 'Play stroke animation'}
+            >
+              {isPlayingAnimation ? <Pause size={12} /> : <Play size={12} />}
+              <span>{isPlayingAnimation ? 'Pause' : 'Play All'}</span>
+            </button>
+
+            {/* Next Stroke */}
+            <button
+              type="button"
+              data-testid="next-stroke-btn"
+              disabled={currentActiveStrokeOrder >= strokeData.strokeCount}
+              onClick={() => handleSelectStrokeOrder(Math.min(strokeData.strokeCount, currentActiveStrokeOrder + 1))}
+              className="p-1 rounded hover:bg-brand-100 text-brand-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Next stroke"
+              title="Next stroke"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Drawing Area ── */}
       <div
         className="relative border border-ink-200 shadow-soft-md rounded-b-card overflow-hidden touch-none select-none cursor-crosshair"
@@ -548,6 +704,110 @@ export default function WritingCanvas({
           >
             {targetCharacter}
           </div>
+        )}
+
+        {/* ── On-Canvas SVG Stroke Guidance Overlay (Anchors, Chevrons & Tracer) ── */}
+        {showStrokeGuide && strokeData && strokeData.strokes && (
+          <svg
+            ref={svgOverlayRef}
+            data-testid="stroke-order-overlay"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full pointer-events-none select-none z-10"
+          >
+            <defs>
+              <filter id="tracer-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
+                <feMerge>
+                  <feMergeNode />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Stroke trajectories (dashed lines) */}
+            {strokeData.strokes.map((stroke) => {
+              const isActive = stroke.order === currentActiveStrokeOrder;
+              return (
+                <path
+                  key={`path-${stroke.order}`}
+                  data-stroke-order={stroke.order}
+                  d={stroke.path}
+                  fill="none"
+                  stroke={isActive ? '#047857' : '#A1A1AA'}
+                  strokeWidth={isActive ? '1.8' : '1'}
+                  strokeDasharray={isActive ? '3 2' : '2 2'}
+                  opacity={isActive ? 0.9 : 0.45}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+
+            {/* Numbered Start Anchors with Directional Chevron Arrows */}
+            {strokeData.strokes.map((stroke) => {
+              const isActive = stroke.order === currentActiveStrokeOrder;
+              const { x, y } = stroke.startPoint;
+              const rad = (stroke.arrowAngle * Math.PI) / 180;
+              const arrowX = x + Math.cos(rad) * 4.2;
+              const arrowY = y + Math.sin(rad) * 4.2;
+
+              return (
+                <g
+                  key={`anchor-${stroke.order}`}
+                  data-testid={`stroke-anchor-${stroke.order}`}
+                  opacity={isActive ? 1 : 0.75}
+                >
+                  {/* Trajectory Direction Chevron */}
+                  <g transform={`translate(${arrowX}, ${arrowY}) rotate(${stroke.arrowAngle})`}>
+                    <polygon
+                      points="-1.6,-1.2 1.6,0 -1.6,1.2"
+                      fill={isActive ? '#047857' : '#71717A'}
+                    />
+                  </g>
+
+                  {/* Circular Start Anchor Badge */}
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={isActive ? 3.8 : 3.2}
+                    fill={isActive ? '#047857' : '#3F3F46'}
+                    stroke="#FAFAF7"
+                    strokeWidth={isActive ? '0.9' : '0.7'}
+                  />
+                  {/* Number Text inside Anchor */}
+                  <text
+                    x={x}
+                    y={y + 1}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="#FFFFFF"
+                    fontSize="3"
+                    fontWeight="bold"
+                    fontFamily="monospace"
+                  >
+                    {stroke.order}
+                  </text>
+                </g>
+              );
+            })}
+
+            {/* Animated Tracer Particle */}
+            {isPlayingAnimation && tracerPos && (
+              <g transform={`translate(${tracerPos.x}, ${tracerPos.y})`}>
+                <circle
+                  r="3.2"
+                  fill="#059669"
+                  filter="url(#tracer-glow)"
+                  opacity="0.8"
+                />
+                <circle
+                  r="1.6"
+                  fill="#FFFFFF"
+                />
+              </g>
+            )}
+          </svg>
         )}
 
         {/* HTML5 Canvas with HiDPI support */}

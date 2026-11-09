@@ -5,8 +5,17 @@
 
 import { hiraganaData, katakanaData, kanjiN5Data } from './japanese.js';
 import { phonicsByLanguage } from './phonics.js';
+import { CANONICAL_STROKE_RULES, strokeDictionary, getStrokeData } from './strokeData.js';
 
-export { hiraganaData, katakanaData, kanjiN5Data, phonicsByLanguage };
+export {
+  hiraganaData,
+  katakanaData,
+  kanjiN5Data,
+  phonicsByLanguage,
+  CANONICAL_STROKE_RULES,
+  strokeDictionary,
+  getStrokeData,
+};
 
 /**
  * Get all Hiragana characters or filter by group ('gojuon', 'dakuten', 'yoon')

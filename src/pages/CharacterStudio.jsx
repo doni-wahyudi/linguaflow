@@ -25,6 +25,7 @@ import {
   Award,
   Type,
   Flame,
+  X,
 } from 'lucide-react';
 import PageWrapper from '../components/layout/PageWrapper';
 import { Flag } from '../components/brand';
@@ -47,8 +48,11 @@ import {
   getKatakana,
   getKanji,
   getPhonics,
+  getStrokeData,
+  CANONICAL_STROKE_RULES,
 } from '../data/characters';
 import WritingCanvas from '../components/writing/WritingCanvas';
+import StrokeOrderGuide from '../components/writing/StrokeOrderGuide';
 import { playClick, playCorrect, playIncorrect, playCelebration } from '../utils/soundEffects';
 import { transitionEase } from '../utils/motion';
 
@@ -84,12 +88,15 @@ export default function CharacterStudio() {
   const defaultTab = searchParams.get('tab') || tabs[0].id;
   const [activeTab, setActiveTab] = useState(defaultTab);
 
-  // Ensure activeTab is valid for current language tabs
+  // Ensure activeTab stays in sync with searchParams and is valid for current language tabs
   React.useEffect(() => {
-    if (!tabs.some((t) => t.id === activeTab)) {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && tabs.some((t) => t.id === tabParam)) {
+      setActiveTab(tabParam);
+    } else if (!tabs.some((t) => t.id === activeTab)) {
       setActiveTab(tabs[0].id);
     }
-  }, [tabs, activeTab]);
+  }, [searchParams, tabs]);
 
   // Kana sub-filter
   const [kanaGroup, setKanaGroup] = useState('all'); // 'all', 'gojuon', 'dakuten', 'yoon'
@@ -103,6 +110,7 @@ export default function CharacterStudio() {
   // Canvas state
   const [canvasTarget, setCanvasTarget] = useState(isJapanese ? 'あ' : 'A');
   const [canvasGrid, setCanvasGrid] = useState(isJapanese ? 'rice' : 'lined');
+  const [studioActiveStroke, setStudioActiveStroke] = useState(1);
 
   // Speed Recognition Gym state
   const [gymIndex, setGymIndex] = useState(0);
@@ -122,6 +130,7 @@ export default function CharacterStudio() {
   // Switch to canvas with specific character loaded
   const handleTraceCharacter = (char) => {
     setCanvasTarget(char);
+    setStudioActiveStroke(1);
     setActiveTab('canvas');
     playClick();
   };
@@ -404,6 +413,18 @@ export default function CharacterStudio() {
                       </Button>
                     </div>
                   </div>
+
+                  {/* Visual Stroke Order & Direction Guidance */}
+                  <div className="pt-5 mt-5 border-t border-ink-200">
+                    <StrokeOrderGuide
+                      char={selectedKana.char}
+                      activeStroke={selectedKana.char === canvasTarget ? studioActiveStroke : 1}
+                      onSelectStroke={(s) => {
+                        setCanvasTarget(selectedKana.char);
+                        setStudioActiveStroke(s);
+                      }}
+                    />
+                  </div>
                 </Card>
               </motion.div>
             )}
@@ -448,27 +469,131 @@ export default function CharacterStudio() {
               </div>
             </div>
 
+            {/* Selected Kanji Detail & Stroke Order Inspection Card */}
+            {selectedKanji && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6"
+              >
+                <Card padding="lg" tone="quiet" className="border shadow-soft-sm relative">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedKanji(null)}
+                    className="absolute top-4 right-4 p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded-pill transition-colors"
+                    aria-label="Close Kanji details"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-5 text-center sm:text-left">
+                      <div className="w-20 h-20 rounded-card bg-surface-card border border-brand-200 flex items-center justify-center shadow-soft-xs">
+                        <span className="font-display font-bold text-display-lg text-brand-700">
+                          {selectedKanji.kanji}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1 justify-center sm:justify-start flex-wrap">
+                          <h3 className="font-display font-bold text-display-sm text-ink-900">
+                            {selectedKanji.meaning}
+                          </h3>
+                          <Badge variant="brand" size="sm">
+                            {selectedKanji.level || 'JLPT N5'}
+                          </Badge>
+                          <Badge variant="default" size="sm">
+                            Radical: {selectedKanji.radicals}
+                          </Badge>
+                          <button
+                            type="button"
+                            onClick={() => handlePlayAudio(selectedKanji.kanji)}
+                            className="p-1.5 text-brand-600 hover:bg-brand-100 rounded-pill transition-colors"
+                            title="Play audio"
+                            aria-label={`Listen to ${selectedKanji.kanji}`}
+                          >
+                            <Volume2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="text-body-sm text-ink-700 space-x-4">
+                          <span><strong className="text-ink-500">On:</strong> {selectedKanji.onyomi.join(', ')}</span>
+                          <span><strong className="text-ink-500">Kun:</strong> {selectedKanji.kunyomi.join(', ')}</span>
+                          <span><strong className="text-ink-500">Strokes:</strong> {selectedKanji.strokeCount}</span>
+                        </div>
+                        {selectedKanji.examples && selectedKanji.examples.length > 0 && (
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            <span className="text-caption font-semibold text-ink-500">Examples:</span>
+                            {selectedKanji.examples.map((ex, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 bg-surface-card border border-ink-200 rounded-pill text-caption text-ink-800"
+                              >
+                                {ex.word} ({ex.reading}) - {ex.meaning}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex gap-2">
+                      <Button
+                        shape="pill"
+                        icon={PenTool}
+                        onClick={() => handleTraceCharacter(selectedKanji.kanji)}
+                      >
+                        Trace in Canvas
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Visual Stroke Order Guidance */}
+                  <div className="pt-5 mt-5 border-t border-ink-200">
+                    <StrokeOrderGuide
+                      char={selectedKanji.kanji}
+                      onSelectStroke={(s) => {
+                        setCanvasTarget(selectedKanji.kanji);
+                        setStudioActiveStroke(s);
+                      }}
+                    />
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
             {/* Kanji Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredKanji.map((item) => (
                 <Card
                   key={item.id}
                   padding="md"
-                  className="border border-ink-200 hover:border-brand-400 hover:shadow-soft-sm transition-all"
+                  onClick={() => setSelectedKanji(item)}
+                  className={`border transition-all cursor-pointer ${
+                    selectedKanji?.id === item.id
+                      ? 'border-brand-500 bg-brand-50/20 shadow-soft-sm'
+                      : 'border-ink-200 hover:border-brand-400 hover:shadow-soft-sm'
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <span className="font-display font-bold text-display-md text-brand-700">
                       {item.kanji}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handlePlayAudio(item.kanji)}
-                      className="p-1.5 text-brand-600 hover:bg-brand-100 rounded-pill transition-colors"
-                      title="Play audio"
-                      aria-label={`Listen to ${item.kanji}`}
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <Badge size="sm" variant="default" numeric>
+                        {item.strokeCount} strokes
+                      </Badge>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayAudio(item.kanji);
+                        }}
+                        className="p-1.5 text-brand-600 hover:bg-brand-100 rounded-pill transition-colors"
+                        title="Play audio"
+                        aria-label={`Listen to ${item.kanji}`}
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <h4 className="font-display font-bold text-body-md text-ink-900 mb-1">
@@ -508,7 +633,10 @@ export default function CharacterStudio() {
                     fullWidth
                     shape="pill"
                     icon={PenTool}
-                    onClick={() => handleTraceCharacter(item.kanji)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTraceCharacter(item.kanji);
+                    }}
                   >
                     Trace in Canvas
                   </Button>
@@ -614,7 +742,7 @@ export default function CharacterStudio() {
 
         {/* ── TAB: CALLIGRAPHY CANVAS ── */}
         {activeTab === 'canvas' && (
-          <div className="max-w-xl mx-auto space-y-6">
+          <div className="max-w-6xl mx-auto space-y-6">
             <div className="bg-surface-card p-4 rounded-card border border-ink-200 text-center">
               <Badge variant="brand" uppercase size="md" className="mb-2">
                 Digital Calligraphy Studio
@@ -623,14 +751,17 @@ export default function CharacterStudio() {
                 Tracing Character: “{canvasTarget}”
               </h3>
               <p className="text-body-sm text-ink-500">
-                Use your mouse, finger, or tablet stylus to trace with smooth pressure sensitivity.
+                Use your mouse, finger, or tablet stylus to trace with smooth pressure sensitivity and directional stroke guidance.
               </p>
 
               {/* Character quick selector / custom text input */}
               <div className="flex items-center justify-center gap-2 mt-4 max-w-sm mx-auto">
                 <Input
                   value={canvasTarget}
-                  onChange={(e) => setCanvasTarget(e.target.value)}
+                  onChange={(e) => {
+                    setCanvasTarget(e.target.value);
+                    setStudioActiveStroke(1);
+                  }}
                   placeholder="Type character..."
                   size="sm"
                   className="text-center font-display font-bold"
@@ -647,13 +778,28 @@ export default function CharacterStudio() {
               </div>
             </div>
 
-            <WritingCanvas
-              targetCharacter={canvasTarget}
-              gridType={canvasGrid}
-              onComplete={(isCorrect) => {
-                if (isCorrect) playCorrect();
-              }}
-            />
+            {/* 2-Column Responsive Layout: Writing Canvas + Synchronized Stroke Order Guide */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <div className="lg:col-span-7 space-y-4">
+                <WritingCanvas
+                  targetCharacter={canvasTarget}
+                  gridType={canvasGrid}
+                  activeStroke={studioActiveStroke}
+                  onSelectStroke={(s) => setStudioActiveStroke(s)}
+                  onComplete={(isCorrect) => {
+                    if (isCorrect) playCorrect();
+                  }}
+                />
+              </div>
+
+              <div className="lg:col-span-5 space-y-4">
+                <StrokeOrderGuide
+                  char={canvasTarget}
+                  activeStroke={studioActiveStroke}
+                  onSelectStroke={(s) => setStudioActiveStroke(s)}
+                />
+              </div>
+            </div>
           </div>
         )}
 

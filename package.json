@@ -4,8 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "node scripts/verify-curriculum.js && node scripts/verify-characters.js && node scripts/verify-pronunciation.js && node scripts/verify-dark-contrast.js && node scripts/verify-supabase.js && node scripts/verify-sync.js",
+    "test": "node scripts/verify-curriculum.js && node scripts/verify-characters.js && node scripts/verify-pronunciation.js && node scripts/verify-dark-contrast.js && node scripts/verify-supabase.js && node scripts/verify-sync.js && node scripts/verify-stroke-order.js",
     "test:all": "npm test && node scripts/verify-live-interactions.js",
+    "test:stroke": "node scripts/verify-stroke-order.js",
     "test:characters": "node scripts/verify-characters.js",
     "test:curriculum": "node scripts/verify-curriculum.js",
     "test:pronunciation": "node scripts/verify-pronunciation.js",

@@ -16,8 +16,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const PREVIEW_PORT = 4174;
-const CDP_PORT = 9224;
+const PREVIEW_PORT = 4180;
+const CDP_PORT = 9235;
 const BASE_URL = `http://localhost:${PREVIEW_PORT}/linguaflow/`;
 
 let viteProc = null;
@@ -1161,6 +1161,108 @@ async function runTests() {
     }
     console.log('  [PASS] AuthModal dismissed cleanly on Escape key');
     results.push({ name: 'Test 18: Supabase Auth Modal accessibility & interaction', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 19: Stroke Order Guidance in Digital Calligraphy Canvas & Character Studio
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 19: Stroke Order Guidance in Digital Calligraphy Canvas & Character Studio');
+    await setUserProfile('ja');
+    await cdp.eval(`window.location.hash = '#/characters'`);
+    await cdp.send('Page.reload');
+    await sleep(400);
+
+    // Switch to Calligraphy Canvas tab
+    await cdp.eval(`document.querySelector('#character-studio-tabs-tab-canvas')?.click()`);
+    await sleep(200);
+
+    await cdp.waitFor(`/Digital Calligraphy Studio/i.test(document.body.innerText)`);
+    console.log('  [OK] Digital Calligraphy Canvas tab loaded');
+
+    // 1. Verify toggle button exists and is active
+    const hasGuideToggle = await cdp.eval(`Boolean(document.querySelector('[data-testid="toggle-stroke-guide"]'))`);
+    if (!hasGuideToggle) {
+      throw new Error('Stroke order guide toggle button missing');
+    }
+    console.log('  [OK] Stroke order guide toggle button present');
+
+    // 2. Verify on-canvas overlay and anchors rendered
+    await cdp.waitFor(`document.querySelector('[data-testid="stroke-order-overlay"]') !== null`);
+    const hasAnchor1 = await cdp.eval(`Boolean(document.querySelector('[data-testid="stroke-anchor-1"]'))`);
+    if (!hasAnchor1) {
+      throw new Error('Stroke anchor 1 missing on canvas overlay');
+    }
+    console.log('  [OK] On-canvas SVG overlay and stroke start anchors rendered');
+
+    // 3. Verify scrubber controls: step next, prev, and active stroke
+    const hasScrubber = await cdp.eval(`Boolean(document.querySelector('[data-testid="stroke-scrubber-bar"]'))`);
+    if (!hasScrubber) {
+      throw new Error('Stroke scrubber bar missing');
+    }
+    await cdp.eval(`document.querySelector('[data-testid="next-stroke-btn"]').click()`);
+    await sleep(150);
+    const strokeNow = await cdp.eval(`
+      (() => {
+        const bar = document.querySelector('[data-testid="stroke-scrubber-bar"]');
+        return bar ? bar.innerText : '';
+      })()
+    `);
+    if (!/Stroke 2/i.test(strokeNow)) {
+      throw new Error(`Expected scrubber to show Stroke 2, got "${strokeNow}"`);
+    }
+    console.log('  [OK] Scrubber controls advanced to Stroke 2');
+
+    // 4. Verify companion StrokeOrderGuide component is mounted beside canvas
+    const hasCompanionGuide = await cdp.eval(`Boolean(document.querySelector('[data-testid="stroke-order-guide"]'))`);
+    if (!hasCompanionGuide) {
+      throw new Error('Companion StrokeOrderGuide component missing in Canvas tab');
+    }
+    const hasPills = await cdp.eval(`Boolean(document.querySelector('[data-testid="step-pill-1"]'))`);
+    if (!hasPills) {
+      throw new Error('StrokeOrderGuide step pills missing');
+    }
+    console.log('  [OK] Companion StrokeOrderGuide mounted with interactive step pills');
+
+    // 5. Test Kana detail inspection with embedded StrokeOrderGuide
+    await cdp.eval(`document.querySelector('#character-studio-tabs-tab-hiragana')?.click()`);
+    await sleep(300);
+    await cdp.waitFor(`document.querySelector('[role="button"][aria-label*="Character あ"]') !== null`);
+    await cdp.eval(`document.querySelector('[role="button"][aria-label*="Character あ"]').click()`);
+    await sleep(250);
+
+    const kanaHasGuide = await cdp.eval(`Boolean(document.querySelector('[data-testid="stroke-order-guide"]'))`);
+    if (!kanaHasGuide) {
+      throw new Error('Embedded StrokeOrderGuide did not render in Kana detail card');
+    }
+    console.log('  [OK] Selected Kana detail card renders embedded StrokeOrderGuide');
+
+    // 6. Test Kanji tab with stroke count badges and detail inspection
+    await cdp.eval(`document.querySelector('#character-studio-tabs-tab-kanji')?.click()`);
+    await sleep(300);
+    await cdp.waitFor(`/One \\(1\\)/i.test(document.body.innerText)`);
+
+    // Click on Kanji card 一
+    await cdp.eval(`
+      (() => {
+        const cards = Array.from(document.querySelectorAll('.font-display.font-bold'));
+        const kanjiCard = cards.find(el => el.innerText.trim() === '一');
+        if (kanjiCard) {
+          kanjiCard.closest('.cursor-pointer')?.click();
+        }
+      })()
+    `);
+    await sleep(250);
+
+    const kanjiHasGuide = await cdp.eval(`
+      (() => {
+        const guide = document.querySelector('[data-testid="stroke-order-guide"]');
+        return guide && /Stroke Order/i.test(guide.innerText);
+      })()
+    `);
+    if (!kanjiHasGuide) {
+      throw new Error('Kanji detail inspection did not render StrokeOrderGuide');
+    }
+    console.log('  [PASS] Character Studio Kana, Kanji, and Canvas stroke guidance verified end-to-end');
+    results.push({ name: 'Test 19: Stroke Order Guidance in Canvas and Character Studio', status: 'PASS' });
 
     console.log('\n====================================================');
     console.log(`  Verification Summary: ALL ${results.length} TESTS PASSED (0 ERRORS)`);
