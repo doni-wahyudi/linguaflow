@@ -84,6 +84,13 @@ export default function CharacterStudio() {
   const defaultTab = searchParams.get('tab') || tabs[0].id;
   const [activeTab, setActiveTab] = useState(defaultTab);
 
+  // Ensure activeTab is valid for current language tabs
+  React.useEffect(() => {
+    if (!tabs.some((t) => t.id === activeTab)) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
+
   // Kana sub-filter
   const [kanaGroup, setKanaGroup] = useState('all'); // 'all', 'gojuon', 'dakuten', 'yoon'
   const [selectedKana, setSelectedKana] = useState(null);
@@ -238,14 +245,15 @@ export default function CharacterStudio() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <SegmentedControl
             name="character-studio-tabs"
+            label="Character Studio Navigation"
             value={activeTab}
             onChange={(tab) => {
               setActiveTab(tab);
               setSearchParams({ tab });
               playClick();
             }}
-            items={tabs}
-            size="lg"
+            tabs={tabs}
+            size="md"
           />
 
           <div className="flex items-center gap-2">

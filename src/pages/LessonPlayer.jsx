@@ -384,6 +384,7 @@ export default function LessonPlayer() {
                     : 'text-ink-600 hover:text-ink-900'
                 }`}
                 title={showFurigana ? 'Hide Furigana ruby readings' : 'Show Furigana ruby readings'}
+                aria-label="Toggle Furigana reading assistance"
                 aria-pressed={showFurigana}
               >
                 振
@@ -397,6 +398,7 @@ export default function LessonPlayer() {
                     : 'text-ink-600 hover:text-ink-900'
                 }`}
                 title={showRomaji ? 'Hide Romaji reading' : 'Show Romaji reading'}
+                aria-label="Toggle Romaji reading assistance"
                 aria-pressed={showRomaji}
               >
                 Ro

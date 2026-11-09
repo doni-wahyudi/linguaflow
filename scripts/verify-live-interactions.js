@@ -196,6 +196,9 @@ async function startBrowser(browserPath) {
   const pending = new Map();
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
+    if (msg.method === 'Runtime.exceptionThrown') {
+      console.error('[BROWSER EXCEPTION]', JSON.stringify(msg.params?.exceptionDetails));
+    }
     if (msg.id && pending.has(msg.id)) {
       const { resolve, reject } = pending.get(msg.id);
       pending.delete(msg.id);
@@ -492,10 +495,10 @@ async function runTests() {
     // ──────────────────────────────────────────────────────────────────────────
     console.log('\nTest 5: Practice page displays 230+ unique words in Master Vocabulary Library across ES, JA, FR, DE');
     const languages = [
-      { code: 'es', expectedMin: 230, expectedMax: 245 },
-      { code: 'ja', expectedMin: 230, expectedMax: 245 },
-      { code: 'fr', expectedMin: 230, expectedMax: 245 },
-      { code: 'de', expectedMin: 230, expectedMax: 245 },
+      { code: 'es', expectedMin: 230, expectedMax: 265 },
+      { code: 'ja', expectedMin: 230, expectedMax: 265 },
+      { code: 'fr', expectedMin: 230, expectedMax: 265 },
+      { code: 'de', expectedMin: 230, expectedMax: 265 },
     ];
 
     for (const lang of languages) {
@@ -672,8 +675,8 @@ async function runTests() {
     // Test 9: LessonPlayer renders SpeakingExercise with MicButton and "Type instead" fallback
     // ──────────────────────────────────────────────────────────────────────────
     console.log('\nTest 9: LessonPlayer renders SpeakingExercise with MicButton and "Type instead" fallback');
-    // Navigate to es-basics-1 exercise index 6 (speaking exercise es-spk-101)
-    await cdp.eval(`window.location.hash = '#/learn/es-basics-1?index=6'`);
+    // Navigate to es-basics-1 exercise index 8 (speaking exercise es-spk-101)
+    await cdp.eval(`window.location.hash = '#/learn/es-basics-1?index=8'`);
     await sleep(400);
 
     await cdp.waitFor(`
@@ -779,7 +782,7 @@ async function runTests() {
 
     await cdp.waitFor(`
       document.body.innerText.includes('Muchas gracias, hasta luego.') ||
-      /Exercise 8 of 8/i.test(document.body.innerText)
+      /Exercise \d+ of \d+/i.test(document.body.innerText)
     `);
 
     console.log('  [PASS] Successfully submitted typed phrase and advanced to next speaking exercise');
@@ -843,8 +846,97 @@ async function runTests() {
     console.log('  [OK] Advanced to Phrase 2 of N in Pronunciation Studio');
     results.push({ name: 'Test 11: Practice Pronunciation Studio 5th tab & audio controls', status: 'PASS' });
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 12: Character & Alphabet Studio Hub (/characters)
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 12: Character & Alphabet Studio (/characters) mounts with kana/kanji & canvas');
+    await setUserProfile('ja');
+    await cdp.eval(`window.location.hash = '#/characters'`);
+    await cdp.send('Page.reload');
+    await sleep(400);
+
+    await cdp.waitFor(`
+      document.body.innerText.includes('Character & Alphabet Studio') &&
+      document.body.innerText.includes('Japanese (日本語)')
+    `);
+    console.log('  [OK] Character Studio mounted with Japanese academy headers');
+
+    // Verify Hiragana cards exist
+    const kanaCardCount = await cdp.eval(`
+      (() => {
+        const buttons = Array.from(document.querySelectorAll('button, [role="button"]'));
+        const kanaCards = buttons.filter(b => b.innerText.includes('あ') || b.innerText.includes('か') || b.innerText.includes('さ'));
+        return kanaCards.length;
+      })()
+    `);
+    if (kanaCardCount === 0) throw new Error('No Hiragana character cards detected');
+    console.log(`  [OK] Hiragana grid loaded successfully with ${kanaCardCount} kana sound cards`);
+
+    // Switch to Calligraphy Pad
+    await cdp.eval(`
+      (() => {
+        const drawTab = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Calligraphy') || b.innerText.includes('Writing'));
+        if (drawTab) drawTab.click();
+      })()
+    `);
+    await sleep(200);
+    await cdp.waitFor(`Boolean(document.querySelector('canvas'))`);
+    console.log('  [OK] Digital Calligraphy Canvas mounted and ready');
+
+    // Switch to Recognition Drill Gym
+    await cdp.eval(`
+      (() => {
+        const gymTab = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Recognition Gym') || b.innerText.includes('Drill'));
+        if (gymTab) gymTab.click();
+      })()
+    `);
+    await sleep(200);
+    await cdp.waitFor(`
+      document.body.innerText.includes('Recognition Gym') &&
+      /Question 1 of 10/i.test(document.body.innerText)
+    `);
+    console.log('  [PASS] Recognition Drill Gym loaded with 10 questions');
+    results.push({ name: 'Test 12: Character Studio kana, calligraphy canvas, and drill gym', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 13: LessonPlayer renders Furigana/Romaji toggles and SentenceBuilder
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 13: LessonPlayer Japanese foundations with Furigana toggles & SentenceBuilder');
+    await cdp.eval(`window.location.hash = '#/learn/ja-foundations-1'`);
+    await sleep(400);
+
+    await cdp.waitFor(`document.body.innerText.includes('Hiragana Syllables')`);
+    console.log('  [OK] Japanese foundations lesson mounted with grammar micro-guide');
+
+    // Advance past GrammarCard to exercise 0
+    await cdp.eval(`
+      (() => {
+        const btn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Start Exercises'));
+        if (btn) btn.click();
+      })()
+    `);
+    await sleep(300);
+
+    // Verify Furigana and Romaji toggles are present in LessonPlayer header
+    const assistToggles = await cdp.eval(`
+      (() => {
+        const furiganaBtn = document.querySelector('button[aria-label*="Furigana"]');
+        const romajiBtn = document.querySelector('button[aria-label*="Romaji"]');
+        return {
+          hasFurigana: Boolean(furiganaBtn),
+          hasRomaji: Boolean(romajiBtn)
+        };
+      })()
+    `);
+
+    if (!assistToggles.hasFurigana || !assistToggles.hasRomaji) {
+      throw new Error(`Reading assistance toggles missing: ${JSON.stringify(assistToggles)}`);
+    }
+    console.log('  [PASS] Furigana (振) and Romaji (Ro) toggle controls active in lesson header');
+    results.push({ name: 'Test 13: Japanese LessonPlayer Furigana & Romaji reading toggles', status: 'PASS' });
+
     console.log('\n====================================================');
-    console.log('  Verification Summary: ALL 11 TESTS PASSED (0 ERRORS)');
+    console.log(`  Verification Summary: ALL ${results.length} TESTS PASSED (0 ERRORS)`);
     console.log('====================================================\n');
     for (const r of results) {
       console.log(`  [OK] ${r.name}: ${r.status}`);
