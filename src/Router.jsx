@@ -9,6 +9,7 @@ import Lessons from './pages/Lessons';
 import LessonPlayer from './pages/LessonPlayer';
 import Practice from './pages/Practice';
 import WritingPractice from './pages/WritingPractice';
+import CharacterStudio from './pages/CharacterStudio';
 import Exams from './pages/Exams';
 import ExamPlayer from './pages/ExamPlayer';
 import Profile from './pages/Profile';
@@ -118,10 +119,18 @@ export default function AppRouter() {
           }
         />
         <Route
+          path="/characters"
+          element={
+            <ProtectedRoute>
+              <CharacterStudio />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/writing"
           element={
             <ProtectedRoute>
-              <WritingPractice />
+              <CharacterStudio />
             </ProtectedRoute>
           }
         />

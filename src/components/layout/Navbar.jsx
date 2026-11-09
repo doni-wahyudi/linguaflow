@@ -29,9 +29,9 @@ import { transitionEase } from '../../utils/motion';
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/lessons', label: 'Lessons', icon: BookOpen },
+  { to: '/characters', label: 'Characters & Script', icon: PenTool },
   { to: '/practice', label: 'Practice', icon: Repeat },
   { to: '/exams', label: 'Official Exams', icon: Award },
-  { to: '/writing', label: 'Writing Lab', icon: PenTool },
 ];
 
 const sidebarVariants = {
