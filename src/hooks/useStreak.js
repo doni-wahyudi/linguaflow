@@ -59,6 +59,17 @@ const useStreak = () => {
     [streakData.lastActiveDate]
   );
 
+  /** Whether the streak is still active (active today or active yesterday). */
+  const isStreakActive = useMemo(() => {
+    if (!streakData.lastActiveDate) return false;
+    const today = todayStr();
+    const yesterday = yesterdayStr();
+    return streakData.lastActiveDate === today || streakData.lastActiveDate === yesterday;
+  }, [streakData.lastActiveDate]);
+
+  /** Effective streak: if user missed more than 1 day, streak decays to 0. */
+  const effectiveCurrentStreak = isStreakActive ? streakData.currentStreak : 0;
+
   /**
    * Record that the user was active today.
    *
@@ -94,7 +105,7 @@ const useStreak = () => {
   }, [setStreakData]);
 
   return {
-    currentStreak: streakData.currentStreak,
+    currentStreak: effectiveCurrentStreak,
     longestStreak: streakData.longestStreak,
     lastActiveDate: streakData.lastActiveDate,
     recordActivity,

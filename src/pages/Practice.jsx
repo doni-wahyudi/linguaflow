@@ -23,6 +23,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Repeat,
@@ -41,6 +42,7 @@ import {
   ArrowLeft,
   X,
   Mic,
+  Keyboard,
 } from 'lucide-react';
 import PageWrapper from '../components/layout/PageWrapper';
 import { Flag } from '../components/brand';
@@ -250,9 +252,21 @@ export default function Practice() {
   const currentLang = user.selectedLanguage || 'es';
   const langData = languages.find((l) => l.id === currentLang);
 
-  // Active Practice Mode Tab
-  const [activeTab, setActiveTab] = useState('review'); // 'review' | 'quiz' | 'listening' | 'words'
+  // Active Practice Mode Tab with URL query support (?tab=speaking etc.)
+  const [searchParams] = useSearchParams();
+  const validTabs = ['review', 'quiz', 'listening', 'speaking', 'words'];
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    validTabs.includes(initialTab) ? initialTab : 'review'
+  );
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && validTabs.includes(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // Level choices adapted for current language framework (CEFR vs JLPT)
   const availableLevels = useMemo(() => {
@@ -716,6 +730,16 @@ export default function Practice() {
     resetTranscript: resetSpeechTranscript,
   } = useSpeechRecognition();
 
+  const [speakingMode, setSpeakingMode] = useState(isSpeechRecognitionSupported ? 'voice' : 'type'); // 'voice' | 'type'
+  const [typedSpeakingInput, setTypedSpeakingInput] = useState('');
+
+  // Fallback to typing mode when speech recognition is not supported
+  useEffect(() => {
+    if (!isSpeechRecognitionSupported) {
+      setSpeakingMode('type');
+    }
+  }, [isSpeechRecognitionSupported]);
+
   // Curate phrases pool from both lesson speaking exercises and expanded core vocabulary
   const speakingPhrases = useMemo(() => {
     const phrases = [];
@@ -821,15 +845,44 @@ export default function Practice() {
     }
   };
 
+  const handleTypedSpeakingSubmit = (e) => {
+    e?.preventDefault();
+    if (!typedSpeakingInput.trim() || !currentSpeakingPhrase) return;
+
+    const result = scorePronunciation(
+      currentSpeakingPhrase.text,
+      typedSpeakingInput.trim(),
+      currentLang,
+      { reading: currentSpeakingPhrase.reading }
+    );
+    setSpeakingEvaluation(result);
+
+    if (result.passed) {
+      playCorrect();
+      xp.addXP(15);
+      streak.recordActivity();
+      if (result.score >= 85) {
+        setMasteredCount((c) => c + 1);
+        if (currentSpeakingPhrase.wordId) {
+          progress.updateWordProgress(currentSpeakingPhrase.wordId, 5);
+        }
+      }
+    } else {
+      playIncorrect();
+    }
+  };
+
   const handleNextSpeakingPhrase = () => {
     setSpeakingEvaluation(null);
     resetSpeechTranscript();
+    setTypedSpeakingInput('');
     setSpeakingIndex((i) => (i + 1) % (speakingPhrases.length || 1));
   };
 
   const handlePrevSpeakingPhrase = () => {
     setSpeakingEvaluation(null);
     resetSpeechTranscript();
+    setTypedSpeakingInput('');
     setSpeakingIndex((i) => (i - 1 + (speakingPhrases.length || 1)) % (speakingPhrases.length || 1));
   };
 
@@ -853,6 +906,7 @@ export default function Practice() {
     setSpeakingIndex(0);
     setSpeakingEvaluation(null);
     resetSpeechTranscript();
+    setTypedSpeakingInput('');
 
     if (drillLevel !== 'All' && !availableLevels.includes(drillLevel)) {
       setDrillLevel('All');
@@ -1382,50 +1436,107 @@ export default function Practice() {
                   <AudioControls text={currentSpeakingPhrase.text} lang={currentLang} speech={speech} />
                 </div>
 
-                {/* Recording Controls & Visualizer */}
-                <div className="flex flex-col items-center justify-center py-4 space-y-3 bg-surface-50 rounded-card border border-ink-100">
-                  <LiveAudioVisualizer isListening={isSpeakingListening} />
-
-                  <MicButton
-                    isListening={isSpeakingListening}
-                    isProcessing={Boolean(!isSpeakingListening && speakingTranscript && !speakingEvaluation)}
-                    onClick={handleToggleSpeaking}
-                    disabled={!isSpeechRecognitionSupported}
-                    size="lg"
-                  />
-
-                  <p className="text-body-sm font-medium text-ink-700">
-                    {!isSpeechRecognitionSupported
-                      ? 'Speech recognition is not supported in this browser'
-                      : isSpeakingListening
-                      ? 'Listening... tap again or pause to finish'
-                      : speakingEvaluation
-                      ? 'Speech evaluated! Review your score below'
-                      : 'Tap microphone and speak clearly'}
-                  </p>
-
-                  {/* Live Streaming Transcript */}
-                  {(isSpeakingListening || (!speakingEvaluation && speakingTranscript)) && (
-                    <div
-                      className="bg-brand-50 border border-brand-200 rounded-card px-4 py-2 text-body-sm text-brand-900 italic max-w-md w-full"
-                      role="status"
-                      aria-live="polite"
+                {/* Mode Switcher & Fallback Area */}
+                <div className="flex items-center justify-end">
+                  {isSpeechRecognitionSupported && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSpeakingMode((m) => (m === 'voice' ? 'type' : 'voice'));
+                        setSpeakingEvaluation(null);
+                        resetSpeechTranscript();
+                        setTypedSpeakingInput('');
+                      }}
+                      className="inline-flex items-center gap-1.5 text-body-sm font-medium text-brand-700 hover:text-brand-800 underline underline-offset-2 transition-colors"
                     >
-                      &ldquo;{speakingInterimTranscript || speakingTranscript || 'Listening...'}&rdquo;
-                    </div>
-                  )}
-
-                  {/* Speech Recognition Errors */}
-                  {speechRecognitionError && (
-                    <div className="bg-error-bg border border-error-border rounded-card px-4 py-2 text-body-sm text-error max-w-md w-full">
-                      {speechRecognitionError === 'not-allowed'
-                        ? 'Microphone access denied. Please grant microphone permission in your browser.'
-                        : speechRecognitionError === 'no-speech'
-                        ? 'No speech detected. Please speak closer to your microphone.'
-                        : `Speech error: ${speechRecognitionError}. Please try again.`}
-                    </div>
+                      {speakingMode === 'voice' ? (
+                        <>
+                          <Keyboard className="w-4 h-4" aria-hidden="true" />
+                          Type instead
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-4 h-4" aria-hidden="true" />
+                          Switch to voice mode
+                        </>
+                      )}
+                    </button>
                   )}
                 </div>
+
+                {speakingMode === 'voice' ? (
+                  /* Recording Controls & Visualizer */
+                  <div className="flex flex-col items-center justify-center py-4 space-y-3 bg-surface-50 rounded-card border border-ink-100">
+                    <LiveAudioVisualizer isListening={isSpeakingListening} />
+
+                    <MicButton
+                      isListening={isSpeakingListening}
+                      isProcessing={Boolean(!isSpeakingListening && speakingTranscript && !speakingEvaluation)}
+                      onClick={handleToggleSpeaking}
+                      disabled={!isSpeechRecognitionSupported}
+                      size="lg"
+                    />
+
+                    <p className="text-body-sm font-medium text-ink-700">
+                      {!isSpeechRecognitionSupported
+                        ? 'Speech recognition is not supported in this browser. Please use typing mode below.'
+                        : isSpeakingListening
+                        ? 'Listening... tap again or pause to finish'
+                        : speakingEvaluation
+                        ? 'Speech evaluated! Review your score below'
+                        : 'Tap microphone and speak clearly'}
+                    </p>
+
+                    {/* Live Streaming Transcript */}
+                    {(isSpeakingListening || (!speakingEvaluation && speakingTranscript)) && (
+                      <div
+                        className="bg-brand-50 border border-brand-200 rounded-card px-4 py-2 text-body-sm text-brand-900 italic max-w-md w-full"
+                        role="status"
+                        aria-live="polite"
+                      >
+                        &ldquo;{speakingInterimTranscript || speakingTranscript || 'Listening...'}&rdquo;
+                      </div>
+                    )}
+
+                    {/* Speech Recognition Errors */}
+                    {speechRecognitionError && (
+                      <div className="bg-error-bg border border-error-border rounded-card px-4 py-2 text-body-sm text-error max-w-md w-full">
+                        {speechRecognitionError === 'not-allowed'
+                          ? 'Microphone access denied. Please grant microphone permission or use "Type instead".'
+                          : speechRecognitionError === 'no-speech'
+                          ? 'No speech detected. Please speak closer to your microphone or use "Type instead".'
+                          : `Speech error: ${speechRecognitionError}. Please try again.`}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Typing Fallback Mode */
+                  <div className="py-4 space-y-3 bg-surface-50 rounded-card border border-ink-100 p-4 text-left">
+                    <form onSubmit={handleTypedSpeakingSubmit} className="space-y-4">
+                      <Input
+                        label="Type the target sentence in target language"
+                        value={typedSpeakingInput}
+                        onChange={(e) => setTypedSpeakingInput(e.target.value)}
+                        placeholder={`Type "${currentSpeakingPhrase.text}"...`}
+                        autoFocus
+                        required
+                      />
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-caption text-ink-500">
+                          Evaluates pronunciation accuracy and vocabulary match.
+                        </p>
+                        <Button
+                          type="submit"
+                          variant="primary"
+                          size="md"
+                          disabled={!typedSpeakingInput.trim()}
+                        >
+                          Evaluate Answer
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
 
                 {/* Evaluation Feedback */}
                 {speakingEvaluation && (

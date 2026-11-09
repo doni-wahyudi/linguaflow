@@ -105,14 +105,16 @@ export const calculateNextReview = (wordProgress, quality) => {
  * @returns {WordProgress[]} subset that is due for review, sorted earliest first
  */
 export const getWordsForReview = (allWordProgress) => {
+  if (!allWordProgress || !Array.isArray(allWordProgress)) return [];
   const now = new Date();
-  // Zero-out the time component so we compare by calendar date only
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // End of current local calendar day (23:59:59.999) so items scheduled for today are due
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
   return allWordProgress
     .filter((wp) => {
+      if (!wp || !wp.nextReview) return false;
       const reviewDate = new Date(wp.nextReview);
-      return reviewDate <= today;
+      return reviewDate <= endOfToday;
     })
     .sort((a, b) => new Date(a.nextReview) - new Date(b.nextReview));
 };

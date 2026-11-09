@@ -23,7 +23,7 @@ const tabs = [
   { to: '/lessons', label: 'Lessons', icon: BookOpen },
   { to: '/practice', label: 'Practice', icon: Repeat },
   { to: '/exams', label: 'Exams', icon: Award },
-  { to: '/writing', label: 'Writing', icon: PenTool },
+  { to: '/characters', label: 'Script', icon: PenTool },
   { to: '/profile', label: 'Profile', icon: User },
 ];
 

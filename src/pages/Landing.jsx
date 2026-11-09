@@ -12,6 +12,8 @@ import {
   Target,
   PenTool,
   Heart,
+  Mic,
+  Award,
 } from 'lucide-react';
 import { Logo, Flag } from '../components/brand';
 import { ButtonLink, Button } from '../components/ui';
@@ -55,39 +57,39 @@ const scaleIn = {
 /* Feature data */
 const features = [
   {
-    icon: PenTool,
-    title: 'Tablet Handwriting Lab',
-    description: 'Designed for tablets, Apple Pencil, and touch styluses. Practice Japanese stroke order, German umlauts, and cursive words.',
+    icon: Mic,
+    title: 'Pronunciation & Speaking Studio',
+    description: 'Browser-native speech recognition with live audio visualizers, token-level Levenshtein scoring, and instant enunciation feedback.',
     color: 'brand',
   },
   {
+    icon: Award,
+    title: 'Official CEFR & JLPT Mock Exams',
+    description: 'Timed full-length assessments with section breakdowns, CEFR (A1-B1) and JLPT (N5-N3) pass thresholds, and certifications.',
+    color: 'amber',
+  },
+  {
+    icon: PenTool,
+    title: 'Characters & Handwriting Lab',
+    description: 'Designed for tablets, Apple Pencil, and touch styluses. Practice Japanese stroke order, 50-sound Gojūon charts, and Kana gym.',
+    color: 'coral',
+  },
+  {
     icon: Brain,
-    title: 'Spaced Repetition',
-    description: 'Science-backed algorithm that shows you words right before you forget them. Learn more in less time.',
+    title: 'Spaced Repetition (SRS)',
+    description: 'Science-backed SM-2 algorithm that surfaces words right before memory decay. Learn more in less time.',
     color: 'amber',
   },
   {
     icon: Zap,
     title: 'Interactive Exercises',
-    description: 'Flashcards, quizzes, matching games, fill-in-the-blank — variety keeps your brain engaged.',
+    description: 'Sentence builders, dialogue roleplays, ear training listening, and rapid speed drills keep your recall razor sharp.',
     color: 'coral',
-  },
-  {
-    icon: Target,
-    title: 'Daily Goals',
-    description: 'Set your pace. Whether 5 minutes or 30, build a consistent habit that sticks.',
-    color: 'coral',
-  },
-  {
-    icon: Flame,
-    title: 'Streak System',
-    description: "Don't break the chain! Daily streaks keep you motivated and coming back for more.",
-    color: 'amber',
   },
   {
     icon: Trophy,
-    title: 'Earn Achievements',
-    description: 'Unlock badges and level up from Seedling to Forest as you master new vocabulary.',
+    title: 'Gamified Growth & Streaks',
+    description: 'Unlock badges, track daily streaks, and level up from Seedling to Forest as you master hundreds of vocabulary words.',
     color: 'brand',
   },
 ];

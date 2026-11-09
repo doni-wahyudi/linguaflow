@@ -38,6 +38,7 @@ export default function useSpeechRecognition() {
 
   const recognitionRef = useRef(null);
   const silenceTimerRef = useRef(null);
+  const latestInterimRef = useRef('');
 
   useEffect(() => {
     const SpeechRecognition =
@@ -62,12 +63,17 @@ export default function useSpeechRecognition() {
         // Ignore if already stopped
       }
     }
+    if (latestInterimRef.current) {
+      setTranscript((prev) => (prev ? prev : latestInterimRef.current));
+      latestInterimRef.current = '';
+    }
     setIsListening(false);
   }, [clearSilenceTimer]);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
     setInterimTranscript('');
+    latestInterimRef.current = '';
     setError(null);
   }, []);
 
@@ -76,6 +82,7 @@ export default function useSpeechRecognition() {
       setError(null);
       setTranscript('');
       setInterimTranscript('');
+      latestInterimRef.current = '';
       clearSilenceTimer();
 
       const SpeechRecognition =
@@ -128,10 +135,16 @@ export default function useSpeechRecognition() {
         }
 
         const trimmedFinal = finalTranscript.trim();
+        const trimmedInterim = currentInterim.trim();
+
         if (trimmedFinal) {
           setTranscript(trimmedFinal);
+          latestInterimRef.current = '';
+        } else if (trimmedInterim) {
+          latestInterimRef.current = trimmedInterim;
         }
-        setInterimTranscript(currentInterim.trim());
+
+        setInterimTranscript(trimmedInterim);
 
         // Once speech is detected, set a 2.5s silence timeout to auto-complete
         clearSilenceTimer();
@@ -155,6 +168,10 @@ export default function useSpeechRecognition() {
 
       recognition.onend = () => {
         clearSilenceTimer();
+        if (latestInterimRef.current) {
+          setTranscript((prev) => (prev ? prev : latestInterimRef.current));
+          latestInterimRef.current = '';
+        }
         setIsListening(false);
       };
 

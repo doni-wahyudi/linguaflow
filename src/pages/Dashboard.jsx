@@ -16,6 +16,7 @@ import {
   PenTool,
   CheckCircle2,
   Award,
+  Mic,
 } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 import { languages } from '../data/languages';
@@ -61,10 +62,11 @@ const tintClasses = {
 };
 
 const quickActions = [
-  { to: '/practice', icon: Repeat, tint: 'brand', title: 'Practice Hub', subtitle: 'Flashcards, drills & audio' },
+  { to: '/practice?tab=speaking', icon: Mic, tint: 'brand', title: 'Speaking Studio', subtitle: 'Oral production & voice score' },
   { to: '/exams', icon: Award, tint: 'info', title: 'Official Exams', subtitle: 'CEFR & JLPT certified tests' },
-  { to: '/writing', icon: PenTool, tint: 'coral', title: 'Handwriting Lab', subtitle: 'Stylus & touch practice' },
-  { to: '/lessons', icon: BookOpen, tint: 'amber', title: 'Browse Lessons', subtitle: 'All categories' },
+  { to: '/practice', icon: Repeat, tint: 'amber', title: 'Practice Hub', subtitle: 'Flashcards, drills & audio' },
+  { to: '/characters', icon: PenTool, tint: 'coral', title: 'Characters & Script', subtitle: 'Kana, Kanji & calligraphy' },
+  { to: '/lessons', icon: BookOpen, tint: 'brand', title: 'Browse Lessons', subtitle: 'All curriculum units' },
 ];
 
 export default function Dashboard() {
@@ -242,6 +244,49 @@ export default function Dashboard() {
                 </div>
               </motion.div>
             )}
+
+            {/* Flagship Hubs: Speaking Studio & Official Exams */}
+            <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link
+                to="/practice?tab=speaking"
+                className="group block p-4 rounded-card bg-surface-card border border-ink-200 hover:border-brand-500 hover:shadow-card-hover transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-button bg-brand-50 border border-brand-200 text-brand-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Mic className="w-5 h-5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-display font-semibold text-body-sm text-ink-900 group-hover:text-brand-700 transition-colors">
+                      Speaking Studio
+                    </h3>
+                    <p className="text-caption text-ink-500 truncate">
+                      Real-time voice & enunciation feedback
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-ink-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+                </div>
+              </Link>
+
+              <Link
+                to="/exams"
+                className="group block p-4 rounded-card bg-surface-card border border-ink-200 hover:border-amber-500 hover:shadow-card-hover transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-button bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Award className="w-5 h-5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-display font-semibold text-body-sm text-ink-900 group-hover:text-amber-700 transition-colors">
+                      Official Mock Exams
+                    </h3>
+                    <p className="text-caption text-ink-500 truncate">
+                      CEFR & JLPT certified assessments
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-ink-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+                </div>
+              </Link>
+            </motion.div>
 
             {/* Daily Goal */}
             <motion.div variants={fadeUp}>

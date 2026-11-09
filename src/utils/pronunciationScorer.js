@@ -116,9 +116,26 @@ export function scorePronunciation(expectedText, spokenText, langCode = 'en', me
     }
   }
 
-  const expectedWords = expectedText.trim().split(/\s+/).filter(Boolean);
-  const cleanExpWords = normExpected.split(/\s+/).filter(Boolean);
-  const cleanSpokenWords = normSpoken.split(/\s+/).filter(Boolean);
+  // Use phonetic reading target for clean comparison when available
+  const comparisonExpected =
+    langCode === 'ja' && metadata?.reading
+      ? cleanForComparison(metadata.reading, langCode)
+      : normExpected;
+
+  let expectedWords = expectedText.trim().split(/\s+/).filter(Boolean);
+  let cleanExpWords = comparisonExpected.split(/\s+/).filter(Boolean);
+  let cleanSpokenWords = normSpoken.split(/\s+/).filter(Boolean);
+
+  // For unspaced languages (Japanese/Chinese), if token splitting produces a single string
+  // without spaces, split by characters to enable fine-grained visual token feedback.
+  const isUnspaced = langCode === 'ja' || langCode === 'zh';
+  if (isUnspaced && expectedWords.length === 1 && expectedWords[0].length > 3) {
+    expectedWords = Array.from(expectedWords[0]);
+    cleanExpWords = Array.from(cleanExpWords[0] || comparisonExpected);
+    if (cleanSpokenWords.length === 1) {
+      cleanSpokenWords = Array.from(cleanSpokenWords[0] || normSpoken);
+    }
+  }
 
   if (cleanSpokenWords.length === 0) {
     return {
@@ -152,6 +169,8 @@ export function scorePronunciation(expectedText, spokenText, langCode = 'en', me
     // Also check full spoken string containment
     if (cleanWord.length >= 3 && normSpoken.includes(cleanWord)) {
       bestSim = Math.max(bestSim, 0.95);
+    } else if (isUnspaced && cleanWord.length === 1 && normSpoken.includes(cleanWord)) {
+      bestSim = Math.max(bestSim, 0.90);
     }
 
     let status = 'missed';
@@ -170,7 +189,9 @@ export function scorePronunciation(expectedText, spokenText, langCode = 'en', me
   }
 
   const avgSim = expectedWords.length > 0 ? totalSimilarity / expectedWords.length : 0;
-  const score = Math.min(100, Math.round(avgSim * 100));
+  const fullSim = levenshteinSimilarity(comparisonExpected, normSpoken);
+  const finalSim = Math.max(avgSim, fullSim);
+  const score = Math.min(100, Math.round(finalSim * 100));
   const passed = score >= 70;
 
   let feedback = 'Needs improvement. Practice enunciation and try again!';

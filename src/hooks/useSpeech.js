@@ -40,6 +40,7 @@ const useSpeech = () => {
   // Detect support once on mount
   const [isSupported, setIsSupported] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voices, setVoices] = useState([]);
 
   // We keep a ref to the current utterance so `stop()` can cancel it
   const utteranceRef = useRef(null);
@@ -47,9 +48,36 @@ const useSpeech = () => {
   useEffect(() => {
     // `window.speechSynthesis` may exist but voices load asynchronously.
     // We consider it "supported" if the API object itself is present.
-    setIsSupported(
-      typeof window !== 'undefined' && 'speechSynthesis' in window
-    );
+    const supported =
+      typeof window !== 'undefined' && 'speechSynthesis' in window;
+    setIsSupported(supported);
+
+    if (supported) {
+      const loadVoices = () => {
+        try {
+          const list = window.speechSynthesis.getVoices() || [];
+          if (list.length > 0) {
+            setVoices(list);
+          }
+        } catch {
+          // ignore
+        }
+      };
+
+      loadVoices();
+
+      if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+      window.speechSynthesis.addEventListener?.('voiceschanged', loadVoices);
+
+      return () => {
+        if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+          window.speechSynthesis.onvoiceschanged = null;
+        }
+        window.speechSynthesis.removeEventListener?.('voiceschanged', loadVoices);
+      };
+    }
   }, []);
 
   /**
@@ -72,9 +100,13 @@ const useSpeech = () => {
       utterance.pitch = 1;
 
       // Try to find a voice that matches the requested language
-      const voices = window.speechSynthesis.getVoices();
-      const matchingVoice = voices.find((v) =>
-        v.lang.startsWith(LANG_MAP[lang] || lang)
+      const voiceList = voices.length > 0 ? voices : (window.speechSynthesis.getVoices?.() || []);
+      const targetLang = LANG_MAP[lang] || lang;
+      const matchingVoice = voiceList.find((v) =>
+        v.lang && (
+          v.lang.replace('_', '-').toLowerCase().startsWith(targetLang.toLowerCase()) ||
+          v.lang.toLowerCase().startsWith(lang.toLowerCase())
+        )
       );
       if (matchingVoice) {
         utterance.voice = matchingVoice;
@@ -88,7 +120,7 @@ const useSpeech = () => {
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
     },
-    [isSupported]
+    [isSupported, voices]
   );
 
   /**

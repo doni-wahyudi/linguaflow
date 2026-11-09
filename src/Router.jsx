@@ -128,11 +128,7 @@ export default function AppRouter() {
         />
         <Route
           path="/writing"
-          element={
-            <ProtectedRoute>
-              <CharacterStudio />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/characters" replace />}
         />
         <Route
           path="/profile"

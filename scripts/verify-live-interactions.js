@@ -935,6 +935,127 @@ async function runTests() {
     console.log('  [PASS] Furigana (振) and Romaji (Ro) toggle controls active in lesson header');
     results.push({ name: 'Test 13: Japanese LessonPlayer Furigana & Romaji reading toggles', status: 'PASS' });
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 14: Practice Hub Pronunciation Studio typing fallback evaluation
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 14: Practice Hub Pronunciation Studio typing fallback evaluation');
+    await setUserProfile('es');
+    await cdp.eval(`window.location.hash = '#/practice?tab=speaking'`);
+    await cdp.send('Page.reload');
+    await sleep(400);
+
+    await cdp.waitFor(`
+      Boolean(document.querySelector('#practice-panel-speaking')) &&
+      document.body.innerText.includes('Pronunciation & Oral Production Studio')
+    `);
+
+    // Ensure typing mode is active
+    await cdp.eval(`
+      (() => {
+        const typeBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Type instead'));
+        if (typeBtn) typeBtn.click();
+      })()
+    `);
+    await cdp.waitFor(`Boolean(document.querySelector('input[placeholder*="Type"]'))`);
+
+    // Extract target phrase and submit
+    const targetPhrase = await cdp.eval(`
+      (() => {
+        const input = document.querySelector('input[placeholder*="Type"]');
+        const match = input.placeholder.match(/Type "([^"]+)"/);
+        return match ? match[1] : '';
+      })()
+    `);
+
+    await cdp.eval(`
+      (() => {
+        const input = document.querySelector('input[placeholder*="Type"]');
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        setter.call(input, ${JSON.stringify(targetPhrase)});
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        const form = input.closest('form');
+        if (form) {
+          const submitBtn = form.querySelector('button[type="submit"]');
+          if (submitBtn) submitBtn.click();
+        }
+      })()
+    `);
+
+    await cdp.waitFor(`
+      document.body.innerText.includes('Pronunciation Accuracy') ||
+      document.body.innerText.includes('Clear, authentic enunciation') ||
+      document.body.innerText.includes('Great job')
+    `);
+    console.log('  [PASS] Pronunciation Studio typing fallback correctly scored typed phrase');
+    results.push({ name: 'Test 14: Practice Hub Pronunciation Studio typing evaluation', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 15: /writing route redirects to /characters & MobileNav Script tab
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 15: Route /writing redirects to /characters & script navigation');
+    await cdp.eval(`window.location.hash = '#/writing'`);
+    await sleep(300);
+    const hashNow = await cdp.eval(`window.location.hash`);
+    if (hashNow !== '#/characters') {
+      throw new Error(`Expected redirection from /writing to /characters, got ${hashNow}`);
+    }
+    console.log('  [PASS] /writing redirects to /characters cleanly');
+    results.push({ name: 'Test 15: Route /writing redirects to /characters', status: 'PASS' });
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Test 16: Profile Theme Switcher & Reset Confirmation Modal
+    // ──────────────────────────────────────────────────────────────────────────
+    console.log('\nTest 16: Profile theme switcher (Dark/Light) & Reset Confirmation Modal');
+    await cdp.eval(`window.location.hash = '#/profile'`);
+    await cdp.waitFor(`document.body.innerText.includes('Interface Theme')`);
+
+    // Click Dark theme button
+    await cdp.eval(`
+      (() => {
+        const darkBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.trim() === 'Dark');
+        if (darkBtn) darkBtn.click();
+      })()
+    `);
+    await sleep(200);
+
+    const isDark = await cdp.eval(`document.documentElement.getAttribute('data-theme') === 'dark' && localStorage.getItem('theme') === 'dark'`);
+    if (!isDark) throw new Error('Dark theme did not apply data-theme="dark"');
+    console.log('  [OK] Dark theme toggled data-theme="dark" and saved in localStorage');
+
+    // Click Light theme button
+    await cdp.eval(`
+      (() => {
+        const lightBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.trim() === 'Light');
+        if (lightBtn) lightBtn.click();
+      })()
+    `);
+    await sleep(200);
+
+    const isLight = await cdp.eval(`document.documentElement.getAttribute('data-theme') === null && localStorage.getItem('theme') === 'light'`);
+    if (!isLight) throw new Error('Light theme did not remove data-theme attribute');
+    console.log('  [OK] Light theme removed data-theme attribute and saved in localStorage');
+
+    // Open Reset All Progress confirmation modal
+    await cdp.eval(`
+      (() => {
+        const resetBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Reset All Progress'));
+        if (resetBtn) resetBtn.click();
+      })()
+    `);
+    await cdp.waitFor(`document.body.innerText.includes('Reset All Learning Progress?')`);
+
+    // Cancel modal
+    await cdp.eval(`
+      (() => {
+        const cancelBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.trim() === 'Cancel');
+        if (cancelBtn) cancelBtn.click();
+      })()
+    `);
+    await cdp.waitFor(`document.querySelector('[role="dialog"]') === null`);
+    console.log('  [PASS] Profile theme toggles and Reset modal flow verified');
+    results.push({ name: 'Test 16: Profile theme switcher & reset confirmation modal', status: 'PASS' });
+
     console.log('\n====================================================');
     console.log(`  Verification Summary: ALL ${results.length} TESTS PASSED (0 ERRORS)`);
     console.log('====================================================\n');

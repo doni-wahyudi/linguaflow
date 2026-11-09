@@ -42,6 +42,12 @@ assert(esMinor.tokens[0].status === 'partial' || esMinor.tokens[0].status === 'c
 const jaReading = scorePronunciation('学生', 'がくせい', 'ja', { reading: 'がくせい' });
 assert(jaReading.passed === true && jaReading.score >= 90, 'Japanese hiragana matched against kanji via reading metadata');
 
+// 3b. Japanese unspaced phrase character tokenization
+const jaGreeting = scorePronunciation('こんにちは', 'こんにちは', 'ja');
+assert(jaGreeting.passed === true && jaGreeting.score >= 95, 'Japanese unspaced phrase scores >= 95%');
+assert(jaGreeting.tokens.length === 5, 'Japanese unspaced phrase splits into 5 character tokens');
+assert(jaGreeting.tokens.every(t => t.status === 'correct'), 'All Japanese character tokens marked correct on exact match');
+
 // 4. French elision match
 const frMatch = scorePronunciation("C'est la vie", 'c est la vie', 'fr');
 assert(frMatch.passed === true && frMatch.score >= 85, 'French apostrophe variations matched');

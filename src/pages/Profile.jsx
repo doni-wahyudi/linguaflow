@@ -14,13 +14,22 @@ import {
   Award,
   CheckCircle2,
   Pencil,
+  Sun,
+  Moon,
+  Monitor,
+  Volume2,
+  VolumeX,
+  Download,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import PageWrapper from '../components/layout/PageWrapper';
 import { Flag, SemanticIcon } from '../components/brand';
-import { Card, Badge, ProgressBar, Button, Input } from '../components/ui';
+import { Card, Badge, ProgressBar, Button, Input, Modal } from '../components/ui';
 import { useUser } from '../context/UserContext';
 import languages from '../data/languages';
 import { getLevel, getNextLevel, getLevelProgress } from '../utils/xp';
+import { isSoundEnabled, setSoundEnabled, playCorrect } from '../utils/soundEffects';
 
 /**
  * Profile — user identity, level progress, preferences and achievements.
@@ -54,6 +63,85 @@ export default function Profile() {
 
   const handleGoalChange = (minutes) => {
     updateUser({ dailyGoal: minutes });
+  };
+
+  // ── Theme Management ──
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('theme') || 'system';
+    } catch {
+      return 'system';
+    }
+  });
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    try {
+      localStorage.setItem('theme', newTheme);
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (newTheme === 'dark' || (newTheme === 'system' && prefersDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  // ── Audio Feedback Management ──
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+
+  const handleToggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+    if (next) {
+      playCorrect();
+    }
+  };
+
+  // ── Data Backup & Reset Management ──
+  const [showResetModal, setShowResetModal] = useState(false);
+
+  const handleExportData = () => {
+    try {
+      const backup = {
+        app: 'LinguaFlow',
+        version: '1.0.0',
+        exportedAt: new Date().toISOString(),
+        user,
+        completedLessons: progress.completedLessons,
+        wordProgress: progress.allWordProgress,
+        streak: {
+          currentStreak: streak.currentStreak,
+          longestStreak: streak.longestStreak,
+          lastActiveDate: streak.lastActiveDate,
+        },
+        xp: { totalXP: xp.totalXP },
+        theme,
+        soundEnabled: soundOn,
+      };
+
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backup, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `linguaflow-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (err) {
+      console.error('Failed to export data', err);
+    }
+  };
+
+  const handleConfirmReset = () => {
+    try {
+      localStorage.clear();
+      window.location.reload();
+    } catch (err) {
+      console.error('Failed to reset data', err);
+    }
   };
 
   const achievements = [
@@ -290,6 +378,109 @@ export default function Profile() {
           </Card>
         </div>
 
+        {/* ── Preferences: Appearance & Sound FX ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Theme Mode */}
+          <Card padding="md">
+            <h2 className="font-display font-semibold text-display-sm text-ink-900 mb-3 flex items-center gap-2">
+              <Sun className="w-5 h-5 text-amber-600" aria-hidden="true" /> Interface Theme
+            </h2>
+            <p className="text-caption text-ink-500 mb-4">
+              Choose your preferred visual appearance across LinguaFlow:
+            </p>
+
+            <div className="grid grid-cols-3 gap-2.5">
+              {[
+                { id: 'light', label: 'Light', icon: Sun },
+                { id: 'dark', label: 'Dark', icon: Moon },
+                { id: 'system', label: 'System', icon: Monitor },
+              ].map((t) => {
+                const selected = theme === t.id;
+                const IconComponent = t.icon;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => handleThemeChange(t.id)}
+                    className={`p-3 rounded-card border-2 flex flex-col items-center justify-center gap-1.5 transition-colors ${
+                      selected
+                        ? 'border-brand-700 bg-brand-50 text-ink-900'
+                        : 'border-ink-200 bg-surface-card hover:border-ink-300 text-ink-700'
+                    }`}
+                  >
+                    <IconComponent className={`w-5 h-5 ${selected ? 'text-brand-700' : 'text-ink-500'}`} aria-hidden="true" />
+                    <span className="font-semibold text-body-sm">{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Sound FX & Audio */}
+          <Card padding="md">
+            <h2 className="font-display font-semibold text-display-sm text-ink-900 mb-3 flex items-center gap-2">
+              <Volume2 className="w-5 h-5 text-brand-700" aria-hidden="true" /> Audio & Sound Effects
+            </h2>
+            <p className="text-caption text-ink-500 mb-4">
+              Tactile audio feedback synthesized locally via Web Audio API:
+            </p>
+
+            <div className="flex items-center justify-between p-3.5 rounded-card border border-ink-200 bg-surface-50">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-button flex items-center justify-center ${soundOn ? 'bg-brand-100 text-brand-700' : 'bg-ink-100 text-ink-400'}`}>
+                  {soundOn ? <Volume2 className="w-5 h-5" aria-hidden="true" /> : <VolumeX className="w-5 h-5" aria-hidden="true" />}
+                </div>
+                <div>
+                  <p className="font-semibold text-body-sm text-ink-900">Interactive Sound Chimes</p>
+                  <p className="text-caption text-ink-500">
+                    {soundOn ? 'Sound effects enabled on correct & incorrect responses' : 'Muted for quiet environments'}
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                variant={soundOn ? 'primary' : 'outline'}
+                size="sm"
+                shape="pill"
+                onClick={handleToggleSound}
+              >
+                {soundOn ? 'Enabled' : 'Muted'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+
+        {/* ── Data Management & Backup ── */}
+        <Card padding="md">
+          <h2 className="font-display font-semibold text-display-sm text-ink-900 mb-2 flex items-center gap-2">
+            <Download className="w-5 h-5 text-brand-700" aria-hidden="true" /> Data Management & Privacy
+          </h2>
+          <p className="text-body-sm text-ink-500 mb-5 max-w-2xl">
+            LinguaFlow stores 100% of your progress locally on your device in your browser. You can export a full JSON backup of your learning history or reset your local state.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <Button
+              variant="outline"
+              size="md"
+              icon={Download}
+              onClick={handleExportData}
+            >
+              Export Learning Backup (JSON)
+            </Button>
+
+            <Button
+              variant="danger"
+              size="md"
+              icon={Trash2}
+              onClick={() => setShowResetModal(true)}
+            >
+              Reset All Progress
+            </Button>
+          </div>
+        </Card>
+
         {/* ── Badges & Achievements ── */}
         <Card padding="md">
           <h2 className="font-display font-semibold text-display-sm text-ink-900 mb-4 flex items-center gap-2">
@@ -332,6 +523,40 @@ export default function Profile() {
           </div>
         </Card>
       </div>
+
+      {/* Reset Confirmation Modal */}
+      <Modal
+        isOpen={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        title="Reset All Learning Progress?"
+        footer={
+          <div className="flex items-center justify-end gap-3 w-full">
+            <Button
+              variant="ghost"
+              onClick={() => setShowResetModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              icon={Trash2}
+              onClick={handleConfirmReset}
+            >
+              Yes, Reset Everything
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-body-md text-ink-700">
+            This action will permanently erase all completed lessons, earned XP, daily streaks, and spaced repetition memory from this browser.
+          </p>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-card flex items-start gap-2.5 text-body-sm text-amber-900">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <span>We recommend downloading a backup first if you might want to preserve your learning history.</span>
+          </div>
+        </div>
+      </Modal>
     </PageWrapper>
   );
 }
