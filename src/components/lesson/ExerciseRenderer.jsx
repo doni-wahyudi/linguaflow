@@ -12,6 +12,7 @@ import MatchPairs from './MatchPairs';
 import WritingCanvas from '../writing/WritingCanvas';
 import SpeakingExercise from './SpeakingExercise';
 import SentenceBuilder from './SentenceBuilder';
+import DialoguePlayer from './DialoguePlayer';
 import { Badge, Card } from '../ui';
 
 /* The renderer is the only place that knows an exercise has no matching case, so
@@ -141,6 +142,19 @@ export default function ExerciseRenderer({
     case 'sentenceBuilder':
       return (
         <SentenceBuilder
+          exercise={exercise}
+          langCode={langCode}
+          onAnswer={onAnswer}
+          disabled={disabled}
+          showFurigana={showFurigana}
+          showRomaji={showRomaji}
+        />
+      );
+
+    case 'dialogue':
+    case 'roleplay':
+      return (
+        <DialoguePlayer
           exercise={exercise}
           langCode={langCode}
           onAnswer={onAnswer}
