@@ -25,7 +25,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, HelpCircle } from 'lucide-react';
 import { shakeX, transitionEase } from '../../utils/motion';
-import { Badge } from '../ui';
+import { Badge, FuriganaText } from '../ui';
 
 export default function MultipleChoice({
   question,
@@ -34,6 +34,8 @@ export default function MultipleChoice({
   explanation,
   onAnswer,
   disabled = false,
+  showFurigana = true,
+  showRomaji = false,
 }) {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [submitted, setSubmitted] = useState(false);
@@ -58,7 +60,11 @@ export default function MultipleChoice({
           Select the correct answer
         </Badge>
         <h2 className="font-display font-bold text-display-md text-ink-900 leading-snug">
-          {question}
+          {typeof question === 'string' && question.includes('[') ? (
+            <FuriganaText text={question} showFurigana={showFurigana} showRomaji={showRomaji} />
+          ) : (
+            question
+          )}
         </h2>
       </div>
 

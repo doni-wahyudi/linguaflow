@@ -18,3 +18,4 @@ export { default as Chip } from './Chip';
 export { default as AudioControls } from './AudioControls';
 export { default as MicButton } from './MicButton';
 export { default as LiveAudioVisualizer } from './LiveAudioVisualizer';
+export { default as FuriganaText } from './FuriganaText';

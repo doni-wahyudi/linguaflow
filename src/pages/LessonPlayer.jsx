@@ -83,6 +83,8 @@ export default function LessonPlayer() {
   const [currentCorrect, setCurrentCorrect] = useState(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
+  const [showFurigana, setShowFurigana] = useState(true);
+  const [showRomaji, setShowRomaji] = useState(false);
   const [showPreLessonGuide, setShowPreLessonGuide] = useState(
     searchParams.has('index') ? false : Boolean(lesson?.grammarGuide)
   );
@@ -366,6 +368,42 @@ export default function LessonPlayer() {
             </Button>
           )}
 
+          {/* Reading Assist Toggles for Japanese (Furigana / Romaji) */}
+          {(lesson.languageId === 'ja' || user?.selectedLanguage === 'ja') && (
+            <div
+              className="hidden sm:flex items-center gap-1 bg-ink-100 p-0.5 rounded-pill border border-ink-200"
+              role="group"
+              aria-label="Japanese reading assistance"
+            >
+              <button
+                type="button"
+                onClick={() => setShowFurigana((v) => !v)}
+                className={`px-2 py-1 text-caption font-bold rounded-pill transition-colors ${
+                  showFurigana
+                    ? 'bg-brand-500 text-white shadow-soft-xs'
+                    : 'text-ink-600 hover:text-ink-900'
+                }`}
+                title={showFurigana ? 'Hide Furigana ruby readings' : 'Show Furigana ruby readings'}
+                aria-pressed={showFurigana}
+              >
+                振
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRomaji((v) => !v)}
+                className={`px-2 py-1 text-caption font-mono rounded-pill transition-colors ${
+                  showRomaji
+                    ? 'bg-brand-500 text-white shadow-soft-xs'
+                    : 'text-ink-600 hover:text-ink-900'
+                }`}
+                title={showRomaji ? 'Hide Romaji reading' : 'Show Romaji reading'}
+                aria-pressed={showRomaji}
+              >
+                Ro
+              </button>
+            </div>
+          )}
+
           {/* Sound FX Toggle — `tint` when on, neutral outline when off. The two
               states used to be hand-written class strings stacked on a local
               ICON_BTN recipe, which is also what made its idle label ink-500
@@ -435,6 +473,8 @@ export default function LessonPlayer() {
                 langCode={lesson.languageId}
                 onAnswer={handleAnswer}
                 disabled={currentAnswered}
+                showFurigana={showFurigana}
+                showRomaji={showRomaji}
               />
             </motion.div>
           )}

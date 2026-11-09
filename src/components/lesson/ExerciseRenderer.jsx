@@ -32,6 +32,8 @@ export default function ExerciseRenderer({
   langCode = 'es',
   onAnswer,
   disabled = false,
+  showFurigana = true,
+  showRomaji = false,
 }) {
   if (!exercise) return null;
 
@@ -85,6 +87,8 @@ export default function ExerciseRenderer({
           explanation={exercise.explanation}
           onAnswer={onAnswer}
           disabled={disabled}
+          showFurigana={showFurigana}
+          showRomaji={showRomaji}
         />
       );
 
