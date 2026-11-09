@@ -11,6 +11,7 @@ import FillBlank from './FillBlank';
 import MatchPairs from './MatchPairs';
 import WritingCanvas from '../writing/WritingCanvas';
 import SpeakingExercise from './SpeakingExercise';
+import SentenceBuilder from './SentenceBuilder';
 import { Badge, Card } from '../ui';
 
 /* The renderer is the only place that knows an exercise has no matching case, so
@@ -133,6 +134,19 @@ export default function ExerciseRenderer({
           langCode={langCode}
           onAnswer={onAnswer}
           disabled={disabled}
+        />
+      );
+
+    case 'scramble':
+    case 'sentenceBuilder':
+      return (
+        <SentenceBuilder
+          exercise={exercise}
+          langCode={langCode}
+          onAnswer={onAnswer}
+          disabled={disabled}
+          showFurigana={showFurigana}
+          showRomaji={showRomaji}
         />
       );
 
